@@ -1,0 +1,84 @@
+externalDocs:
+  description: OpenAPI
+  url: https://swagger.io/resources/open-api/
+host: localhost:8080
+info:
+  contact: {}
+  license:
+    name: GNU General Public License v3.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Enclave API Server
+  version: 0.0.1
+paths:
+  /demo:
+    get:
+      consumes:
+      - application/json
+      description: A simple demo endpoint to show API functionality
+      parameters:
+      - description: Name to greet
+        in: query
+        name: name
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Demo endpoint
+      tags:
+      - demo
+  /issue-token:
+    get:
+      consumes:
+      - application/json
+      description: Issues a JWT token for a given username and password
+      parameters:
+      - description: Username
+        in: query
+        name: username
+        required: true
+        type: string
+      - description: Password
+        in: query
+        name: password
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JWT token
+          schema:
+            type: string
+        "403":
+          description: invalid username or password
+          schema:
+            type: string
+      summary: Issue JWT token
+      tags:
+      - auth
+swagger: "2.0"

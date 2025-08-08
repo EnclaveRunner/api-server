@@ -1,7 +1,7 @@
 package main
 
 import (
-	_ "enclave-backend/docu"
+	_ "enclave-backend/docs"
 	"enclave-backend/handlers"
 	"enclave-backend/internal/logging"
 	"enclave-backend/internal/metrics"
@@ -16,7 +16,7 @@ import (
 
 const (
 	// APIVersion is the version of the API
-    APIVersion = "api/v1"
+	APIVersion = "api/v1"
 	port       = ":8080"
 )
 
@@ -44,6 +44,8 @@ func main() {
 
 	r := gin.New()
 	r.Use(gin.Recovery())
+
+	api := r.Group("/" + APIVersion)
 
 	r.Use(metrics.MetricsHandler())
 
@@ -73,22 +75,18 @@ func main() {
 	})
 
 	// Swagger UI-endpoint
-	r.GET(apiPath("/swagger/*any"), ginSwagger.WrapHandler(swaggerfiles.Handler))
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
-	// Prometheus metrics endpoint
+	// Prometheus metrics endpoint (no API group)
 	r.GET("/metrics", func(c *gin.Context) {
 		gin.WrapH(promhttp.Handler())(c)
 	})
 
 	// JWT issue endpoint
-	r.GET(apiPath("/issue-token"), handlers.IssueToken)
+	api.GET("/issue-token", handlers.IssueToken)
 
-	r.GET(apiPath("/demo"), handlers.Demo)
+	api.GET("/demo", handlers.Demo)
 
-	logger.Info("Starting API-Service on " + apiPath("") + port)
+	logger.Info("Starting API-Service on " + port)
 	r.Run(port)
-}
-
-func apiPath(path string) string {
-	return "/" + APIVersion + path
 }

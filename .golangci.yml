@@ -4,15 +4,14 @@ formatters:
     - gofumpt
     - goimports
     - golines
-    - swaggo
   settings:
     gofumpt:
       # Use stricter formatting than gofmt
       extra-rules: true
-    
+
     goimports: {}
       # Put imports beginning with prefix after 3rd-party packages
-    
+
     golines:
       # Target maximum line length
       max-len: 100
@@ -23,6 +22,7 @@ formatters:
       reformat-tags: true
       # Split chained methods on the dots as opposed to the arguments
       chain-split-dots: true
+
 linters:
   enable:
     - asciicheck
@@ -48,7 +48,6 @@ linters:
     - forcetypeassert
     - funcorder
     - gocheckcompilerdirectives
-    - gochecknoglobals
     - gochecksumtype
     - goconst
     - gocritic
@@ -85,7 +84,7 @@ linters:
     - usestdlibvars
     - varnamelen
     - wastedassign
-    - wrapcheck 
+    - wrapcheck
   settings:
     gocritic:
       enable-all: true

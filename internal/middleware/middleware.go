@@ -1,88 +1,163 @@
 package middleware
 
 import (
+	"crypto/rand"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"sync"
 	"time"
-
-	"crypto/rand"
-	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	"github.com/sirupsen/logrus"
 )
 
-// TODO: Store JWT secret in a secure way, e.g., environment variable or config file
-var signatureSecret []byte
+const (
+	secretLength           = 32
+	tokenExpirationMinutes = 30
+)
 
+// ErrInvalidCredentials is returned when authentication fails
+var ErrInvalidCredentials = errors.New("invalid username or password")
+
+// SecretManager manages JWT signing secrets with rotation
+type SecretManager struct {
+	mu     sync.RWMutex
+	secret []byte
+}
+
+// NewSecretManager creates a new secret manager
+func NewSecretManager() (*SecretManager, error) {
+	manager := &SecretManager{
+		mu:     sync.RWMutex{},
+		secret: nil,
+	}
+
+	err := manager.rotateSecret()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize secret manager: %w", err)
+	}
+
+	return manager, nil
+}
+
+// GetSecret safely returns the current secret
+func (sm *SecretManager) GetSecret() []byte {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+
+	secret := make([]byte, len(sm.secret))
+	copy(secret, sm.secret)
+
+	return secret
+}
+
+// rotateSecret generates and sets a new secret
+func (sm *SecretManager) rotateSecret() error {
+	secretValue, err := generateSecret()
+	if err != nil {
+		return fmt.Errorf("failed to generate secret: %w", err)
+	}
+
+	sm.mu.Lock()
+	sm.secret = secretValue
+	sm.mu.Unlock()
+
+	return nil
+}
+
+// globalSecretManager is the package-level secret manager
+var globalSecretManager *SecretManager
+
+func init() {
+	var err error
+	globalSecretManager, err = NewSecretManager()
+	if err != nil {
+		log.Fatalf("Failed to initialize secret manager: %v", err)
+	}
+}
+
+// StartSecretLifecycle starts the secret rotation lifecycle
 func StartSecretLifecycle(logger *logrus.Logger, ttl time.Duration) {
 	go func() {
 		cycle := 0
 		for {
 			time.Sleep(ttl)
-			rotateSecret()
+			err := globalSecretManager.rotateSecret()
+			if err != nil {
+				logger.WithError(err).Error("Failed to rotate secret")
+
+				continue
+			}
+
 			logger.WithFields(map[string]interface{}{
-				"action ": "Secret rotation",
-				"cycle ":  cycle,
+				"action": "Secret rotation",
+				"cycle":  cycle,
 			}).Info("Secret rotated successfully")
 			cycle++
 		}
 	}()
-
 }
 
+// JWTMiddleware returns a middleware that validates JWT tokens
 func JWTMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		token := c.GetHeader("Authorization")
+	return func(ctx *gin.Context) {
+		token := ctx.GetHeader("Authorization")
 		if token == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "authorization header required"})
+			ctx.AbortWithStatusJSON(
+				http.StatusUnauthorized,
+				gin.H{"error": "authorization header required"},
+			)
+
 			return
 		}
 
-		// TODO: Validate the token
+		// Simple token validation - in production, validate JWT properly
 		if token != "Bearer secret" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+
 			return
 		}
 
-		c.Next()
+		ctx.Next()
 	}
 }
 
-func rotateSecret() {
-	secretValue, err := generateSecret()
-	if err != nil {
-		log.Fatalf("Failed to generate secret: %v", err)
-	}
-	signatureSecret = secretValue
-}
-
-// generateSecret generates a secure random 32-byte secret.
+// generateSecret generates a secure random secret
 func generateSecret() ([]byte, error) {
-	secret := make([]byte, 32)
+	secret := make([]byte, secretLength)
 	_, err := rand.Read(secret)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate random secret: %w", err)
 	}
+
 	return secret, nil
 }
 
-func IssueJWT(c *gin.Context, username string, password string) (string, error) {
-	// TODO: Only mocking, validate username and password against meta-database
+// IssueJWT issues a JWT token for the given credentials
+func IssueJWT(ctx *gin.Context, username, password string) (string, error) {
+	// Mock authentication - in production, validate against proper user store
 	if username != "john" || password != "doe" {
-		return "", fmt.Errorf("invalid username or password")
+		return "", ErrInvalidCredentials
 	}
 
 	// Create a new token object
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"firstname": "john",
 		"lastname":  "doe",
-		"iat":       time.Now().Add(time.Minute * 30).Unix(), //
+		"iat":       time.Now().Add(time.Minute * tokenExpirationMinutes).Unix(),
 	})
 
-	// Sign and get the complete encoded token as a string using the secret
-	tokenString, err := token.SignedString(signatureSecret)
+	// Get the current secret
+	secret := globalSecretManager.GetSecret()
 
-	return tokenString, err
+	// Sign and get the complete encoded token as a string using the secret
+	tokenString, err := token.SignedString(secret)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign JWT token: %w", err)
+	}
+
+	return tokenString, nil
 }

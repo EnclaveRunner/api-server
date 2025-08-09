@@ -1,12 +1,12 @@
-externalDocs:
-  description: OpenAPI
-  url: https://swagger.io/resources/open-api/
+basePath: /api/v1
 host: localhost:8080
 info:
-  contact: {}
+  contact:
+    name: API Support
+  description: API server for the Enclave project
   license:
     name: GNU General Public License v3.0
-    url: http://www.apache.org/licenses/LICENSE-2.0.html
+    url: https://www.gnu.org/licenses/gpl-3.0.html
   termsOfService: http://swagger.io/terms/
   title: Enclave API Server
   version: 0.0.1

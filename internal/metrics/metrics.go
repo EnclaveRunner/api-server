@@ -7,18 +7,26 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+const badRequestThreshold = 400
+
 var (
 	RequestCount = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "api_requests_total",
-			Help: "Total number of HTTP requests",
+			Name:        "api_requests_total",
+			Help:        "Total number of HTTP requests",
+			Namespace:   "",
+			Subsystem:   "",
+			ConstLabels: nil,
 		},
 		[]string{"path", "status"},
 	)
 	ErrorCount = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "api_requests_errors_total",
-			Help: "Total number of FAILED HTTP requests",
+			Name:        "api_requests_errors_total",
+			Help:        "Total number of FAILED HTTP requests",
+			Namespace:   "",
+			Subsystem:   "",
+			ConstLabels: nil,
 		},
 		[]string{"path", "status"},
 	)
@@ -37,7 +45,7 @@ func MetricsHandler() gin.HandlerFunc {
 		c.Next()
 		status := c.Writer.Status()
 		RequestCount.WithLabelValues(path, http.StatusText(status)).Inc()
-		if status >= 400 {
+		if status >= badRequestThreshold {
 			ErrorCount.WithLabelValues(path, http.StatusText(status)).Inc()
 		}
 	}

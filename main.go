@@ -20,18 +20,15 @@ const (
 	port       = ":8080"
 )
 
-//	@title			Enclave API Server
-//	@version		0.0.1
-//	@termsOfService	http://swagger.io/terms/
-
-//	@license.name	GNU General Public License v3.0
-//	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
-
-//	@host	localhost:8080
-//	@BasePath/api/v1
-
-// @externalDocs.description	OpenAPI
-// @externalDocs.url			https://swagger.io/resources/open-api/
+// @title			Enclave API Server
+// @version		0.0.1
+// @description	API server for the Enclave project
+// @termsOfService	http://swagger.io/terms/
+// @contact.name	API Support
+// @license.name	GNU General Public License v3.0
+// @license.url	https://www.gnu.org/licenses/gpl-3.0.html
+// @host			localhost:8080
+// @BasePath		/api/v1
 func main() {
 	// Set up logger
 	logger := logging.NewLogger()
@@ -40,47 +37,49 @@ func main() {
 	metrics.Init()
 
 	// Start secret lifecycle management
-	middleware.StartSecretLifecycle(logger, 5*time.Second)
+	const secretRotationInterval = 5 * time.Second
+	middleware.StartSecretLifecycle(logger, secretRotationInterval)
 
-	r := gin.New()
+	router := gin.New()
 
-	r.Use(gin.Recovery())
+	router.Use(gin.Recovery())
 
-	api := r.Group("/" + APIVersion)
+	api := router.Group("/" + APIVersion)
 
-	r.Use(metrics.MetricsHandler())
+	router.Use(metrics.MetricsHandler())
 
 	// Logging & metrics middleware
-	r.Use(func(c *gin.Context) {
+	router.Use(func(ctx *gin.Context) {
 		// Log request received
 		logger.WithFields(map[string]interface{}{
-			"method": c.Request.Method,
-			"path":   c.Request.URL.Path,
+			"method": ctx.Request.Method,
+			"path":   ctx.Request.URL.Path,
 		}).Info("request received")
 
 		// Increment metrics
-		metrics.RequestCount.WithLabelValues(c.Request.URL.Path, c.Request.Method).Inc()
+		metrics.RequestCount.WithLabelValues(ctx.Request.URL.Path, ctx.Request.Method).Inc()
 
 		// Process request
-		c.Next()
+		ctx.Next()
 
 		// Log status if not successful
-		status := c.Writer.Status()
-		if status >= 400 {
+		status := ctx.Writer.Status()
+		const badRequestThreshold = 400
+		if status >= badRequestThreshold {
 			logger.WithFields(map[string]interface{}{
-				"method": c.Request.Method,
-				"path":   c.Request.URL.Path,
+				"method": ctx.Request.Method,
+				"path":   ctx.Request.URL.Path,
 				"status": status,
 			}).Warn("request failed")
 		}
 	})
 
 	// Swagger UI-endpoint
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
 	// Prometheus metrics endpoint (no API group)
-	r.GET("/metrics", func(c *gin.Context) {
-		gin.WrapH(promhttp.Handler())(c)
+	router.GET("/metrics", func(ctx *gin.Context) {
+		gin.WrapH(promhttp.Handler())(ctx)
 	})
 
 	// JWT issue endpoint
@@ -89,5 +88,7 @@ func main() {
 	api.GET("/demo", handlers.Demo)
 
 	logger.Info("Starting API-Service on " + port)
-	r.Run(port)
+	if err := router.Run(port); err != nil {
+		logger.WithError(err).Fatal("Failed to start server")
+	}
 }

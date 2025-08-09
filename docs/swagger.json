@@ -1,16 +1,20 @@
 {
     "swagger": "2.0",
     "info": {
+        "description": "API server for the Enclave project",
         "title": "Enclave API Server",
         "termsOfService": "http://swagger.io/terms/",
-        "contact": {},
+        "contact": {
+            "name": "API Support"
+        },
         "license": {
             "name": "GNU General Public License v3.0",
-            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+            "url": "https://www.gnu.org/licenses/gpl-3.0.html"
         },
         "version": "0.0.1"
     },
     "host": "localhost:8080",
+    "basePath": "/api/v1",
     "paths": {
         "/demo": {
             "get": {
@@ -118,9 +122,5 @@
                 }
             }
         }
-    },
-    "externalDocs": {
-        "description": "OpenAPI",
-        "url": "https://swagger.io/resources/open-api/"
     }
 }

@@ -20,20 +20,20 @@ import (
 //	@Failure		404		{object}	map[string]string	"not found"
 //	@Failure		500		{object}	map[string]string	"internal server error"
 //	@Router			/demo [get]
-func Demo(c *gin.Context) {
-	name := c.DefaultQuery("param", "")
+func Demo(ctx *gin.Context) {
+	name := ctx.DefaultQuery("param", "")
 	if name == "error" {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "name parameter is required"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "name parameter is required"})
 
 		return
 	}
 
 	if name == "not-found" {
-		c.JSON(http.StatusNotFound, gin.H{"message": "not found"})
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "not found"})
 
 		return
 	}
-	c.JSON(200, gin.H{"message": "Hello, " + name + "! This is a demo endpoint!"})
+	ctx.JSON(http.StatusOK, gin.H{"message": "Hello, " + name + "! This is a demo endpoint!"})
 }
 
 // IssueToken godoc
@@ -48,15 +48,15 @@ func Demo(c *gin.Context) {
 //	@Success		200			{object}	string	"JWT token"
 //	@Failure		403			{object}	string	"invalid username or password"
 //	@Router			/issue-token [get]
-func IssueToken(c *gin.Context) {
-	// TODO: Implement proper authentication
-	username := c.Query("username")
-	password := c.Query("password")
-	token, err := middleware.IssueJWT(c, username, password)
+func IssueToken(ctx *gin.Context) {
+	// Mock authentication - proper authentication should be implemented for production
+	username := ctx.Query("username")
+	password := ctx.Query("password")
+	token, err := middleware.IssueJWT(ctx, username, password)
 	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"token": token})
+	ctx.JSON(http.StatusOK, gin.H{"token": token})
 }

@@ -20,18 +20,18 @@ const (
 	port       = ":8080"
 )
 
-// @title           Enclave API Server
-// @version         0.0.1
-// @termsOfService  http://swagger.io/terms/
+//	@title			Enclave API Server
+//	@version		0.0.1
+//	@termsOfService	http://swagger.io/terms/
 
-// @license.name  GNU General Public License v3.0
-// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+//	@license.name	GNU General Public License v3.0
+//	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host      localhost:8080
-// @BasePath/api/v1
+//	@host	localhost:8080
+//	@BasePath/api/v1
 
-// @externalDocs.description  OpenAPI
-// @externalDocs.url          https://swagger.io/resources/open-api/
+// @externalDocs.description	OpenAPI
+// @externalDocs.url			https://swagger.io/resources/open-api/
 func main() {
 	// Set up logger
 	logger := logging.NewLogger()
@@ -43,6 +43,7 @@ func main() {
 	middleware.StartSecretLifecycle(logger, 5*time.Second)
 
 	r := gin.New()
+
 	r.Use(gin.Recovery())
 
 	api := r.Group("/" + APIVersion)

@@ -14,5 +14,6 @@ func NewLogger() *logrus.Logger {
 		ForceColors:   true,
 	})
 	logger.SetOutput(os.Stdout)
+
 	return logger
 }

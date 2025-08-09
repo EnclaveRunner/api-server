@@ -6,6 +6,7 @@ import (
 	"enclave-backend/internal/logging"
 	"enclave-backend/internal/metrics"
 	"enclave-backend/internal/middleware"
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -51,7 +52,7 @@ func main() {
 	// Logging & metrics middleware
 	router.Use(func(ctx *gin.Context) {
 		// Log request received
-		logger.WithFields(map[string]interface{}{
+		logger.WithFields(map[string]any{
 			"method": ctx.Request.Method,
 			"path":   ctx.Request.URL.Path,
 		}).Info("request received")
@@ -64,9 +65,8 @@ func main() {
 
 		// Log status if not successful
 		status := ctx.Writer.Status()
-		const badRequestThreshold = 400
-		if status >= badRequestThreshold {
-			logger.WithFields(map[string]interface{}{
+		if status >= http.StatusBadRequest {
+			logger.WithFields(map[string]any{
 				"method": ctx.Request.Method,
 				"path":   ctx.Request.URL.Path,
 				"status": status,

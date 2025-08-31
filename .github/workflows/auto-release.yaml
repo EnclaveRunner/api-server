@@ -1,0 +1,153 @@
+name: Auto Release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  check-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check commit message for version keywords
+        id: version-check
+        run: |
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          echo "commit_message=$COMMIT_MSG" >> $GITHUB_OUTPUT
+
+          if echo "$COMMIT_MSG" | grep -q "#major"; then
+            echo "version_type=major" >> $GITHUB_OUTPUT
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          elif echo "$COMMIT_MSG" | grep -q "#minor"; then
+            echo "version_type=minor" >> $GITHUB_OUTPUT
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          elif echo "$COMMIT_MSG" | grep -q "#patch"; then
+            echo "version_type=patch" >> $GITHUB_OUTPUT
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_release=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get latest tag
+        id: latest-tag
+        if: steps.version-check.outputs.should_release == 'true'
+        run: |
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+
+      - name: Calculate new version
+        id: new-version
+        if: steps.version-check.outputs.should_release == 'true'
+        run: |
+          LATEST_TAG="${{ steps.latest-tag.outputs.latest_tag }}"
+          VERSION_TYPE="${{ steps.version-check.outputs.version_type }}"
+
+          # Remove 'v' prefix if present
+          VERSION=${LATEST_TAG#v}
+
+          # Split version into parts
+          IFS='.' read -ra VERSION_PARTS <<< "$VERSION"
+          MAJOR=${VERSION_PARTS[0]:-0}
+          MINOR=${VERSION_PARTS[1]:-0}
+          PATCH=${VERSION_PARTS[2]:-0}
+
+          # Increment version based on type
+          case $VERSION_TYPE in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+
+          NEW_VERSION="v$MAJOR.$MINOR.$PATCH"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Generate release notes
+        id: release-notes
+        if: steps.version-check.outputs.should_release == 'true'
+        run: |
+          LATEST_TAG="${{ steps.latest-tag.outputs.latest_tag }}"
+
+          # Get commits since last tag
+          if [ "$LATEST_TAG" != "v0.0.0" ]; then
+            COMMITS=$(git log --pretty=format:"- %s (%h)" $LATEST_TAG..HEAD)
+          else
+            COMMITS=$(git log --pretty=format:"- %s (%h)")
+          fi
+
+          # Get contributors since last tag
+          if [ "$LATEST_TAG" != "v0.0.0" ]; then
+            CONTRIBUTORS=$(git log --pretty=format:"%an" $LATEST_TAG..HEAD | sort | uniq | sed 's/^/- /')
+          else
+            CONTRIBUTORS=$(git log --pretty=format:"%an" | sort | uniq | sed 's/^/- /')
+          fi
+
+          # Create release notes
+          cat > release_notes.md << EOF
+          ## Changes
+
+          $COMMITS
+
+          ## Contributors
+
+          $CONTRIBUTORS
+          EOF
+
+          echo "release_notes_file=release_notes.md" >> $GITHUB_OUTPUT
+
+      - name: Clean commit message for title
+        id: clean-title
+        if: steps.version-check.outputs.should_release == 'true'
+        run: |
+          COMMIT_MSG="${{ steps.version-check.outputs.commit_message }}"
+          # Remove #patch, #minor, #major keywords
+          CLEAN_TITLE=$(echo "$COMMIT_MSG" | sed 's/#patch//g; s/#minor//g; s/#major//g' | sed 's/^ *//; s/ *$//')
+          echo "clean_title=$CLEAN_TITLE" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        if: steps.version-check.outputs.should_release == 'true'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.new-version.outputs.new_version }}
+          release_name: ${{ steps.clean-title.outputs.clean_title }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+
+      - name: Update VERSION file
+        if: steps.version-check.outputs.should_release == 'true'
+        run: |
+          NEW_VERSION="${{ steps.new-version.outputs.new_version }}"
+          # Remove 'v' prefix for VERSION file
+          echo "${NEW_VERSION#v}" > VERSION
+
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add VERSION
+          git commit -m "chore: update VERSION to ${NEW_VERSION#v}"
+          git push
+
+      - name: Tag commit
+        if: steps.version-check.outputs.should_release == 'true'
+        run: |
+          NEW_VERSION="${{ steps.new-version.outputs.new_version }}"
+          git tag $NEW_VERSION
+          git push origin $NEW_VERSION

@@ -133,7 +133,7 @@ jobs:
         if: steps.version-check.outputs.should_release == 'true'
         uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
         with:
           tag_name: ${{ steps.new-version.outputs.new_version }}
           release_name: ${{ steps.clean-title.outputs.clean_title }}
@@ -148,8 +148,8 @@ jobs:
           # Remove 'v' prefix for VERSION file
           echo "${NEW_VERSION#v}" > VERSION
 
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          git config --local user.email "encalve-automation@marvin-fuchs.de"
+          git config --local user.name "Enclave Bot"
           git add VERSION
           git commit -m "chore: update VERSION to ${NEW_VERSION#v}"
           git push

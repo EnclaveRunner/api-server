@@ -148,7 +148,7 @@ jobs:
           # Remove 'v' prefix for VERSION file
           echo "${NEW_VERSION#v}" > VERSION
 
-          git config --local user.email "encalve-automation@marvin-fuchs.de"
+          git config --local user.email "enclave-automation@marvin-fuchs.de"
           git config --local user.name "Enclave Bot"
           git add VERSION
           git commit -m "chore: update VERSION to ${NEW_VERSION#v}"

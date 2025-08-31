@@ -20,16 +20,23 @@ jobs:
       - name: Check commit message for version keywords
         id: version-check
         run: |
-          COMMIT_MSG="${{ github.event.head_commit.message }}"
-          echo "commit_message=$COMMIT_MSG" >> $GITHUB_OUTPUT
+          # Write commit message to file to handle multi-line messages
+          cat > commit_message.txt << 'EOF'
+          ${{ github.event.head_commit.message }}
+          EOF
 
-          if echo "$COMMIT_MSG" | grep -q "#major"; then
+          COMMIT_MSG=$(cat commit_message.txt)
+          echo "commit_message<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMIT_MSG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          if grep -q "#major" commit_message.txt; then
             echo "version_type=major" >> $GITHUB_OUTPUT
             echo "should_release=true" >> $GITHUB_OUTPUT
-          elif echo "$COMMIT_MSG" | grep -q "#minor"; then
+          elif grep -q "#minor" commit_message.txt; then
             echo "version_type=minor" >> $GITHUB_OUTPUT
             echo "should_release=true" >> $GITHUB_OUTPUT
-          elif echo "$COMMIT_MSG" | grep -q "#patch"; then
+          elif grep -q "#patch" commit_message.txt; then
             echo "version_type=patch" >> $GITHUB_OUTPUT
             echo "should_release=true" >> $GITHUB_OUTPUT
           else
@@ -115,10 +122,12 @@ jobs:
         id: clean-title
         if: steps.version-check.outputs.should_release == 'true'
         run: |
-          COMMIT_MSG="${{ steps.version-check.outputs.commit_message }}"
-          # Remove #patch, #minor, #major keywords
-          CLEAN_TITLE=$(echo "$COMMIT_MSG" | sed 's/#patch//g; s/#minor//g; s/#major//g' | sed 's/^ *//; s/ *$//')
-          echo "clean_title=$CLEAN_TITLE" >> $GITHUB_OUTPUT
+          # Use the commit message file to handle multi-line messages
+          cat commit_message.txt | head -1 | sed 's/#patch//g; s/#minor//g; s/#major//g' | sed 's/^ *//; s/ *$//' > clean_title.txt
+          CLEAN_TITLE=$(cat clean_title.txt)
+          echo "clean_title<<EOF" >> $GITHUB_OUTPUT
+          echo "$CLEAN_TITLE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create Release
         if: steps.version-check.outputs.should_release == 'true'

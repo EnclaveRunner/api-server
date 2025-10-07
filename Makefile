@@ -1,28 +1,52 @@
-# Makefile for api-server
+.PHONY: test test-verbose test-coverage test-race bench clean fmt lint
 
-VERSION ?= v1
-API_VERSION ?= api/$(VERSION)
-MAIN_GO := main.go
-SWAGGER_FILE := docs/swagger.yaml
-SWAG_BIN := $(shell go env GOPATH)/bin/swag
+# Default target
+all: test
 
-set-version:
-	@echo "Setting API version to $(API_VERSION) and Swagger BasePath to /$(API_VERSION)"
-	# Update APIVersion constant in main.go (robust to whitespace)
-	sed -i '' 's|^[[:space:]]*APIVersion[[:space:]]*=[[:space:]]*"[^"]*"|    APIVersion = "$(API_VERSION)"|' $(MAIN_GO)
-	# Update @BasePath in main.go (swagger comment)
-	sed -i '' 's|^\(// @BasePath\s*\).*|\1/$(API_VERSION)|' $(MAIN_GO)
-	if [ -f $(SWAGGER_FILE) ]; then \
-		sed -i '' 's|^\(\s*basePath:\s*\).*|\1/$(API_VERSION)|' $(SWAGGER_FILE); \
-	fi
-	@echo "Regenerating Swagger docs..."
-	$(SWAG_BIN) init -g $(MAIN_GO) --output docu
+# Run tests
+test:
+	go test
 
-# Spins up containers for development
-dev:
-	podman-compose -f ./deploy/docker-compose.yml up -d
+# Run tests with verbose output
+test-verbose:
+	go test -v
 
-dev-down:
-	podman-compose -f ./deploy/docker-compose.yml down
+# Run tests with coverage
+test-coverage:
+	go test -cover
 
-.PHONY: set-version compose-up compose-down
+# Run tests with race detection
+test-race:
+	go test -race
+
+# Run benchmarks
+bench:
+	go test -bench=.
+
+test-all: test-verbose test-coverage test-race bench
+
+# Format code
+fmt:
+	go fmt ./...
+
+# Lint code (requires golangci-lint to be installed)
+lint:
+	golangci-lint run
+
+# Clean test cache
+clean:
+	go clean -testcache
+
+# Show help
+help:
+	@echo "Available targets:"
+	@echo "  test          - Run basic tests"
+	@echo "  test-verbose  - Run tests with verbose output"
+	@echo "  test-coverage - Run tests with coverage"
+	@echo "  test-race     - Run tests with race detection"
+	@echo "  bench         - Run benchmarks"
+	@echo "  test-all      - Run all tests"
+	@echo "  fmt           - Format code"
+	@echo "  lint          - Lint code"
+	@echo "  clean         - Clean test cache"
+	@echo "  help          - Show this help"

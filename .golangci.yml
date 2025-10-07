@@ -42,9 +42,9 @@ linters:
     - errname
     - errorlint
     - exhaustive
-    - exhaustruct
     - exptostd
     - fatcontext
+    - forbidigo
     - forcetypeassert
     - funcorder
     - gocheckcompilerdirectives
@@ -82,7 +82,6 @@ linters:
     - unconvert
     - unparam
     - usestdlibvars
-    - varnamelen
     - wastedassign
     - wrapcheck
   settings:
@@ -90,3 +89,7 @@ linters:
       enable-all: true
     misspell:
       ignore-rules: []
+    gosec:
+      config:
+        G302: "0644"
+        G306: "0644"

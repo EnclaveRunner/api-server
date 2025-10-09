@@ -78,7 +78,6 @@ jobs:
       - name: Release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "release.tar.gz"
           name: "Release ${{ needs.update-version.outputs.tag }}"
           tag: "${{ needs.update-version.outputs.tag }}"
-          body_path: ${{ steps.release-notes.outputs.release_notes_file }}
+          bodyFile: ${{ steps.release-notes.outputs.release_notes_file }}

@@ -1,4 +1,4 @@
-host: localhost:8080 (default)
+host: localhost:8080
 info:
   contact: {}
   description: API Central Entrypoint for the Enclave Platform

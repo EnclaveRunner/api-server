@@ -10,7 +10,7 @@
         },
         "version": "v0.0.0"
     },
-    "host": "localhost:8080 (default)",
+    "host": "localhost:8080",
     "paths": {
         "/ready": {
             "get": {

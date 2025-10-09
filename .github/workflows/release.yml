@@ -9,6 +9,8 @@ jobs:
   update-version:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       tag: ${{ steps.version.outputs.version }}
       should_release: ${{ steps.version.outputs.hasNextVersion }}
@@ -22,7 +24,14 @@ jobs:
         uses: thenativeweb/get-next-version@main
         id: version
         with:
-          prefix: 'v'
+          prefix: "v"
+      - name: Tag commit
+        if: steps.version.outputs.hasNextVersion == 'true'
+        run: |
+          git config user.name "Enclave Bot"
+          git config user.email "enclave@marvin-fuchs.de"
+          git tag ${{ steps.version.outputs.version }}
+          git push origin ${{ steps.version.outputs.version }}
 
   release:
     runs-on: ubuntu-latest
@@ -69,7 +78,7 @@ jobs:
       - name: Release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: 'release.tar.gz'
-          name: 'Release ${{ needs.update-version.outputs.tag }}'
-          tag: '${{ needs.update-version.outputs.tag }}'
+          artifacts: "release.tar.gz"
+          name: "Release ${{ needs.update-version.outputs.tag }}"
+          tag: "${{ needs.update-version.outputs.tag }}"
           body_path: ${{ steps.release-notes.outputs.release_nodes.md }}

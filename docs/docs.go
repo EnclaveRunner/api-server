@@ -9,10 +9,7 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "termsOfService": "http://swagger.io/terms/",
-        "contact": {
-            "name": "API Support"
-        },
+        "contact": {},
         "license": {
             "name": "GNU General Public License v3.0",
             "url": "https://www.gnu.org/licenses/gpl-3.0.html"
@@ -22,9 +19,9 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/demo": {
+        "/ready": {
             "get": {
-                "description": "A simple demo endpoint to show API functionality",
+                "description": "Health-Check to see if the Api-Server is reachable / ready",
                 "consumes": [
                     "application/json"
                 ],
@@ -32,20 +29,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "demo"
+                    "system"
                 ],
-                "summary": "Demo endpoint",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Name to greet",
-                        "name": "name",
-                        "in": "query"
-                    }
-                ],
+                "summary": "Health-Check Endpoint",
                 "responses": {
                     "200": {
-                        "description": "message",
+                        "description": "{status: ready}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -82,63 +71,18 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "/issue-token": {
-            "get": {
-                "description": "Issues a JWT token for a given username and password",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Issue JWT token",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Username",
-                        "name": "username",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Password",
-                        "name": "password",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "JWT token",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "403": {
-                        "description": "invalid username or password",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
         }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "0.0.1",
-	Host:             "localhost:8080",
-	BasePath:         "/api/v1",
+	Version:          "v0.0.0",
+	Host:             "localhost:8080 (default)",
+	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "Enclave API Server",
-	Description:      "API server for the Enclave project",
+	Description:      "API Central Entrypoint for the Enclave Platform",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

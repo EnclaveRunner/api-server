@@ -1,4 +1,4 @@
-.PHONY: test test-verbose test-coverage test-race bench clean verify fmt lint
+.PHONY: test test-verbose test-coverage test-race bench clean create-docs verify fmt lint
 
 # Default target
 all: test
@@ -37,6 +37,13 @@ lint:
 clean:
 	go clean -testcache
 
+# Create OpenAPI docs via Swagger
+create-docs:
+	@echo "Updating OpenAPI-Docs"
+	export PATH=$(go env GOPATH)/bin:$PATH
+	swag init
+	@echo "Docs created."
+
 # Simulate CI tests
 verify:
 	@echo "Running CI tests..."
@@ -60,5 +67,6 @@ help:
 	@echo "  fmt           - Format code"
 	@echo "  lint          - Lint code"
 	@echo "  clean         - Clean test cache"
+	@echo "  create-docs   - Update OpenAPI/Swagger-Docs"
 	@echo "  verify        - Simulate CI Checks before opening a PR"
 	@echo "  help          - Show this help"

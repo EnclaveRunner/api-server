@@ -8,5 +8,4 @@ type AppConfig struct {
 	enclaveConfig.BaseConfig `mapstructure:",squash"`
 }
 
-
 var Cfg = &AppConfig{}

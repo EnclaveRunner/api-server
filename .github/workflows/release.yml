@@ -22,7 +22,7 @@ jobs:
         uses: thenativeweb/get-next-version@main
         id: version
         with:
-          tag_prefix: 'v'
+          prefix: 'v'
 
   release:
     runs-on: ubuntu-latest

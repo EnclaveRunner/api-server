@@ -1,24 +1,20 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "API server for the Enclave project",
+        "description": "API Central Entrypoint for the Enclave Platform",
         "title": "Enclave API Server",
-        "termsOfService": "http://swagger.io/terms/",
-        "contact": {
-            "name": "API Support"
-        },
+        "contact": {},
         "license": {
             "name": "GNU General Public License v3.0",
             "url": "https://www.gnu.org/licenses/gpl-3.0.html"
         },
-        "version": "0.0.1"
+        "version": "v0.0.0"
     },
-    "host": "localhost:8080",
-    "basePath": "/api/v1",
+    "host": "localhost:8080 (default)",
     "paths": {
-        "/demo": {
+        "/ready": {
             "get": {
-                "description": "A simple demo endpoint to show API functionality",
+                "description": "Health-Check to see if the Api-Server is reachable / ready",
                 "consumes": [
                     "application/json"
                 ],
@@ -26,20 +22,12 @@
                     "application/json"
                 ],
                 "tags": [
-                    "demo"
+                    "system"
                 ],
-                "summary": "Demo endpoint",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Name to greet",
-                        "name": "name",
-                        "in": "query"
-                    }
-                ],
+                "summary": "Health-Check Endpoint",
                 "responses": {
                     "200": {
-                        "description": "message",
+                        "description": "{status: ready}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -72,51 +60,6 @@
                             "additionalProperties": {
                                 "type": "string"
                             }
-                        }
-                    }
-                }
-            }
-        },
-        "/issue-token": {
-            "get": {
-                "description": "Issues a JWT token for a given username and password",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Issue JWT token",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Username",
-                        "name": "username",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Password",
-                        "name": "password",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "JWT token",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "403": {
-                        "description": "invalid username or password",
-                        "schema": {
-                            "type": "string"
                         }
                     }
                 }

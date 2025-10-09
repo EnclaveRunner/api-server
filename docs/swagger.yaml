@@ -1,31 +1,23 @@
-basePath: /api/v1
-host: localhost:8080
+host: localhost:8080 (default)
 info:
-  contact:
-    name: API Support
-  description: API server for the Enclave project
+  contact: {}
+  description: API Central Entrypoint for the Enclave Platform
   license:
     name: GNU General Public License v3.0
     url: https://www.gnu.org/licenses/gpl-3.0.html
-  termsOfService: http://swagger.io/terms/
   title: Enclave API Server
-  version: 0.0.1
+  version: v0.0.0
 paths:
-  /demo:
+  /ready:
     get:
       consumes:
       - application/json
-      description: A simple demo endpoint to show API functionality
-      parameters:
-      - description: Name to greet
-        in: query
-        name: name
-        type: string
+      description: Health-Check to see if the Api-Server is reachable / ready
       produces:
       - application/json
       responses:
         "200":
-          description: message
+          description: '{status: ready}'
           schema:
             additionalProperties:
               type: string
@@ -48,37 +40,7 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Demo endpoint
+      summary: Health-Check Endpoint
       tags:
-      - demo
-  /issue-token:
-    get:
-      consumes:
-      - application/json
-      description: Issues a JWT token for a given username and password
-      parameters:
-      - description: Username
-        in: query
-        name: username
-        required: true
-        type: string
-      - description: Password
-        in: query
-        name: password
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: JWT token
-          schema:
-            type: string
-        "403":
-          description: invalid username or password
-          schema:
-            type: string
-      summary: Issue JWT token
-      tags:
-      - auth
+      - system
 swagger: "2.0"

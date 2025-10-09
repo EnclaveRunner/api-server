@@ -47,20 +47,18 @@ jobs:
       - name: Generate release notes
         id: release-notes
         run: |
-          LATEST_TAG="${{ needs.update-version.outputs.tag }}"
+          CURRENT_TAG="${{ needs.update-version.outputs.tag }}"
+
+          # Get the previous tag
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
 
           # Get commits since last tag
-          if [ "$LATEST_TAG" != "v0.0.0" ]; then
-            COMMITS=$(git log --pretty=format:"- %s (%h)" $LATEST_TAG..HEAD)
+          if [ -n "$PREVIOUS_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"- %s (%h)" $PREVIOUS_TAG..$CURRENT_TAG)
+            CONTRIBUTORS=$(git log --pretty=format:"%an" $PREVIOUS_TAG..$CURRENT_TAG | sort | uniq | sed 's/^/- /')
           else
-            COMMITS=$(git log --pretty=format:"- %s (%h)")
-          fi
-
-          # Get contributors since last tag
-          if [ "$LATEST_TAG" != "v0.0.0" ]; then
-            CONTRIBUTORS=$(git log --pretty=format:"%an" $LATEST_TAG..HEAD | sort | uniq | sed 's/^/- /')
-          else
-            CONTRIBUTORS=$(git log --pretty=format:"%an" | sort | uniq | sed 's/^/- /')
+            COMMITS=$(git log --pretty=format:"- %s (%h)" $CURRENT_TAG)
+            CONTRIBUTORS=$(git log --pretty=format:"%an" $CURRENT_TAG | sort | uniq | sed 's/^/- /')
           fi
 
           # Create release notes

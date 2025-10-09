@@ -80,6 +80,6 @@ jobs:
           name: "Release ${{ needs.update-version.outputs.tag }}"
           tag: "${{ needs.update-version.outputs.tag }}"
           bodyFile: ${{ steps.release-notes.outputs.release_notes_file }}
-          token: ${{ secrets.PAT_TOKEN }}
+          token: ${{ secrets.BOT_PAT }}
           draft: false
           prerelease: false

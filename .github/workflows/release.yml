@@ -6,26 +6,6 @@ on:
     types:
       - completed
 jobs:
-  update-docs:
-    name: Update OpenAPI Docs
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.24"
-
-      - name: Install golangci-lint
-        uses: golangci/golangci-lint-action@v7
-        with:
-          version: latest
-
-      - name: Run make create-docs
-        run: make create-docs
-
   update-version:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest

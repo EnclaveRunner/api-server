@@ -40,7 +40,7 @@ clean:
 # Create OpenAPI docs via Swagger
 create-docs:
 	@echo "Updating OpenAPI-Docs"
-	export PATH=$(go env GOPATH)/bin:$PATH
+	export PATH=$$(go env GOPATH)/bin:$$PATH
 	swag init
 	@echo "Docs created."
 

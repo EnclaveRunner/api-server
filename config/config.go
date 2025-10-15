@@ -15,6 +15,11 @@ type AppConfig struct {
 		Database string `mapstructure:"database" validate:"required"`
 		SSLMode  string `mapstructure:"sslmode"  validate:"oneof=disable require verify-ca verify-full"`
 	} `mapstructure:"database" validate:"required"`
+
+	Admin struct {
+		Username string `mapstructure:"username" validate:"required"`
+		Password string `mapstructure:"password" validate:"required"`
+	} `mapstructure:"admin" validate:"required"`
 }
 
 var Cfg = &AppConfig{}

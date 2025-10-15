@@ -4,8 +4,11 @@ import (
 	"api-server/config"
 	"api-server/handlers"
 	"api-server/orm"
+	"encoding/csv"
+	"os"
 
 	"github.com/EnclaveRunner/shareddeps"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
 
@@ -24,8 +27,37 @@ func main() {
 	viper.SetDefault("database.password", "enclave")
 	viper.SetDefault("database.database", "enclave")
 
+	// default credentials for admin / initial user
+	viper.SetDefault("admin.username", "enclave")
+	viper.SetDefault("admin.password", "enclave")
+
 	// load config and create server
-	shareddeps.Init(config.Cfg, "api-server", "v0.0.0", nil, nil)
+	shareddeps.Init(config.Cfg, "api-server", "v0.0.0")
+
+	defaultPolicies, err := loadDefaults("default-policies.csv")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to load default policies")
+	}
+
+	defaultUserGroups, err := loadDefaults("default-user-group-definitions.csv")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to load default user group definitions")
+	}
+
+	defaultRessourceGroups, err := loadDefaults("default-ressource-group-definitions.csv")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to load default ressource group definitions")
+	}
+
+	policyAdapter := orm.InitDB()
+
+	shareddeps.AddAuth(
+		policyAdapter,
+		defaultPolicies,
+		defaultUserGroups,
+		defaultRessourceGroups,
+		shareddeps.Authentication{BasicAuthenticator: orm.BasicAuth},
+	)
 
 	// health check to see if api-server is reachable / ready
 	shareddeps.Server.GET("/ready", handlers.Ready)
@@ -33,5 +65,25 @@ func main() {
 	orm.InitDB()
 
 	shareddeps.Start()
-	
+}
+
+func loadDefaults(fileName string) (records [][]string, err error) {
+	// load default policies from csv file
+	// Open the CSV file
+	file, err := os.Open(fileName)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error opening " + fileName + " :")
+	}
+	defer file.Close()
+
+	// Create CSV reader
+	reader := csv.NewReader(file)
+
+	// Read all records
+	policies, err := reader.ReadAll()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to read default policies from CSV")
+	}
+
+	return policies, nil
 }

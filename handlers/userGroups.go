@@ -122,7 +122,7 @@ func GetUserGroups(ctx *gin.Context) {
 //	@Tags			auth
 //	@Accept			json
 //	@Produce		json
-//	@Param			AddToGroupBody	body		AddToGroupBody		true	"Added successfully!"
+//	@Param			AddToUGroupBody	body		AddToUGroupBody		true	"Added successfully!"
 //	@Success		201		{object}	map[string]string	"TBD"
 //	@Failure		400		{object}	map[string]string	"bad request"
 //	@Failure		404		{object}	map[string]string	"not found"
@@ -131,7 +131,7 @@ func GetUserGroups(ctx *gin.Context) {
 func AddToUserGroup(ctx *gin.Context) {
 	var body AddToUGroupBody
 
-	// Try to convert the provided body to AddToGroupBody struct
+	// Try to convert the provided body to AddToUGroupBody struct
 	if err := ctx.ShouldBindJSON(&body); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error":   "Invalid request body",
@@ -162,7 +162,7 @@ func AddToUserGroup(ctx *gin.Context) {
 //	@Tags			auth
 //	@Accept			json
 //	@Produce		json
-//	@Param			AddToGroupBody	body		AddToGroupBody		true	"Add user to groups"
+//	@Param			AddToUGroupBody	body		AddToUGroupBody		true	"Add user to groups"
 //	@Success		201		{object}	map[string]string	"TBD"
 //	@Failure		400		{object}	map[string]string	"bad request"
 //	@Failure		404		{object}	map[string]string	"not found"
@@ -171,7 +171,7 @@ func AddToUserGroup(ctx *gin.Context) {
 func RemoveFromUserGroup(ctx *gin.Context) {
 	var body AddToUGroupBody
 
-	// Try to convert the provided body to AddToGroupBody struct
+	// Try to convert the provided body to AddToUGroupBody struct
 	if err := ctx.ShouldBindJSON(&body); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error":   "Invalid request body",
@@ -228,10 +228,16 @@ func RemoveUser(ctx *gin.Context) {
 	}
 
 	// Remove user from User and Auth_Basic table
-	user, _ := gorm.G[orm.User](
+	user, err := gorm.G[orm.User](
 		orm.DB,
 	).Where(&orm.User{Username: name}).
 		First(context.Background())
+	if err != nil {
+		log.Error().Err(err).Msg("failed to find user in database")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find user in database"})
+
+		return
+	}
 
 	orm.DB.Delete(&orm.Auth_Basic{}, "id = ?", user.ID)
 	orm.DB.Delete(&orm.User{}, "id = ?", user.ID)

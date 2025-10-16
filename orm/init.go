@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/EnclaveRunner/shareddeps/auth"
 	"github.com/casbin/casbin/v2/persist"
 	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"github.com/rs/zerolog/log"
@@ -67,7 +68,7 @@ func InitDB() persist.Adapter {
 		First(context.Background())
 	DB.Save(&Auth_Basic{UserID: adminUser.ID, Password: hash})
 
-	DB.Save(&gormadapter.CasbinRule{Ptype: "g", V0: adminUser.ID.String(), V1: "admin"})
+	auth.AddUserToGroup(adminUser.ID.String(), "enclaveAdmin")
 
 	return adapter
 }

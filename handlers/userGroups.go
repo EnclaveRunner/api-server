@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	"api-server/orm"
+	"context"
 	"net/http"
 
 	"github.com/EnclaveRunner/shareddeps/auth"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
+	"gorm.io/gorm"
 )
 
 // CreateUserGroup godoc
@@ -119,7 +122,7 @@ func GetUserGroups(ctx *gin.Context) {
 //	@Tags			auth
 //	@Accept			json
 //	@Produce		json
-//	@Param			AddToGroupBody	body		AddToGroupBody		true	"Add user to groups"
+//	@Param			AddToGroupBody	body		AddToGroupBody		true	"Added successfully!"
 //	@Success		201		{object}	map[string]string	"TBD"
 //	@Failure		400		{object}	map[string]string	"bad request"
 //	@Failure		404		{object}	map[string]string	"not found"
@@ -138,11 +141,17 @@ func AddToUserGroup(ctx *gin.Context) {
 		return
 	}
 
+	err := auth.AddUserToGroup(body.Username, body.Groups...)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to add user to group")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to add user to group"})
+
+		return
+	}
+
 	// Print the values (as requested)
 	ctx.JSON(http.StatusOK, gin.H{
-		"message":  "Request body parsed successfully",
-		"username": body.Username,
-		"groups":   body.Groups,
+		"message": "Added successfully!",
 	})
 }
 
@@ -172,11 +181,17 @@ func RemoveFromUserGroup(ctx *gin.Context) {
 		return
 	}
 
+	err := auth.RemoveUserFromGroup(body.Username, body.Groups...)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to remove user from group")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to remove user from group"})
+
+		return
+	}
+
 	// Print the values (as requested)
 	ctx.JSON(http.StatusOK, gin.H{
-		"message":  "Request body parsed successfully",
-		"username": body.Username,
-		"groups":   body.Groups,
+		"message": "User successfully removed from group!",
 	})
 }
 
@@ -204,7 +219,22 @@ func RemoveUser(ctx *gin.Context) {
 		return
 	}
 
-	// TODO: remove user entirely
+	err := auth.RemoveUser(name)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to remove user")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to remove user"})
+
+		return
+	}
+
+	// Remove user from User and Auth_Basic table
+	user, _ := gorm.G[orm.User](
+		orm.DB,
+	).Where(&orm.User{Username: name}).
+		First(context.Background())
+
+	orm.DB.Delete(&orm.Auth_Basic{}, "id = ?", user.ID)
+	orm.DB.Delete(&orm.User{}, "id = ?", user.ID)
 
 	// Success response
 	ctx.JSON(http.StatusCreated, gin.H{
@@ -237,12 +267,17 @@ func GetGroupsOfUser(ctx *gin.Context) {
 		return
 	}
 
-	// TODO: remove user entirely
+	groups, err := auth.GetGroupsForUser(name)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to get groups of user")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get groups of user"})
 
+		return
+	}
 	// Success response
 	ctx.JSON(http.StatusCreated, gin.H{
-		"message": "tbd",
-		"group":   name,
+		"user":   name,
+		"groups": groups,
 	})
 }
 
@@ -270,11 +305,17 @@ func GetUsersOfGroup(ctx *gin.Context) {
 		return
 	}
 
-	// TODO: remove user entirely
+	users, err := auth.GetUserGroup(name)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to get users of group")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get users of group"})
+
+		return
+	}
 
 	// Success response
 	ctx.JSON(http.StatusCreated, gin.H{
-		"message": "tbd",
-		"group":   name,
+		"group": name,
+		"users": users,
 	})
 }

@@ -16,6 +16,6 @@ type Auth_Basic struct {
 	gorm.Model
 
 	User     User      `gorm:"constraint:OnDelete:CASCADE"`
-	UserID   uuid.UUID `gorm:"type:uuid;not null"`
+	UserID   uuid.UUID `gorm:"type:uuid;primaryKey"`
 	Password []byte    `gorm:"not null"`
 }

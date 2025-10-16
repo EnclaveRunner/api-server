@@ -57,9 +57,9 @@ func main() {
 	// removes a user entirely
 	auth.POST("/remove-user", handlers.RemoveUser)
 	// get all groups a user belongs to
-	auth.POST("/groups-of", handlers.GetGroupsOfUser)
+	auth.POST("/groups-of-user", handlers.GetGroupsOfUser)
 	// get all users of a group
-	auth.POST("/users-of", handlers.GetUsersOfGroup)
+	auth.POST("/users-of-group", handlers.GetUsersOfGroup)
 
 	// resource-group management endpoints
 	auth.POST("/create-rgroup", handlers.CreateResourceGroup)
@@ -69,6 +69,20 @@ func main() {
 	auth.GET("/rgroups", handlers.GetResourceGroups)
 	// add resource to specified resource-group
 	auth.GET("/add-to-rgroup", handlers.AddToResourceGroup)
+	// remove a user from a user-group
+	auth.POST("/remove-from-rgroup", handlers.RemoveFromResourceGroup)
+	// removes a resource from all groups it belongs to
+	auth.POST("/remove-resource", handlers.RemoveResource)
+	// get all groups a resource belongs to
+	auth.POST("/groups-of-resource", handlers.GetGroupsOfResource)
+	// get resources of a group
+	auth.POST("/resources-of-group", handlers.GetResourcesOfGroup)
+
+	// policy management endpoints
+	// create new policy
+	auth.POST("/create-policy", handlers.CreatePolicy)
+	// delete a policy
+	auth.POST("/remove-policy", handlers.RemovePolicy)
 
 	orm.InitDB()
 

@@ -255,7 +255,7 @@ func RemoveUser(ctx *gin.Context) {
 //	@Failure		400		{object}	map[string]string	"bad request"
 //	@Failure		404		{object}	map[string]string	"not found"
 //	@Failure		500		{object}	map[string]string	"internal server error"
-//	@Router			/auth/groups-of [post]
+//	@Router			/auth/groups-of-user [post]
 func GetGroupsOfUser(ctx *gin.Context) {
 	// Get group name from path parameter
 	name := ctx.Query("name")
@@ -293,7 +293,7 @@ func GetGroupsOfUser(ctx *gin.Context) {
 //	@Failure		400		{object}	map[string]string	"bad request"
 //	@Failure		404		{object}	map[string]string	"not found"
 //	@Failure		500		{object}	map[string]string	"internal server error"
-//	@Router			/auth/users-of [post]
+//	@Router			/auth/users-of-group [post]
 func GetUsersOfGroup(ctx *gin.Context) {
 	// Get group name from path parameter
 	name := ctx.Query("name")

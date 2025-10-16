@@ -1,17 +1,17 @@
 package handlers
 
 type AddToUGroupBody struct {
-	Username string   `json:"username" binding:"required"`
-	Groups   []string `json:"groups"   binding:"required,min=1,dive,required"`
+	Username string   `binding:"required"                     json:"username"`
+	Groups   []string `binding:"required,min=1,dive,required" json:"groups"`
 }
 
 type AddToRGroupBody struct {
-	Resource string   `json:"username" binding:"required"`
-	Groups   []string `json:"groups"   binding:"required,min=1,dive,required"`
+	Resource string   `binding:"required"                     json:"resource"`
+	Groups   []string `binding:"required,min=1,dive,required" json:"groups"`
 }
 
 type CreatePolicyBody struct {
-	UserGroup     string `json:"userGroup"     binding:"required"`
-	ResourceGroup string `json:"resourceGroup" binding:"required"`
-	Action        string `json:"action"        binding:"required"`
+	UserGroup     string `binding:"required" json:"userGroup"`
+	ResourceGroup string `binding:"required" json:"resourceGroup"`
+	Action        string `binding:"required" json:"action"`
 }

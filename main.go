@@ -68,7 +68,7 @@ func main() {
 	// get all resource-groups
 	auth.GET("/rgroups", handlers.GetResourceGroups)
 	// add resource to specified resource-group
-	auth.GET("/add-to-rgroup", handlers.AddToResourceGroup)
+	auth.POST("/add-to-rgroup", handlers.AddToResourceGroup)
 	// remove a user from a user-group
 	auth.POST("/remove-from-rgroup", handlers.RemoveFromResourceGroup)
 	// removes a resource from all groups it belongs to
@@ -83,8 +83,6 @@ func main() {
 	auth.POST("/create-policy", handlers.CreatePolicy)
 	// delete a policy
 	auth.POST("/remove-policy", handlers.RemovePolicy)
-
-	orm.InitDB()
 
 	shareddeps.Start()
 }

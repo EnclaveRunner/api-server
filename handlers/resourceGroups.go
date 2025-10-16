@@ -99,8 +99,8 @@ func RemoveResourceGroup(ctx *gin.Context) {
 func GetResourceGroups(ctx *gin.Context) {
 	rgroups, err := auth.GetResourceGroups()
 	if err != nil {
-		log.Error().Err(err).Msg("failed to remove resource group")
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to remove resource group"})
+		log.Error().Err(err).Msg("failed to get resource groups")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get resource groups"})
 
 		return
 	}
@@ -197,7 +197,7 @@ func RemoveFromResourceGroup(ctx *gin.Context) {
 	})
 }
 
-// RemoveFromResourceGroup godoc
+// RemoveResource godoc
 //
 //	@Summary		Remove Resource from all Resource-Groups
 //	@Description	Removes resource from all resource-groups it belongs to

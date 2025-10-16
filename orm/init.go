@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/EnclaveRunner/shareddeps/auth"
-	"github.com/casbin/casbin/v2/persist"
 	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
@@ -20,7 +19,7 @@ import (
 
 var DB *gorm.DB
 
-func InitDB() persist.Adapter {
+func InitDB() *gormadapter.Adapter {
 	dsn := fmt.Sprintf("host='%s' port='%d' user='%s' password='%s' dbname='%s' sslmode='%s'",
 		config.Cfg.Database.Host,
 		config.Cfg.Database.Port,
@@ -54,6 +53,11 @@ func InitDB() persist.Adapter {
 		log.Fatal().Err(err).Msg("Failed to migrate database")
 	}
 
+	return adapter
+}
+
+// InitAdminUser creates the default admin user after auth system is initialized
+func InitAdminUser() {
 	// hash password
 	hash, err := bcrypt.GenerateFromPassword([]byte(config.Cfg.Admin.Password), HashCost)
 	if err != nil {
@@ -68,7 +72,8 @@ func InitDB() persist.Adapter {
 		First(context.Background())
 	DB.Save(&Auth_Basic{UserID: adminUser.ID, Password: hash})
 
-	auth.AddUserToGroup(adminUser.ID.String(), "enclaveAdmin")
-
-	return adapter
+	err = auth.AddUserToGroup(adminUser.ID.String(), "enclaveAdmin")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to add admin user to enclaveAdmin group")
+	}
 }

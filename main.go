@@ -38,6 +38,9 @@ func main() {
 		shareddeps.Authentication{BasicAuthenticator: orm.BasicAuth},
 	)
 
+	// Initialize admin user after auth system is ready
+	orm.InitAdminUser()
+
 	// health check to see if api-server is reachable / ready
 	shareddeps.Server.GET("/ready", handlers.Ready)
 

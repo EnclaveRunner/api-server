@@ -1,3 +1,30 @@
+definitions:
+  handlers.AddToUGroupBody:
+    properties:
+      groups:
+        items:
+          type: string
+        minItems: 1
+        type: array
+      username:
+        type: string
+    required:
+    - groups
+    - username
+    type: object
+  handlers.CreatePolicyBody:
+    properties:
+      action:
+        type: string
+      resourceGroup:
+        type: string
+      userGroup:
+        type: string
+    required:
+    - action
+    - resourceGroup
+    - userGroup
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -8,6 +35,746 @@ info:
   title: Enclave API Server
   version: v0.0.0
 paths:
+  /auth/add-to-rgroup:
+    post:
+      consumes:
+      - application/json
+      description: Adds resource to specified resource-group
+      parameters:
+      - description: User name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: TBD
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Add Resource to Resource-Group
+      tags:
+      - auth
+  /auth/add-to-ugroup:
+    post:
+      consumes:
+      - application/json
+      description: Adds a user to one or more user-groups
+      parameters:
+      - description: Added successfully!
+        in: body
+        name: AddToUGroupBody
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.AddToUGroupBody'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: TBD
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Add a User to a User-Group
+      tags:
+      - auth
+  /auth/create-policy:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Adds policy. Every parameter can be "*" as wildcard. userGroup and resourceGroup
+        must exist.
+      parameters:
+      - description: body
+        in: body
+        name: CreatePolicyBody
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreatePolicyBody'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: TBD
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Creates a new Policy
+      tags:
+      - auth
+  /auth/create-rgroup:
+    post:
+      consumes:
+      - application/json
+      description: Adds casbin entry g, nullResource, [name]
+      parameters:
+      - description: User name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: TBD
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Creates a new Resource-Group
+      tags:
+      - auth
+  /auth/create-ugroup:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new casbin group (corresponds to entry g, nullUser, <name-of-group>)
+      parameters:
+      - description: Group name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Empty group created successfully!
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Creates a new empty User-Group
+      tags:
+      - auth
+  /auth/groups-of-resource:
+    post:
+      consumes:
+      - application/json
+      description: Returns all groups a resource belongs to
+      parameters:
+      - description: Resource name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: TBD
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get Groups of a Resource
+      tags:
+      - auth
+  /auth/groups-of-user:
+    post:
+      consumes:
+      - application/json
+      description: Returns all groups a user belongs to
+      parameters:
+      - description: User name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: TBD
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get Groups of a User
+      tags:
+      - auth
+  /auth/remove-from-rgroup:
+    post:
+      consumes:
+      - application/json
+      description: Removes resource from specified resource-group
+      parameters:
+      - description: User name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: TBD
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Remove Resource from Resource-Group
+      tags:
+      - auth
+  /auth/remove-from-ugroup:
+    post:
+      consumes:
+      - application/json
+      description: Removes a user from one or more user-groups
+      parameters:
+      - description: Add user to groups
+        in: body
+        name: AddToUGroupBody
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.AddToUGroupBody'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: TBD
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Removes a User from a User-Group
+      tags:
+      - auth
+  /auth/remove-policy:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Removes policy. Every parameter can be "*" as wildcard.
+        userGroup and resourceGroup must exist.
+      parameters:
+      - description: body
+        in: body
+        name: CreatePolicyBody
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreatePolicyBody'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: TBD
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Removes a Policy
+      tags:
+      - auth
+  /auth/remove-resource:
+    post:
+      consumes:
+      - application/json
+      description: Removes resource from all resource-groups it belongs to
+      parameters:
+      - description: User name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: TBD
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Remove Resource from all Resource-Groups
+      tags:
+      - auth
+  /auth/remove-rgroup:
+    post:
+      consumes:
+      - application/json
+      description: Removes casbin entry g, nullResource, [name]
+      parameters:
+      - description: User name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: TBD
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Remove a Resource-Group
+      tags:
+      - auth
+  /auth/remove-ugroup:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Removes a casbin group with all its policies and group definitions
+        Throws error, if group does not exist or is enclaveAdmin
+      parameters:
+      - description: Group name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Group removed successfully!
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Removes a User-Group
+      tags:
+      - auth
+  /auth/remove-user:
+    post:
+      consumes:
+      - application/json
+      description: Removes a user including all its group memberships
+      parameters:
+      - description: User name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: TBD
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Removes a User entirely
+      tags:
+      - auth
+  /auth/resources-of-group:
+    post:
+      consumes:
+      - application/json
+      description: Returns all resources that belong to a specific group
+      parameters:
+      - description: Group name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: TBD
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get Resources of a Group
+      tags:
+      - auth
+  /auth/rgroups:
+    get:
+      consumes:
+      - application/json
+      description: Lists all resource-groups
+      parameters:
+      - description: User name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: TBD
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all Resource-Groups
+      tags:
+      - auth
+  /auth/ugroups:
+    get:
+      consumes:
+      - application/json
+      description: Gets all User-Groups its policies and group definitions
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: user groups
+          schema:
+            type: body
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get User-Groups
+      tags:
+      - auth
+  /auth/users-of-group:
+    post:
+      consumes:
+      - application/json
+      description: Returns all users that belong to a specific group
+      parameters:
+      - description: User name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: TBD
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get Users of a Group
+      tags:
+      - auth
   /ready:
     get:
       consumes:

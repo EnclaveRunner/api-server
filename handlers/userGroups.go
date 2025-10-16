@@ -129,7 +129,7 @@ func GetUserGroups(ctx *gin.Context) {
 //	@Failure		500		{object}	map[string]string	"internal server error"
 //	@Router			/auth/add-to-ugroup [post]
 func AddToUserGroup(ctx *gin.Context) {
-	var body AddToGroupBody
+	var body AddToUGroupBody
 
 	// Try to convert the provided body to AddToGroupBody struct
 	if err := ctx.ShouldBindJSON(&body); err != nil {
@@ -169,7 +169,7 @@ func AddToUserGroup(ctx *gin.Context) {
 //	@Failure		500		{object}	map[string]string	"internal server error"
 //	@Router			/auth/remove-from-ugroup [post]
 func RemoveFromUserGroup(ctx *gin.Context) {
-	var body AddToGroupBody
+	var body AddToUGroupBody
 
 	// Try to convert the provided body to AddToGroupBody struct
 	if err := ctx.ShouldBindJSON(&body); err != nil {

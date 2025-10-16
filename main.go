@@ -43,6 +43,7 @@ func main() {
 
 	auth := shareddeps.Server.Group("/auth")
 
+	// user-group management endpoints
 	// create new user-group
 	auth.POST("/create-ugroup", handlers.CreateUserGroup)
 	// remove user-group
@@ -59,6 +60,15 @@ func main() {
 	auth.POST("/groups-of", handlers.GetGroupsOfUser)
 	// get all users of a group
 	auth.POST("/users-of", handlers.GetUsersOfGroup)
+
+	// resource-group management endpoints
+	auth.POST("/create-rgroup", handlers.CreateResourceGroup)
+	// remove resource-group
+	auth.POST("/remove-rgroup", handlers.RemoveResourceGroup)
+	// get all resource-groups
+	auth.GET("/rgroups", handlers.GetResourceGroups)
+	// add resource to specified resource-group
+	auth.GET("/add-to-rgroup", handlers.AddToResourceGroup)
 
 	orm.InitDB()
 

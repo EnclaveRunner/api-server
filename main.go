@@ -44,23 +44,23 @@ func main() {
 	// health check to see if api-server is reachable / ready
 	shareddeps.Server.GET("/ready", handlers.Ready)
 
-	shareddeps.Server.POST("/user", handlers.CreateUser)
-	shareddeps.Server.DELETE("/user", handlers.DeleteUser)
-	shareddeps.Server.PATCH("/user", handlers.UpdateUser)
 	shareddeps.Server.GET("/user", handlers.GetUser)
+	shareddeps.Server.PUT("/user", handlers.PutUser)
+	shareddeps.Server.PATCH("/user", handlers.PatchUser)
+	shareddeps.Server.DELETE("/user", handlers.DeleteUser)
 	
 	shareddeps.Server.GET("list-users", handlers.ListUsers)
 
-	shareddeps.Server.DELETE("/me", handlers.DeleteMe)
-	shareddeps.Server.PATCH("/me", handlers.UpdateMe)
 	shareddeps.Server.GET("/me", handlers.GetMe)
+	shareddeps.Server.PATCH("/me", handlers.UpdateMe)
+	shareddeps.Server.DELETE("/me", handlers.DeleteMe)
 
 	auth := shareddeps.Server.Group("/auth")
 
 	// create a new user
-	auth.POST("/create-user", handlers.CreateUser)
+	auth.POST("/create-user", handlers.PutUser)
 	// change password and / or username of a user
-	shareddeps.Server.POST("/update-user", handlers.UpdateUser)
+	shareddeps.Server.POST("/update-user", handlers.PatchUser)
 	// removes a user entirely
 	auth.POST("/remove-user", handlers.RemoveUser)
 

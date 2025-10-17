@@ -8,8 +8,8 @@ import (
 type User struct {
 	gorm.Model
 
-	ID       uuid.UUID `gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
-	Username string    `gorm:"unique;not null"`
+	ID       uuid.UUID `gorm:"primaryKey;type:uuid;default:gen_random_uuid()" json:"id"`
+	Username string    `gorm:"unique;not null" json:"username"`
 }
 
 type Auth_Basic struct {

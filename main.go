@@ -44,6 +44,17 @@ func main() {
 	// health check to see if api-server is reachable / ready
 	shareddeps.Server.GET("/ready", handlers.Ready)
 
+	shareddeps.Server.POST("/user", handlers.CreateUser)
+	shareddeps.Server.DELETE("/user", handlers.DeleteUser)
+	shareddeps.Server.PATCH("/user", handlers.UpdateUser)
+	shareddeps.Server.GET("/user", handlers.GetUser)
+	
+	shareddeps.Server.GET("list-users", handlers.ListUsers)
+
+	shareddeps.Server.DELETE("/me", handlers.DeleteMe)
+	shareddeps.Server.PATCH("/me", handlers.UpdateMe)
+	shareddeps.Server.GET("/me", handlers.GetMe)
+
 	auth := shareddeps.Server.Group("/auth")
 
 	// create a new user

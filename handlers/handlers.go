@@ -10,7 +10,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -28,55 +27,6 @@ import (
 //	@Router			/ready [get]
 func Ready(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"status": "ready"})
-}
-
-// CreateUser godoc
-//
-//	@Summary		Creates a new User
-//	@Description	Creates a new user in the system
-//	@Tags			auth
-//	@Accept			json
-//	@Produce		json
-//	@Success		200		{object}	map[string]string	"User created successfully!"
-//	@Failure		400		{object}	map[string]string	"bad request"
-//	@Failure		404		{object}	map[string]string	"not found"
-//	@Failure		500		{object}	map[string]string	"internal server error"
-//	@Router			/ready [get]
-func CreateUser(ctx *gin.Context) {
-	var body UserCreateBody
-
-	// Try to convert the provided body to UserCreateBody struct
-	if err := ctx.ShouldBindJSON(&body); err != nil {
-		log.Fatal().Err(err).Msg("Failed to process request body")
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request body",
-		})
-
-		return
-	}
-
-	// hash password
-	hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), orm.HashCost)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to hash admin password")
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Something went wrong while processing the request",
-		})
-
-		return
-	}
-
-	orm.DB.Save(&orm.User{Username: body.Username})
-	adminUser, _ := gorm.G[orm.User](
-		orm.DB,
-	).Where(&orm.User{Username: body.Username}).
-		First(context.Background())
-	orm.DB.Save(&orm.Auth_Basic{UserID: adminUser.ID, Password: hash})
-
-	// Success response
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "User created successfully!",
-	})
 }
 
 // RemoveUser godoc

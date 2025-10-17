@@ -46,6 +46,13 @@ func main() {
 
 	auth := shareddeps.Server.Group("/auth")
 
+	// create a new user
+	auth.POST("/create-user", handlers.CreateUser)
+	// change password and / or username of a user
+	shareddeps.Server.POST("/update-user", handlers.UpdateUser)
+	// removes a user entirely
+	auth.POST("/remove-user", handlers.RemoveUser)
+
 	// user-group management endpoints
 	// create new user-group
 	auth.POST("/create-ugroup", handlers.CreateUserGroup)
@@ -57,8 +64,6 @@ func main() {
 	auth.POST("/add-to-ugroup", handlers.AddToUserGroup)
 	// remove a user from a user-group
 	auth.POST("/remove-from-ugroup", handlers.RemoveFromUserGroup)
-	// removes a user entirely
-	auth.POST("/remove-user", handlers.RemoveUser)
 	// get all groups a user belongs to
 	auth.POST("/groups-of-user", handlers.GetGroupsOfUser)
 	// get all users of a group

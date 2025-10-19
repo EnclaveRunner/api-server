@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"api-server/orm"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -27,18 +28,22 @@ func GetUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, &ResponseError{
 			"Invalid UUID format for ID",
 		})
+
 		return
 	}
 
 	user, err := orm.GetUserByID(uuidParsed)
 	if err != nil {
-		if _, ok := err.(*orm.NotFoundError); ok {
+		var errNotFound *orm.NotFoundError
+		if errors.As(err, &errNotFound) {
 			ctx.Status(http.StatusNotFound)
+
 			return
 		}
 
 		log.Error().Err(err).Msg("Failed to query user from database")
 		ctx.Status(http.StatusInternalServerError)
+
 		return
 	}
 
@@ -50,6 +55,7 @@ func ListUsers(ctx *gin.Context) {
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to query users from database")
 		ctx.Status(http.StatusInternalServerError)
+
 		return
 	}
 
@@ -70,15 +76,18 @@ func PutUser(ctx *gin.Context) {
 
 	user, err := orm.CreateUser(body.Username, body.Password)
 	if err != nil {
-		if _, ok := err.(*orm.ConflictError); ok {
+		var errConflict *orm.ConflictError
+		if errors.As(err, &errConflict) {
 			ctx.JSON(http.StatusConflict, &ResponseError{
 				err.Error(),
 			})
+
 			return
 		}
 
 		log.Error().Err(err).Msg("Failed to create user in database")
 		ctx.Status(http.StatusInternalServerError)
+
 		return
 	}
 
@@ -108,6 +117,7 @@ func PatchUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, &ResponseError{
 			"Invalid UUID format for ID",
 		})
+
 		return
 	}
 
@@ -123,20 +133,25 @@ func PatchUser(ctx *gin.Context) {
 
 	user, err := orm.PatchUser(uuidParsed, newUsername, newPassword)
 	if err != nil {
-		if _, ok := err.(*orm.NotFoundError); ok {
+		var errNotFound *orm.NotFoundError
+		if errors.As(err, &errNotFound) {
 			ctx.Status(http.StatusNotFound)
+
 			return
 		}
 
-		if _, ok := err.(*orm.ConflictError); ok {
+		var errConflict *orm.ConflictError
+		if errors.As(err, &errConflict) {
 			ctx.JSON(http.StatusConflict, &ResponseError{
 				err.Error(),
 			})
+
 			return
 		}
 
 		log.Error().Err(err).Msg("Failed to update user in database")
 		ctx.Status(http.StatusInternalServerError)
+
 		return
 	}
 
@@ -161,18 +176,22 @@ func DeleteUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, &ResponseError{
 			"Invalid UUID format for ID",
 		})
+
 		return
 	}
 
 	user, err := orm.DeleteUserByID(uuidParsed)
+	var errNotFound *orm.NotFoundError
 	if err != nil {
-		if _, ok := err.(*orm.NotFoundError); ok {
+		if errors.As(err, &errNotFound) {
 			ctx.Status(http.StatusNotFound)
+
 			return
 		}
 
 		log.Error().Err(err).Msg("Failed to delete user from database")
 		ctx.Status(http.StatusInternalServerError)
+
 		return
 	}
 
@@ -180,7 +199,6 @@ func DeleteUser(ctx *gin.Context) {
 }
 
 func GetMe(ctx *gin.Context) {
-
 }
 func UpdateMe(ctx *gin.Context) {}
 func DeleteMe(ctx *gin.Context) {}

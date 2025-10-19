@@ -2,14 +2,14 @@ package handlers
 
 type UserCreateBody struct {
 	ID       string `binding:"omitempty,uuid4" json:"id"`
-	Username string `binding:"required" json:"username"`
-	Password string `binding:"required" json:"password"`
+	Username string `binding:"required"        json:"username"`
+	Password string `binding:"required"        json:"password"`
 }
 
 type UserUpdateBody struct {
 	ID          string `binding:"omitempty,uuid4" json:"id"`
-	NewUsername string `binding:"omitempty" json:"newUsername"`
-	NewPassword string `binding:"omitempty" json:"newPassword"`
+	NewUsername string `binding:"omitempty"       json:"newUsername"`
+	NewPassword string `binding:"omitempty"       json:"newPassword"`
 }
 
 type UserBody struct {

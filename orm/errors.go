@@ -29,5 +29,5 @@ type GenericError struct {
 }
 
 func (e *GenericError) Error() string {
-	return "An unexpected error occured: " + e.Inner.Error()
+	return "An unexpected error occurred: " + e.Inner.Error()
 }

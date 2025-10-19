@@ -14,14 +14,12 @@ import (
 func GetUserByID(userID uuid.UUID) (*User, error) {
 	user, err := gorm.G[User](DB).Where(&User{ID: userID}).
 		First(context.Background())
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, &NotFoundError{fmt.Sprintf("User with ID %s", userID)}
 		} else {
 			return nil, &DatabaseError{err}
 		}
-
 	}
 
 	return &user, nil
@@ -68,7 +66,6 @@ func CreateUser(username, password string) (*User, error) {
 		createdUser, err = gorm.G[User](DB).
 			Where(&User{Username: username}).
 			First(context.Background())
-
 		if err != nil {
 			return &DatabaseError{err}
 		}
@@ -90,9 +87,8 @@ func CreateUser(username, password string) (*User, error) {
 
 		return nil
 	})
-
 	if err != nil {
-		return nil, err
+		return nil, &GenericError{err}
 	}
 
 	return &createdUser, nil
@@ -136,22 +132,23 @@ func PatchUser(userID uuid.UUID, newUsername, newPassword *string) (*User, error
 
 		return nil
 	})
-
 	if err != nil {
-		return nil, err
+		return nil, &GenericError{err}
 	}
 
 	return user, nil
 }
 
 func DeleteUserByID(userID uuid.UUID) (*User, error) {
-
 	user, err := GetUserByID(userID)
 	if err != nil {
 		return nil, err
 	}
 
-	err := auth.RemoveUser(user.ID.String())
+	err = auth.RemoveUser(user.ID.String())
+	if err != nil {
+		return nil, &GenericError{err}
+	}
 
 	_, err = gorm.G[User](DB).Where(user).Delete(context.Background())
 	if err != nil {

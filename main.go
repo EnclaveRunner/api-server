@@ -48,7 +48,7 @@ func main() {
 	shareddeps.Server.PUT("/user", handlers.PutUser)
 	shareddeps.Server.PATCH("/user", handlers.PatchUser)
 	shareddeps.Server.DELETE("/user", handlers.DeleteUser)
-	
+
 	shareddeps.Server.GET("list-users", handlers.ListUsers)
 
 	shareddeps.Server.GET("/me", handlers.GetMe)

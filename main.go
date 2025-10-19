@@ -49,7 +49,7 @@ func main() {
 	shareddeps.Server.PATCH("/user", handlers.PatchUser)
 	shareddeps.Server.DELETE("/user", handlers.DeleteUser)
 
-	shareddeps.Server.GET("list-users", handlers.ListUsers)
+	shareddeps.Server.GET("/list-users", handlers.ListUsers)
 
 	shareddeps.Server.GET("/me", handlers.GetMe)
 	shareddeps.Server.PATCH("/me", handlers.UpdateMe)
@@ -57,45 +57,23 @@ func main() {
 
 	auth := shareddeps.Server.Group("/auth")
 
-	// create a new user
-	auth.POST("/create-user", handlers.CreateUser)
-	// change password and / or username of a user
-	shareddeps.Server.POST("/update-user", handlers.PatchUser)
-	// removes a user entirely
-	auth.POST("/remove-user", handlers.RemoveUser)
-
 	// user-group management endpoints
-	// create new user-group
-	auth.POST("/create-ugroup", handlers.CreateUserGroup)
-	// remove user-group
-	auth.POST("/remove-ugroup", handlers.RemoveUserGroup)
-	// get all user-groups
-	auth.GET("/ugroups", handlers.GetUserGroups)
-	// add a user to a user-group
-	auth.POST("/add-to-ugroup", handlers.AddToUserGroup)
-	// remove a user from a user-group
-	auth.POST("/remove-from-ugroup", handlers.RemoveFromUserGroup)
-	// get all groups a user belongs to
-	auth.POST("/groups-of-user", handlers.GetGroupsOfUser)
-	// get all users of a group
-	auth.POST("/users-of-group", handlers.GetUsersOfGroup)
+	auth.POST("/ugroup", handlers.CreateUserGroup)
+	auth.DELETE("/ugroup", handlers.RemoveUserGroup)
+	auth.GET("/list-ugroups", handlers.GetUserGroups)
+	auth.POST("/user", handlers.AddToUserGroup)
+	auth.DELETE("/user", handlers.RemoveFromUserGroup)
+	auth.GET("/groups-of-user", handlers.GetGroupsOfUser)
+	auth.GET("/users-of-group", handlers.GetUsersOfGroup)
 
 	// resource-group management endpoints
-	auth.POST("/create-rgroup", handlers.CreateResourceGroup)
-	// remove resource-group
-	auth.POST("/remove-rgroup", handlers.RemoveResourceGroup)
-	// get all resource-groups
-	auth.GET("/rgroups", handlers.GetResourceGroups)
-	// add resource to specified resource-group
-	auth.POST("/add-to-rgroup", handlers.AddToResourceGroup)
-	// remove a user from a user-group
-	auth.POST("/remove-from-rgroup", handlers.RemoveFromResourceGroup)
-	// removes a resource from all groups it belongs to
-	auth.POST("/remove-resource", handlers.RemoveResource)
-	// get all groups a resource belongs to
-	auth.POST("/groups-of-resource", handlers.GetGroupsOfResource)
-	// get resources of a group
-	auth.POST("/resources-of-group", handlers.GetResourcesOfGroup)
+	auth.POST("/rgroup", handlers.CreateResourceGroup)
+	auth.DELETE("/rgroup", handlers.RemoveResourceGroup)
+	auth.GET("/list-rgroups", handlers.GetResourceGroups)
+	auth.POST("/resource", handlers.AddToResourceGroup)
+	auth.DELETE("/resource", handlers.RemoveFromResourceGroup)
+	auth.GET("/groups-of-resource", handlers.GetGroupsOfResource)
+	auth.GET("/resources-of-group", handlers.GetResourcesOfGroup)
 
 	// policy management endpoints
 	// create new policy

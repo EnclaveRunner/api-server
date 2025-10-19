@@ -1,11 +1,13 @@
 package main
 
 import (
+	"api-server/api"
 	"api-server/config"
 	"api-server/handlers"
 	"api-server/orm"
 
 	"github.com/EnclaveRunner/shareddeps"
+	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 )
 
@@ -40,6 +42,9 @@ func main() {
 
 	// Initialize admin user after auth system is ready
 	orm.InitAdminUser()
+
+	server := api.NewServer()
+	api.RegisterHandlers(shareddeps.Server, server)
 
 	// health check to see if api-server is reachable / ready
 	shareddeps.Server.GET("/ready", handlers.Ready)

@@ -1,0 +1,948 @@
+openapi: "3.0.3"
+info:
+  title: Enclave API Server
+  description: The entrypoint for all Enclave API requests and communication.
+  version: "v0.0.0"
+tags:
+  - name: Users
+    description: Operations related to user management.
+  - name: RBAC
+    description: Operations related to role-based access control.
+paths:
+  /users/user:
+    get:
+      summary: Get User Information
+      description: Retrieve information about a specific user.
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRequest"
+      responses:
+        "200":
+          description: Successful response with user information.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    head:
+      summary: Check User Existence
+      description: Check if a specific user exists.
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRequest"
+      responses:
+        "200":
+          description: User exists.
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    post:
+      summary: Create New User
+      description: Create a new user.
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUser"
+      responses:
+        "201":
+          description: User created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "409":
+          description: "A user with the given name already exists."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrGeneric"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    patch:
+      summary: Update User Information
+      description: Update information for an existing user. Only provided fields will be updated.
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchUser"
+      responses:
+        "200":
+          description: User updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "409":
+          description: "A user with the given new name already exists."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrGeneric"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    delete:
+      summary: Delete User
+      description: Delete an existing user.
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRequest"
+      responses:
+        "204":
+          description: User deleted successfully. Returns the deleted user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+  /users/list:
+    get:
+      summary: List All Users
+      description: Retrieve a list of all users.
+      tags:
+        - Users
+      responses:
+        "200":
+          description: Successful response with a list of users.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+  /users/me:
+    get:
+      summary: Get Current User Information
+      description: Retrieve information about the currently authenticated user.
+      tags:
+        - Users
+      responses:
+        "200":
+          description: Successful response with current user information.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    patch:
+      summary: Update Current User Information
+      description: Update information for the currently authenticated user. Only provided fields will be updated.
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchMe"
+      responses:
+        "200":
+          description: Current user updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "409":
+          description: "A user with the given new name already exists."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrGeneric"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+  /rbac/list-roles:
+    get:
+      summary: List All Roles
+      description: Retrieve a list of all roles in the system.
+      tags:
+        - RBAC
+      responses:
+        "200":
+          description: Successful response with a list of roles.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+  /rbac/role:
+    get:
+      summary: Get assigned users for role
+      description: Retrieve a list of users assigned to a specific role.
+      tags:
+        - RBAC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RBACUserRolesRequest"
+      responses:
+        "200":
+          description: Successful response with a list of users assigned to the role.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserResponse"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    head:
+      summary: Check Role Existence
+      description: Check if a specific role exists in the system.
+      tags:
+        - RBAC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RBACUserRolesRequest"
+      responses:
+        "200":
+          description: Role exists.
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    post:
+      summary: Create New Role
+      description: Create a new role in the system.
+      tags:
+        - RBAC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RBACRole"
+      responses:
+        "201":
+          description: Role created successfully.
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "409":
+          description: "A role with the given name already exists."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrGeneric"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    delete:
+      summary: Delete Role
+      description: Delete role from the system.
+      tags:
+        - RBAC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+              minItems: 1
+      responses:
+        "204":
+          description: Roles deleted successfully.
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          description: "One or more of the specified roles were not found. No role got deleted."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrGeneric"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+  /rbac/user:
+    get:
+      summary: Get Roles Assigned to User
+      description: Retrieve a list of roles assigned to a specific user.
+      tags:
+        - RBAC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RBACUserRolesRequest"
+      responses:
+        "200":
+          description: Successful response with a list of roles assigned to the user.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    post:
+      summary: Assign Roles to User
+      description: Assign role to a specific user.
+      tags:
+        - RBAC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - role
+              properties:
+                userId:
+                  type: string
+                  description: The uuid of the user.
+                role:
+                  type: string
+                  description: The name of the role to assign to the user.
+      responses:
+        "200":
+          description: Role assigned to user successfully or role was already assigned.
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    delete:
+      summary: Remove Role from User
+      description: Remove role from user.
+      tags:
+        - RBAC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+              properties:
+                userId:
+                  type: string
+                  description: The uuid of the user.
+                role:
+                  type: string
+                  description: The name of the role to remove from the user.
+      responses:
+        "200":
+          description: Role removed from user successfully.
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+  /rbac/list-resource-groups:
+    get:
+      summary: List All Resource Groups
+      description: Retrieve a list of all resource groups in the system.
+      tags:
+        - RBAC
+      responses:
+        "200":
+          description: Successful response with a list of resource groups.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+  /rbac/resource-group:
+    get:
+      summary: Get Endpoints Assigned to Resource Group
+      description: Retrieve a list of endpoints assigned to a specific resource group.
+      tags:
+        - RBAC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - resourceGroupName
+              properties:
+                resourceGroupName:
+                  type: string
+                  description: The name of the resource group.
+      responses:
+        "200":
+          description: Successful response with a list of roles assigned to the resource group.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    head:
+      summary: Check Resource Group Existence
+      description: Check if a specific resource group exists in the system.
+      tags:
+        - RBAC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - resourceGroupName
+              properties:
+                resourceGroupName:
+                  type: string
+                  description: The name of the resource group.
+      responses:
+        "200":
+          description: Resource group exists.
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    post:
+      summary: Create New Resource Group
+      description: Create a new resource group.
+      tags:
+        - RBAC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - resourceGroupName
+              properties:
+                resourceGroupName:
+                  type: string
+                  description: The name of the resource group.
+      responses:
+        "201":
+          description: Resource group created successfully.
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "409":
+          description: "A resource group with the given name already exists."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrGeneric"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    delete:
+      summary: Delete Resource Group
+      description: Delete an existing resource group.
+      tags:
+        - RBAC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - resourceGroupName
+              properties:
+                resourceGroupName:
+                  type: string
+                  description: The name of the resource group.
+      responses:
+        "200":
+          description: Resource group deleted successfully.
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+  /rbac/endpoint:
+    get:
+      summary: Get Resource Group Assigned to Endpoint
+      description: Retrieve the resource group assigned to a specific endpoint.
+      tags:
+        - RBAC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - endpoint
+              properties:
+                endpoint:
+                  type: string
+                  description: The endpoint to query.
+      responses:
+        "200":
+          description: Successful response with the resource group assigned to the endpoint. Empty array if endpoint is not assigned to any resource group.
+          content:
+            application/json:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    post:
+      summary: Assign Endpoint to Resource Group
+      description: Assign an endpoint to a specific resource group.
+      tags:
+        - RBAC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - resourceGroupName
+                - endpoints
+              properties:
+                resourceGroupName:
+                  type: string
+                  description: The name of the resource group.
+                endpoint:
+                  type: string
+                  description: The endpoint to assign to the resource group.
+      responses:
+        "200":
+          description: Endpoint assigned to resource group successfully or was already assigned.
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    delete:
+      summary: Remove Endpoint from Resource Group
+      description: Remove an endpoint from its assigned resource group.
+      tags:
+        - RBAC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - endpoint
+              properties:
+                endpoint:
+                  type: string
+                  description: The endpoint to remove from its resource group.
+      responses:
+        "200":
+          description: Endpoint removed from resource group successfully.
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+  /rbac/policy:
+    get:
+      summary: List All RBAC Policies
+      description: Retrieve a list of all role-based access control (RBAC) policies.
+      tags:
+        - RBAC
+      responses:
+        "200":
+          description: Successful response with a list of RBAC policies.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RBACPolicy"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    post:
+      summary: Create New RBAC Policy
+      description: Create a new role-based access control (RBAC) policy.
+      tags:
+        - RBAC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RBACPolicy"
+      responses:
+        "201":
+          description: RBAC policy created successfully.
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    delete:
+      summary: Delete RBAC Policy
+      description: Delete an existing role-based access control (RBAC) policy.
+      tags:
+        - RBAC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RBACPolicy"
+      responses:
+        "200":
+          description: RBAC policy deleted successfully.
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+components:
+  schemas:
+    ErrGeneric:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+    UserResponse:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          description: The uuid of the user.
+        name:
+          type: string
+          description: The name of the user.
+    UserRequest:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          description: The uuid of the user to retrieve.
+    CreateUser:
+      type: object
+      required:
+        - name
+        - password
+      properties:
+        name:
+          type: string
+          description: The name of the user to create.
+        password:
+          type: string
+          description: The password for the new user.
+    PatchUser:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          description: The uuid of the user to update.
+        newName:
+          type: string
+          description: The new name for the user.
+        newPassword:
+          type: string
+          description: The new password for the user.
+    PatchMe:
+      type: object
+      properties:
+        newName:
+          type: string
+          description: The new name for the current user.
+        newPassword:
+          type: string
+          description: The new password for the current user.
+    RBACRole:
+      type: object
+      required:
+        - roleName
+      properties:
+        roleName:
+          type: string
+          description: The name of the role.
+    RBACUserRolesRequest:
+      type: object
+      required:
+        - userId
+      properties:
+        userId:
+          type: string
+          description: The uuid of the user.
+    RBACPolicy:
+      type: object
+      required:
+        - roleName
+        - resourceGroupName
+        - permission
+      properties:
+        roleName:
+          type: string
+          description: The name of the role. (or "*" for all roles)
+        resourceGroupName:
+          type: string
+          description: The name of the resource group. (or "*" for all resource groups)
+        permission:
+          type: string
+          description: The allowed permission (e.g., "GET", "POST", "*").
+  responses:
+    GenericBadRequest:
+      description: "The request was malformed or invalid."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrGeneric"
+    GenericUnauthenticated:
+      description: "The provided authentication credentials were invalid."
+    GenericForbidden:
+      description: "The authenticated user does not have permission to access the requested resource."
+    GenericNotFound:
+      description: "The requested resource was not found."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrGeneric"
+    GenericInternalServerError:
+      description: "An internal server error occurred. Look at the server logs for more details."
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic

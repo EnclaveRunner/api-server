@@ -45,7 +45,7 @@ func main() {
 	shareddeps.Server.GET("/ready", handlers.Ready)
 
 	shareddeps.Server.GET("/user", handlers.GetUser)
-	shareddeps.Server.PUT("/user", handlers.PutUser)
+	shareddeps.Server.POST("/user", handlers.CreateUser)
 	shareddeps.Server.PATCH("/user", handlers.PatchUser)
 	shareddeps.Server.DELETE("/user", handlers.DeleteUser)
 
@@ -58,7 +58,7 @@ func main() {
 	auth := shareddeps.Server.Group("/auth")
 
 	// create a new user
-	auth.POST("/create-user", handlers.PutUser)
+	auth.POST("/create-user", handlers.CreateUser)
 	// change password and / or username of a user
 	shareddeps.Server.POST("/update-user", handlers.PatchUser)
 	// removes a user entirely

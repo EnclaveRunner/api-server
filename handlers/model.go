@@ -12,6 +12,11 @@ type UserUpdateBody struct {
 	NewPassword string `binding:"omitempty"       json:"newPassword"`
 }
 
+type MeUpdateBody struct {
+	NewUsername string `binding:"omitempty" json:"newUsername"`
+	NewPassword string `binding:"omitempty" json:"newPassword"`
+}
+
 type UserBody struct {
 	ID string `binding:"required,uuid4" json:"id"`
 }

@@ -34,6 +34,8 @@ paths:
           $ref: "#/components/responses/GenericUnauthenticated"
         "403":
           $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:

@@ -146,7 +146,7 @@ paths:
             schema:
               $ref: "#/components/schemas/UserRequest"
       responses:
-        "204":
+        "200":
           description: User deleted successfully. Returns the deleted user.
           content:
             application/json:
@@ -274,7 +274,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RBACUserRolesRequest"
+              $ref: "#/components/schemas/RBACRole"
       responses:
         "200":
           description: Successful response with a list of users assigned to the role.
@@ -283,7 +283,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/UserResponse"
+                  type: string
         "400":
           $ref: "#/components/responses/GenericBadRequest"
         "401":
@@ -306,7 +306,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RBACUserRolesRequest"
+              $ref: "#/components/schemas/RBACRole"
       responses:
         "200":
           description: Role exists.
@@ -362,12 +362,9 @@ paths:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                type: string
-              minItems: 1
+              $ref: "#/components/schemas/RBACRole"
       responses:
-        "204":
+        "200":
           description: Roles deleted successfully.
         "400":
           $ref: "#/components/responses/GenericBadRequest"
@@ -376,11 +373,14 @@ paths:
         "403":
           $ref: "#/components/responses/GenericForbidden"
         "404":
-          description: "One or more of the specified roles were not found. No role got deleted."
+          $ref: "#/components/responses/GenericNotFound"
+        "409":
+          description: "The resource group could not be deleted due to internal restrictions."
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrGeneric"
+
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -467,6 +467,7 @@ paths:
               type: object
               required:
                 - userId
+                - role
               properties:
                 userId:
                   type: string
@@ -737,6 +738,7 @@ paths:
               type: object
               required:
                 - endpoint
+                - resourceGroup
               properties:
                 endpoint:
                   type: string
@@ -802,13 +804,15 @@ paths:
           $ref: "#/components/responses/GenericUnauthenticated"
         "403":
           $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/FieldError"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
         - BasicAuth: []
     delete:
       summary: Delete RBAC Policy
-      description: Delete an existing role-based access control (RBAC) policy.
+      description: Delete an existing role-based access control (RBAC) policy, if it existed.
       tags:
         - RBAC
       requestBody:
@@ -826,8 +830,6 @@ paths:
           $ref: "#/components/responses/GenericUnauthenticated"
         "403":
           $ref: "#/components/responses/GenericForbidden"
-        "404":
-          $ref: "#/components/responses/GenericNotFound"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -841,6 +843,18 @@ components:
       properties:
         error:
           type: string
+    ErrField:
+      type: object
+      required:
+        - field
+        - error
+      properties:
+        field:
+          type: string
+          description: The name of the field that caused the error.
+        error:
+          type: string
+          description: A description of the error related to the field.
     UserResponse:
       type: object
       required:
@@ -927,6 +941,13 @@ components:
           description: The name of the resource group. (or "*" for all resource groups)
         permission:
           type: string
+          enum:
+            - GET
+            - POST
+            - PATCH
+            - DELETE
+            - HEAD
+            - "*"
           description: The allowed permission (e.g., "GET", "POST", "*").
   responses:
     GenericBadRequest:
@@ -945,6 +966,14 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrGeneric"
+    FieldError:
+      description: "One or more fields were invalid."
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/ErrField"
     GenericInternalServerError:
       description: "An internal server error occurred. Look at the server logs for more details."
   securitySchemes:

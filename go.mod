@@ -2,6 +2,8 @@ module api-server
 
 go 1.24.5
 
+replace github.com/EnclaveRunner/shareddeps => ../shareddeps
+
 require (
 	github.com/EnclaveRunner/shareddeps v0.4.0
 	github.com/casbin/gorm-adapter/v3 v3.37.0

@@ -4,17 +4,34 @@
 package api
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"path"
+	"strings"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 	strictgin "github.com/oapi-codegen/runtime/strictmiddleware/gin"
 )
 
 const (
 	BasicAuthScopes = "BasicAuth.Scopes"
+)
+
+// Defines values for RBACPolicyPermission.
+const (
+	Asterisk RBACPolicyPermission = "*"
+	DELETE   RBACPolicyPermission = "DELETE"
+	GET      RBACPolicyPermission = "GET"
+	HEAD     RBACPolicyPermission = "HEAD"
+	PATCH    RBACPolicyPermission = "PATCH"
+	POST     RBACPolicyPermission = "POST"
 )
 
 // CreateUser defines model for CreateUser.
@@ -24,6 +41,15 @@ type CreateUser struct {
 
 	// Password The password for the new user.
 	Password string `json:"password"`
+}
+
+// ErrField defines model for ErrField.
+type ErrField struct {
+	// Error A description of the error related to the field.
+	Error string `json:"error"`
+
+	// Field The name of the field that caused the error.
+	Field string `json:"field"`
 }
 
 // ErrGeneric defines model for ErrGeneric.
@@ -55,19 +81,22 @@ type PatchUser struct {
 // RBACPolicy defines model for RBACPolicy.
 type RBACPolicy struct {
 	// Permission The allowed permission (e.g., "GET", "POST", "*").
-	Permission string `json:"permission"`
+	Permission RBACPolicyPermission `json:"permission"`
 
-	// ResourceGroupName The name of the resource group. (or "*" for all resource groups)
-	ResourceGroupName string `json:"resourceGroupName"`
+	// ResourceGroup The name of the resource group. (or "*" for all resource groups)
+	ResourceGroup string `json:"resourceGroup"`
 
-	// RoleName The name of the role. (or "*" for all roles)
-	RoleName string `json:"roleName"`
+	// Role The name of the role. (or "*" for all roles)
+	Role string `json:"role"`
 }
+
+// RBACPolicyPermission The allowed permission (e.g., "GET", "POST", "*").
+type RBACPolicyPermission string
 
 // RBACRole defines model for RBACRole.
 type RBACRole struct {
-	// RoleName The name of the role.
-	RoleName string `json:"roleName"`
+	// Role The name of the role.
+	Role string `json:"role"`
 }
 
 // RBACUserRolesRequest defines model for RBACUserRolesRequest.
@@ -91,6 +120,9 @@ type UserResponse struct {
 	Name string `json:"name"`
 }
 
+// FieldError defines model for FieldError.
+type FieldError = []ErrField
+
 // GenericBadRequest defines model for GenericBadRequest.
 type GenericBadRequest = ErrGeneric
 
@@ -101,6 +133,9 @@ type GenericNotFound = ErrGeneric
 type DeleteRbacEndpointJSONBody struct {
 	// Endpoint The endpoint to remove from its resource group.
 	Endpoint string `json:"endpoint"`
+
+	// ResourceGroup The name of the resource group.
+	ResourceGroup string `json:"resourceGroup"`
 }
 
 // GetRbacEndpointJSONBody defines parameters for GetRbacEndpoint.
@@ -112,43 +147,40 @@ type GetRbacEndpointJSONBody struct {
 // PostRbacEndpointJSONBody defines parameters for PostRbacEndpoint.
 type PostRbacEndpointJSONBody struct {
 	// Endpoint The endpoint to assign to the resource group.
-	Endpoint *string `json:"endpoint,omitempty"`
+	Endpoint string `json:"endpoint"`
 
-	// ResourceGroupName The name of the resource group.
-	ResourceGroupName string `json:"resourceGroupName"`
+	// ResourceGroup The name of the resource group.
+	ResourceGroup string `json:"resourceGroup"`
 }
 
 // DeleteRbacResourceGroupJSONBody defines parameters for DeleteRbacResourceGroup.
 type DeleteRbacResourceGroupJSONBody struct {
-	// ResourceGroupName The name of the resource group.
-	ResourceGroupName string `json:"resourceGroupName"`
+	// ResourceGroup The name of the resource group.
+	ResourceGroup string `json:"resourceGroup"`
 }
 
 // GetRbacResourceGroupJSONBody defines parameters for GetRbacResourceGroup.
 type GetRbacResourceGroupJSONBody struct {
-	// ResourceGroupName The name of the resource group.
-	ResourceGroupName string `json:"resourceGroupName"`
+	// ResourceGroup The name of the resource group.
+	ResourceGroup string `json:"resourceGroup"`
 }
 
 // HeadRbacResourceGroupJSONBody defines parameters for HeadRbacResourceGroup.
 type HeadRbacResourceGroupJSONBody struct {
-	// ResourceGroupName The name of the resource group.
-	ResourceGroupName string `json:"resourceGroupName"`
+	// ResourceGroup The name of the resource group.
+	ResourceGroup string `json:"resourceGroup"`
 }
 
 // PostRbacResourceGroupJSONBody defines parameters for PostRbacResourceGroup.
 type PostRbacResourceGroupJSONBody struct {
-	// ResourceGroupName The name of the resource group.
-	ResourceGroupName string `json:"resourceGroupName"`
+	// ResourceGroup The name of the resource group.
+	ResourceGroup string `json:"resourceGroup"`
 }
-
-// DeleteRbacRoleJSONBody defines parameters for DeleteRbacRole.
-type DeleteRbacRoleJSONBody = []string
 
 // DeleteRbacUserJSONBody defines parameters for DeleteRbacUser.
 type DeleteRbacUserJSONBody struct {
 	// Role The name of the role to remove from the user.
-	Role *string `json:"role,omitempty"`
+	Role string `json:"role"`
 
 	// UserId The uuid of the user.
 	UserId string `json:"userId"`
@@ -191,13 +223,13 @@ type HeadRbacResourceGroupJSONRequestBody HeadRbacResourceGroupJSONBody
 type PostRbacResourceGroupJSONRequestBody PostRbacResourceGroupJSONBody
 
 // DeleteRbacRoleJSONRequestBody defines body for DeleteRbacRole for application/json ContentType.
-type DeleteRbacRoleJSONRequestBody = DeleteRbacRoleJSONBody
+type DeleteRbacRoleJSONRequestBody = RBACRole
 
 // GetRbacRoleJSONRequestBody defines body for GetRbacRole for application/json ContentType.
-type GetRbacRoleJSONRequestBody = RBACUserRolesRequest
+type GetRbacRoleJSONRequestBody = RBACRole
 
 // HeadRbacRoleJSONRequestBody defines body for HeadRbacRole for application/json ContentType.
-type HeadRbacRoleJSONRequestBody = RBACUserRolesRequest
+type HeadRbacRoleJSONRequestBody = RBACRole
 
 // PostRbacRoleJSONRequestBody defines body for PostRbacRole for application/json ContentType.
 type PostRbacRoleJSONRequestBody = RBACRole
@@ -782,6 +814,8 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.POST(options.BaseURL+"/users/user", wrapper.PostUsersUser)
 }
 
+type FieldErrorJSONResponse []ErrField
+
 type GenericBadRequestJSONResponse ErrGeneric
 
 type GenericForbiddenResponse struct {
@@ -858,7 +892,7 @@ type GetRbacEndpointResponseObject interface {
 	VisitGetRbacEndpointResponse(w http.ResponseWriter) error
 }
 
-type GetRbacEndpoint200JSONResponse string
+type GetRbacEndpoint200JSONResponse []string
 
 func (response GetRbacEndpoint200JSONResponse) VisitGetRbacEndpointResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -905,11 +939,11 @@ type PostRbacEndpointResponseObject interface {
 	VisitPostRbacEndpointResponse(w http.ResponseWriter) error
 }
 
-type PostRbacEndpoint200Response struct {
+type PostRbacEndpoint201Response struct {
 }
 
-func (response PostRbacEndpoint200Response) VisitPostRbacEndpointResponse(w http.ResponseWriter) error {
-	w.WriteHeader(200)
+func (response PostRbacEndpoint201Response) VisitPostRbacEndpointResponse(w http.ResponseWriter) error {
+	w.WriteHeader(201)
 	return nil
 }
 
@@ -1065,15 +1099,6 @@ func (response DeleteRbacPolicy403Response) VisitDeleteRbacPolicyResponse(w http
 	return nil
 }
 
-type DeleteRbacPolicy404JSONResponse struct{ GenericNotFoundJSONResponse }
-
-func (response DeleteRbacPolicy404JSONResponse) VisitDeleteRbacPolicyResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
 type DeleteRbacPolicy500Response = GenericInternalServerErrorResponse
 
 func (response DeleteRbacPolicy500Response) VisitDeleteRbacPolicyResponse(w http.ResponseWriter) error {
@@ -1155,6 +1180,15 @@ type PostRbacPolicy403Response = GenericForbiddenResponse
 func (response PostRbacPolicy403Response) VisitPostRbacPolicyResponse(w http.ResponseWriter) error {
 	w.WriteHeader(403)
 	return nil
+}
+
+type PostRbacPolicy404JSONResponse struct{ FieldErrorJSONResponse }
+
+func (response PostRbacPolicy404JSONResponse) VisitPostRbacPolicyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
 }
 
 type PostRbacPolicy500Response = GenericInternalServerErrorResponse
@@ -1393,11 +1427,11 @@ type DeleteRbacRoleResponseObject interface {
 	VisitDeleteRbacRoleResponse(w http.ResponseWriter) error
 }
 
-type DeleteRbacRole204Response struct {
+type DeleteRbacRole200Response struct {
 }
 
-func (response DeleteRbacRole204Response) VisitDeleteRbacRoleResponse(w http.ResponseWriter) error {
-	w.WriteHeader(204)
+func (response DeleteRbacRole200Response) VisitDeleteRbacRoleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
 	return nil
 }
 
@@ -1424,11 +1458,20 @@ func (response DeleteRbacRole403Response) VisitDeleteRbacRoleResponse(w http.Res
 	return nil
 }
 
-type DeleteRbacRole404JSONResponse ErrGeneric
+type DeleteRbacRole404JSONResponse struct{ GenericNotFoundJSONResponse }
 
 func (response DeleteRbacRole404JSONResponse) VisitDeleteRbacRoleResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteRbacRole409JSONResponse ErrGeneric
+
+func (response DeleteRbacRole409JSONResponse) VisitDeleteRbacRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -1448,7 +1491,7 @@ type GetRbacRoleResponseObject interface {
 	VisitGetRbacRoleResponse(w http.ResponseWriter) error
 }
 
-type GetRbacRole200JSONResponse []UserResponse
+type GetRbacRole200JSONResponse []string
 
 func (response GetRbacRole200JSONResponse) VisitGetRbacRoleResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -1725,11 +1768,11 @@ type PostRbacUserResponseObject interface {
 	VisitPostRbacUserResponse(w http.ResponseWriter) error
 }
 
-type PostRbacUser200Response struct {
+type PostRbacUser201Response struct {
 }
 
-func (response PostRbacUser200Response) VisitPostRbacUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(200)
+func (response PostRbacUser201Response) VisitPostRbacUserResponse(w http.ResponseWriter) error {
+	w.WriteHeader(201)
 	return nil
 }
 
@@ -1910,11 +1953,11 @@ type DeleteUsersUserResponseObject interface {
 	VisitDeleteUsersUserResponse(w http.ResponseWriter) error
 }
 
-type DeleteUsersUser204JSONResponse UserResponse
+type DeleteUsersUser200JSONResponse UserResponse
 
-func (response DeleteUsersUser204JSONResponse) VisitDeleteUsersUserResponse(w http.ResponseWriter) error {
+func (response DeleteUsersUser200JSONResponse) VisitDeleteUsersUserResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(204)
+	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -3127,4 +3170,122 @@ func (sh *strictHandler) PostUsersUser(ctx *gin.Context) {
 	} else if response != nil {
 		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
 	}
+}
+
+// Base64 encoded, gzipped, json marshaled Swagger object
+var swaggerSpec = []string{
+
+	"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",
+}
+
+// GetSwagger returns the content of the embedded swagger specification file
+// or error if failed to decode
+func decodeSpec() ([]byte, error) {
+	zipped, err := base64.StdEncoding.DecodeString(strings.Join(swaggerSpec, ""))
+	if err != nil {
+		return nil, fmt.Errorf("error base64 decoding spec: %w", err)
+	}
+	zr, err := gzip.NewReader(bytes.NewReader(zipped))
+	if err != nil {
+		return nil, fmt.Errorf("error decompressing spec: %w", err)
+	}
+	var buf bytes.Buffer
+	_, err = buf.ReadFrom(zr)
+	if err != nil {
+		return nil, fmt.Errorf("error decompressing spec: %w", err)
+	}
+
+	return buf.Bytes(), nil
+}
+
+var rawSpec = decodeSpecCached()
+
+// a naive cached of a decoded swagger spec
+func decodeSpecCached() func() ([]byte, error) {
+	data, err := decodeSpec()
+	return func() ([]byte, error) {
+		return data, err
+	}
+}
+
+// Constructs a synthetic filesystem for resolving external references when loading openapi specifications.
+func PathToRawSpec(pathToFile string) map[string]func() ([]byte, error) {
+	res := make(map[string]func() ([]byte, error))
+	if len(pathToFile) > 0 {
+		res[pathToFile] = rawSpec
+	}
+
+	return res
+}
+
+// GetSwagger returns the Swagger specification corresponding to the generated code
+// in this file. The external references of Swagger specification are resolved.
+// The logic of resolving external references is tightly connected to "import-mapping" feature.
+// Externally referenced files must be embedded in the corresponding golang packages.
+// Urls can be supported but this task was out of the scope.
+func GetSwagger() (swagger *openapi3.T, err error) {
+	resolvePath := PathToRawSpec("")
+
+	loader := openapi3.NewLoader()
+	loader.IsExternalRefsAllowed = true
+	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
+		pathToFile := url.String()
+		pathToFile = path.Clean(pathToFile)
+		getSpec, ok := resolvePath[pathToFile]
+		if !ok {
+			err1 := fmt.Errorf("path not found: %s", pathToFile)
+			return nil, err1
+		}
+		return getSpec()
+	}
+	var specData []byte
+	specData, err = rawSpec()
+	if err != nil {
+		return
+	}
+	swagger, err = loader.LoadFromData(specData)
+	if err != nil {
+		return
+	}
+	return
 }

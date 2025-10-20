@@ -43,7 +43,8 @@ func main() {
 	orm.InitAdminUser()
 
 	server := api.NewServer()
-	api.RegisterHandlers(shareddeps.Server, server)
+	handler := api.NewStrictHandler(server, nil)
+	api.RegisterHandlers(shareddeps.Server, handler)
 
 	// health check to see if api-server is reachable / ready
 	shareddeps.Server.GET("/ready", handlers.Ready)

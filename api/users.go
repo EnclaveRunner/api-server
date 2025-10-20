@@ -1,6 +1,8 @@
 package api
 
-import "context"
+import (
+	"context"
+)
 
 // GetUsersList implements StrictServerInterface.
 func (s *Server) GetUsersList(

@@ -11,12 +11,18 @@ import (
 // CreateUserGroup godoc
 //
 //	@Summary		Creates a new empty User-Group
-//	@Description	Creates a new casbin group (corresponds to entry g, nullUser, <name-of-group>)
+//	@Description	Creates a new casbin group (corresponds to entry g, nullUser,
+//
+// <name-of-group>)
+//
 //	@Tags			auth
 //	@Accept			json
 //	@Produce		json
 //	@Param			name	query		string				true	"Group name"
-//	@Success		201		{object}	map[string]string	"Empty group created successfully!"
+//	@Success		201		{object}	map[string]string	"Empty group created
+//
+// successfully!"
+//
 //	@Failure		400		{object}	map[string]string	"bad request"
 //	@Failure		404		{object}	map[string]string	"not found"
 //	@Failure		500		{object}	map[string]string	"internal server error"
@@ -27,7 +33,10 @@ func CreateUserGroup(ctx *gin.Context) {
 
 	// Check that group name is not empty
 	if name == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "group name cannot be empty"})
+		ctx.JSON(
+			http.StatusBadRequest,
+			gin.H{"error": "group name cannot be empty"},
+		)
 
 		return
 	}
@@ -35,7 +44,10 @@ func CreateUserGroup(ctx *gin.Context) {
 	err := auth.CreateUserGroup(name)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create user group")
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create user group"})
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "failed to create user group"},
+		)
 
 		return
 	}
@@ -50,7 +62,10 @@ func CreateUserGroup(ctx *gin.Context) {
 // RemoveUserGroup godoc
 //
 //	@Summary		Removes a User-Group
-//	@Description	Removes a casbin group with all its policies and group definitions
+//	@Description	Removes a casbin group with all its policies and group
+//
+// definitions
+//
 //	@Description	Throws error, if group does not exist or is enclaveAdmin
 //
 //	@Tags			auth
@@ -68,7 +83,10 @@ func RemoveUserGroup(ctx *gin.Context) {
 
 	// Check that group name is not empty
 	if name == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "group name cannot be empty"})
+		ctx.JSON(
+			http.StatusBadRequest,
+			gin.H{"error": "group name cannot be empty"},
+		)
 
 		return
 	}
@@ -76,7 +94,10 @@ func RemoveUserGroup(ctx *gin.Context) {
 	err := auth.RemoveUserGroup(name)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to remove user group")
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to remove user group"})
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "failed to remove user group"},
+		)
 
 		return
 	}
@@ -104,7 +125,10 @@ func GetUserGroups(ctx *gin.Context) {
 	users, err := auth.GetUserGroups()
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get user groups")
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user groups"})
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "failed to get user groups"},
+		)
 
 		return
 	}
@@ -141,7 +165,10 @@ func AddToUserGroup(ctx *gin.Context) {
 	err := auth.AddUserToGroup(body.Username, body.Groups...)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to add user to group")
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to add user to group"})
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "failed to add user to group"},
+		)
 
 		return
 	}
@@ -181,7 +208,10 @@ func RemoveFromUserGroup(ctx *gin.Context) {
 	err := auth.RemoveUserFromGroup(body.Username, body.Groups...)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to remove user from group")
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to remove user from group"})
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "failed to remove user from group"},
+		)
 
 		return
 	}
@@ -219,7 +249,10 @@ func GetGroupsOfUser(ctx *gin.Context) {
 	groups, err := auth.GetGroupsForUser(name)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get groups of user")
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get groups of user"})
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "failed to get groups of user"},
+		)
 
 		return
 	}
@@ -257,7 +290,10 @@ func GetUsersOfGroup(ctx *gin.Context) {
 	users, err := auth.GetUserGroup(name)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get users of group")
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get users of group"})
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "failed to get users of group"},
+		)
 
 		return
 	}

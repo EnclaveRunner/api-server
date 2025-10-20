@@ -35,7 +35,10 @@ func CreateResourceGroup(ctx *gin.Context) {
 	err := auth.CreateResourceGroup(name)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create resource group")
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create resource group"})
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "failed to create resource group"},
+		)
 
 		return
 	}
@@ -72,7 +75,10 @@ func RemoveResourceGroup(ctx *gin.Context) {
 	err := auth.RemoveResourceGroup(name)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to remove resource group")
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to remove resource group"})
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "failed to remove resource group"},
+		)
 
 		return
 	}
@@ -100,7 +106,10 @@ func GetResourceGroups(ctx *gin.Context) {
 	rgroups, err := auth.GetResourceGroups()
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get resource groups")
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get resource groups"})
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "failed to get resource groups"},
+		)
 
 		return
 	}
@@ -257,7 +266,10 @@ func GetGroupsOfResource(ctx *gin.Context) {
 
 	// Check that group name is not empty
 	if name == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Resource name cannot be empty"})
+		ctx.JSON(
+			http.StatusBadRequest,
+			gin.H{"error": "Resource name cannot be empty"},
+		)
 
 		return
 	}
@@ -265,7 +277,10 @@ func GetGroupsOfResource(ctx *gin.Context) {
 	groups, err := auth.GetGroupsForResource(name)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get groups of resource")
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get groups of resource"})
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "failed to get groups of resource"},
+		)
 
 		return
 	}
@@ -295,14 +310,20 @@ func GetResourcesOfGroup(ctx *gin.Context) {
 
 	// Check that group name is not empty
 	if name == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Group name cannot be empty"})
+		ctx.JSON(
+			http.StatusBadRequest,
+			gin.H{"error": "Group name cannot be empty"},
+		)
 
 		return
 	}
 	resources, err := auth.GetResourceGroup(name)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get resources of group")
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get resources of group"})
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "failed to get resources of group"},
+		)
 
 		return
 	}

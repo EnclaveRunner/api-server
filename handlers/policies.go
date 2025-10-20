@@ -12,7 +12,8 @@ import (
 // CreatePolicy godoc
 //
 // @Summary		Creates a new Policy
-// @Description	Adds policy. Every parameter can be "*" as wildcard. userGroup and resourceGroup
+// @Description	Adds policy. Every parameter can be "*" as wildcard. userGroup
+// and resourceGroup
 // @Description	must exist.
 // @Tags			auth
 // @Accept			json
@@ -34,7 +35,10 @@ func CreatePolicy(ctx *gin.Context) {
 	err := auth.AddPolicy(body.UserGroup, body.ResourceGroup, body.Action)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create policy")
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create policy"})
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "failed to create policy"},
+		)
 
 		return
 	}
@@ -69,7 +73,10 @@ func RemovePolicy(ctx *gin.Context) {
 	err := auth.RemovePolicy(body.UserGroup, body.ResourceGroup, body.Action)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to remove policy")
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to remove policy"})
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "failed to remove policy"},
+		)
 
 		return
 	}

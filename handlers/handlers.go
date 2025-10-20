@@ -55,7 +55,10 @@ func RemoveUser(ctx *gin.Context) {
 	err := auth.RemoveUser(name)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to remove user")
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to remove user"})
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "failed to remove user"},
+		)
 
 		return
 	}
@@ -67,7 +70,10 @@ func RemoveUser(ctx *gin.Context) {
 		First(context.Background())
 	if err != nil {
 		log.Error().Err(err).Msg("failed to find user in database")
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find user in database"})
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "failed to find user in database"},
+		)
 
 		return
 	}

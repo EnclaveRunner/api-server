@@ -440,7 +440,7 @@ paths:
                   type: string
                   description: The name of the role to assign to the user.
       responses:
-        "200":
+        "201":
           description: Role assigned to user successfully or role was already assigned.
         "400":
           $ref: "#/components/responses/GenericBadRequest"
@@ -525,9 +525,9 @@ paths:
             schema:
               type: object
               required:
-                - resourceGroupName
+                - resourceGroup
               properties:
-                resourceGroupName:
+                resourceGroup:
                   type: string
                   description: The name of the resource group.
       responses:
@@ -563,9 +563,9 @@ paths:
             schema:
               type: object
               required:
-                - resourceGroupName
+                - resourceGroup
               properties:
-                resourceGroupName:
+                resourceGroup:
                   type: string
                   description: The name of the resource group.
       responses:
@@ -595,9 +595,9 @@ paths:
             schema:
               type: object
               required:
-                - resourceGroupName
+                - resourceGroup
               properties:
-                resourceGroupName:
+                resourceGroup:
                   type: string
                   description: The name of the resource group.
       responses:
@@ -631,9 +631,9 @@ paths:
             schema:
               type: object
               required:
-                - resourceGroupName
+                - resourceGroup
               properties:
-                resourceGroupName:
+                resourceGroup:
                   type: string
                   description: The name of the resource group.
       responses:
@@ -675,7 +675,9 @@ paths:
           content:
             application/json:
               schema:
-                type: string
+                type: array
+                items:
+                  type: string
         "400":
           $ref: "#/components/responses/GenericBadRequest"
         "401":
@@ -698,17 +700,17 @@ paths:
             schema:
               type: object
               required:
-                - resourceGroupName
-                - endpoints
+                - resourceGroup
+                - endpoint
               properties:
-                resourceGroupName:
+                resourceGroup:
                   type: string
                   description: The name of the resource group.
                 endpoint:
                   type: string
                   description: The endpoint to assign to the resource group.
       responses:
-        "200":
+        "201":
           description: Endpoint assigned to resource group successfully or was already assigned.
         "400":
           $ref: "#/components/responses/GenericBadRequest"
@@ -739,6 +741,9 @@ paths:
                 endpoint:
                   type: string
                   description: The endpoint to remove from its resource group.
+                resourceGroup:
+                  type: string
+                  description: The name of the resource group.
       responses:
         "200":
           description: Endpoint removed from resource group successfully.
@@ -894,9 +899,9 @@ components:
     RBACRole:
       type: object
       required:
-        - roleName
+        - role
       properties:
-        roleName:
+        role:
           type: string
           description: The name of the role.
     RBACUserRolesRequest:
@@ -910,14 +915,14 @@ components:
     RBACPolicy:
       type: object
       required:
-        - roleName
-        - resourceGroupName
+        - role
+        - resourceGroup
         - permission
       properties:
-        roleName:
+        role:
           type: string
           description: The name of the role. (or "*" for all roles)
-        resourceGroupName:
+        resourceGroup:
           type: string
           description: The name of the resource group. (or "*" for all resource groups)
         permission:

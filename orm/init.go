@@ -20,7 +20,8 @@ import (
 var DB *gorm.DB
 
 func InitDB() *gormadapter.Adapter {
-	dsn := fmt.Sprintf("host='%s' port='%d' user='%s' password='%s' dbname='%s' sslmode='%s'",
+	dsn := fmt.Sprintf(
+		"host='%s' port='%d' user='%s' password='%s' dbname='%s' sslmode='%s'",
 		config.Cfg.Database.Host,
 		config.Cfg.Database.Port,
 		config.Cfg.Database.Username,
@@ -30,7 +31,8 @@ func InitDB() *gormadapter.Adapter {
 	)
 
 	dsn_redacted := strings.ReplaceAll(dsn, config.Cfg.Database.Password, "*****")
-	log.Debug().Msgf("Connecting to postgres using the following information: %s", dsn_redacted)
+	log.Debug().
+		Msgf("Connecting to postgres using the following information: %s", dsn_redacted)
 
 	var err error
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
@@ -59,7 +61,10 @@ func InitDB() *gormadapter.Adapter {
 // InitAdminUser creates the default admin user after auth system is initialized
 func InitAdminUser() {
 	// hash password
-	hash, err := bcrypt.GenerateFromPassword([]byte(config.Cfg.Admin.Password), HashCost)
+	hash, err := bcrypt.GenerateFromPassword(
+		[]byte(config.Cfg.Admin.Password),
+		HashCost,
+	)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to hash admin password")
 	}

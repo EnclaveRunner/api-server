@@ -51,13 +51,17 @@ func CreateUser(username, password string) (*User, error) {
 		}
 
 		if err == nil {
-			return &ConflictError{fmt.Sprintf("User with username %s already exists", username)}
+			return &ConflictError{
+				fmt.Sprintf("User with username %s already exists", username),
+			}
 		}
 
 		err = gorm.G[User](DB).Create(context.Background(), &user)
 		if err != nil {
 			if errors.Is(err, gorm.ErrDuplicatedKey) {
-				return &ConflictError{fmt.Sprintf("User with username %s already exists", username)}
+				return &ConflictError{
+					fmt.Sprintf("User with username %s already exists", username),
+				}
 			}
 
 			return &DatabaseError{err}
@@ -70,7 +74,10 @@ func CreateUser(username, password string) (*User, error) {
 			return &DatabaseError{err}
 		}
 
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), HashCost)
+		hashedPassword, err := bcrypt.GenerateFromPassword(
+			[]byte(password),
+			HashCost,
+		)
 		if err != nil {
 			return &GenericError{err}
 		}
@@ -94,7 +101,10 @@ func CreateUser(username, password string) (*User, error) {
 	return &createdUser, nil
 }
 
-func PatchUser(userID uuid.UUID, newUsername, newPassword *string) (*User, error) {
+func PatchUser(
+	userID uuid.UUID,
+	newUsername, newPassword *string,
+) (*User, error) {
 	user, err := GetUserByID(userID)
 	if err != nil {
 		return nil, err
@@ -106,7 +116,9 @@ func PatchUser(userID uuid.UUID, newUsername, newPassword *string) (*User, error
 			err := tx.Save(user).Error
 			if err != nil {
 				if errors.Is(err, gorm.ErrDuplicatedKey) {
-					return &ConflictError{fmt.Sprintf("User with username %s already exists", *newUsername)}
+					return &ConflictError{
+						fmt.Sprintf("User with username %s already exists", *newUsername),
+					}
 				}
 
 				return &DatabaseError{err}
@@ -114,7 +126,10 @@ func PatchUser(userID uuid.UUID, newUsername, newPassword *string) (*User, error
 		}
 
 		if newPassword != nil {
-			hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*newPassword), HashCost)
+			hashedPassword, err := bcrypt.GenerateFromPassword(
+				[]byte(*newPassword),
+				HashCost,
+			)
 			if err != nil {
 				return &GenericError{err}
 			}

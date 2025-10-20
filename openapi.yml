@@ -242,6 +242,8 @@ paths:
                 $ref: "#/components/schemas/ErrGeneric"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
   /rbac/list-roles:
     get:
       summary: List All Roles

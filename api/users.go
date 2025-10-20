@@ -215,8 +215,13 @@ func (s *Server) GetUsersMe(
 	ctx context.Context,
 	request GetUsersMeRequestObject,
 ) (GetUsersMeResponseObject, error) {
-	authenticatedUser := auth.AuthenticatedUserFromContext(ctx)
+	authenticatedUser := auth.RetrieveAuthenticatedUser(ctx)
 	if authenticatedUser == auth.UnauthenticatedUser {
+		log.Debug().Any("userContext", authenticatedUser).Msg("Unauthenticated user tried to access /users/me endpoint")
+
+		log.Debug().Any("BasicAuthContext", ctx.Value(BasicAuthScopes)).Msg("Basic auth context for unauthenticated user")
+
+		log.Debug().Any("ctx", ctx).Msg("context")
 		return GetUsersMe401Response{}, nil
 	}
 
@@ -245,7 +250,7 @@ func (s *Server) PatchUsersMe(
 	ctx context.Context,
 	request PatchUsersMeRequestObject,
 ) (PatchUsersMeResponseObject, error) {
-	authenticatedUser := auth.AuthenticatedUserFromContext(ctx)
+	authenticatedUser := auth.RetrieveAuthenticatedUser(ctx)
 	if authenticatedUser == auth.UnauthenticatedUser {
 		return PatchUsersMe401Response{}, nil
 	}

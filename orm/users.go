@@ -11,9 +11,9 @@ import (
 	"gorm.io/gorm"
 )
 
-func GetUserByID(userID uuid.UUID) (*User, error) {
+func GetUserByID(ctx context.Context, userID uuid.UUID) (*User, error) {
 	user, err := gorm.G[User](DB).Where(&User{ID: userID}).
-		First(context.Background())
+		First(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, &NotFoundError{fmt.Sprintf("User with ID %s", userID)}
@@ -25,8 +25,8 @@ func GetUserByID(userID uuid.UUID) (*User, error) {
 	return &user, nil
 }
 
-func ListAllUsers() ([]User, error) {
-	users, err := gorm.G[User](DB).Find(context.Background())
+func ListAllUsers(ctx context.Context) ([]User, error) {
+	users, err := gorm.G[User](DB).Find(ctx)
 	if err != nil {
 		return nil, &DatabaseError{err}
 	}
@@ -34,7 +34,7 @@ func ListAllUsers() ([]User, error) {
 	return users, nil
 }
 
-func CreateUser(username, password string) (*User, error) {
+func CreateUser(ctx context.Context, username, password string) (*User, error) {
 	user := User{
 		Username: username,
 	}
@@ -44,7 +44,7 @@ func CreateUser(username, password string) (*User, error) {
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		_, err := gorm.G[User](DB).
 			Where(&User{Username: username}).
-			First(context.Background())
+			First(ctx)
 
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return &DatabaseError{err}
@@ -56,7 +56,7 @@ func CreateUser(username, password string) (*User, error) {
 			}
 		}
 
-		err = gorm.G[User](DB).Create(context.Background(), &user)
+		err = gorm.G[User](DB).Create(ctx, &user)
 		if err != nil {
 			if errors.Is(err, gorm.ErrDuplicatedKey) {
 				return &ConflictError{
@@ -69,7 +69,7 @@ func CreateUser(username, password string) (*User, error) {
 
 		createdUser, err = gorm.G[User](DB).
 			Where(&User{Username: username}).
-			First(context.Background())
+			First(ctx)
 		if err != nil {
 			return &DatabaseError{err}
 		}
@@ -87,7 +87,7 @@ func CreateUser(username, password string) (*User, error) {
 			Password: hashedPassword,
 		}
 
-		err = gorm.G[Auth_Basic](DB).Create(context.Background(), &authRecord)
+		err = gorm.G[Auth_Basic](DB).Create(ctx, &authRecord)
 		if err != nil {
 			return &DatabaseError{err}
 		}
@@ -102,10 +102,11 @@ func CreateUser(username, password string) (*User, error) {
 }
 
 func PatchUser(
+	ctx context.Context,
 	userID uuid.UUID,
 	newUsername, newPassword *string,
 ) (*User, error) {
-	user, err := GetUserByID(userID)
+	user, err := GetUserByID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -154,8 +155,8 @@ func PatchUser(
 	return user, nil
 }
 
-func DeleteUserByID(userID uuid.UUID) (*User, error) {
-	user, err := GetUserByID(userID)
+func DeleteUserByID(ctx context.Context, userID uuid.UUID) (*User, error) {
+	user, err := GetUserByID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +166,7 @@ func DeleteUserByID(userID uuid.UUID) (*User, error) {
 		return nil, &GenericError{err}
 	}
 
-	_, err = gorm.G[User](DB).Where(user).Delete(context.Background())
+	_, err = gorm.G[User](DB).Where(user).Delete(ctx)
 	if err != nil {
 		return nil, &DatabaseError{err}
 	}

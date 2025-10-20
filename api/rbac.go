@@ -408,7 +408,7 @@ func (s *Server) GetRbacUser(
 		}, nil
 	}
 
-	_, err = orm.GetUserByID(uuidParsed)
+	_, err = orm.GetUserByID(ctx, uuidParsed)
 	if err != nil {
 		var errNotFound *orm.NotFoundError
 		if errors.As(err, &errNotFound) {
@@ -446,7 +446,7 @@ func (s *Server) PostRbacUser(
 		}, nil
 	}
 
-	_, err = orm.GetUserByID(uuidParsed)
+	_, err = orm.GetUserByID(ctx, uuidParsed)
 	if err != nil {
 		var errNotFound *orm.NotFoundError
 		if errors.As(err, &errNotFound) {
@@ -495,7 +495,7 @@ func (s *Server) DeleteRbacUser(
 		}, nil
 	}
 
-	_, err = orm.GetUserByID(uuidParsed)
+	_, err = orm.GetUserByID(ctx, uuidParsed)
 	if err != nil {
 		var errNotFound *orm.NotFoundError
 		if errors.As(err, &errNotFound) {

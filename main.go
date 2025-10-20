@@ -3,7 +3,6 @@ package main
 import (
 	"api-server/api"
 	"api-server/config"
-	"api-server/handlers"
 	"api-server/orm"
 
 	"github.com/EnclaveRunner/shareddeps"
@@ -45,46 +44,6 @@ func main() {
 	server := api.NewServer()
 	handler := api.NewStrictHandler(server, nil)
 	api.RegisterHandlers(shareddeps.Server, handler)
-
-	// health check to see if api-server is reachable / ready
-	shareddeps.Server.GET("/ready", handlers.Ready)
-
-	shareddeps.Server.GET("/user", handlers.GetUser)
-	shareddeps.Server.POST("/user", handlers.CreateUser)
-	shareddeps.Server.PATCH("/user", handlers.PatchUser)
-	shareddeps.Server.DELETE("/user", handlers.DeleteUser)
-
-	shareddeps.Server.GET("/list-users", handlers.ListUsers)
-
-	shareddeps.Server.GET("/me", handlers.GetMe)
-	shareddeps.Server.PATCH("/me", handlers.UpdateMe)
-	shareddeps.Server.DELETE("/me", handlers.DeleteMe)
-
-	auth := shareddeps.Server.Group("/auth")
-
-	// user-group management endpoints
-	auth.POST("/ugroup", handlers.CreateUserGroup)
-	auth.DELETE("/ugroup", handlers.RemoveUserGroup)
-	auth.GET("/list-ugroups", handlers.GetUserGroups)
-	auth.POST("/user", handlers.AddToUserGroup)
-	auth.DELETE("/user", handlers.RemoveFromUserGroup)
-	auth.GET("/groups-of-user", handlers.GetGroupsOfUser)
-	auth.GET("/users-of-group", handlers.GetUsersOfGroup)
-
-	// resource-group management endpoints
-	auth.POST("/rgroup", handlers.CreateResourceGroup)
-	auth.DELETE("/rgroup", handlers.RemoveResourceGroup)
-	auth.GET("/list-rgroups", handlers.GetResourceGroups)
-	auth.POST("/resource", handlers.AddToResourceGroup)
-	auth.DELETE("/resource", handlers.RemoveFromResourceGroup)
-	auth.GET("/groups-of-resource", handlers.GetGroupsOfResource)
-	auth.GET("/resources-of-group", handlers.GetResourcesOfGroup)
-
-	// policy management endpoints
-	// create new policy
-	auth.POST("/create-policy", handlers.CreatePolicy)
-	// delete a policy
-	auth.POST("/remove-policy", handlers.RemovePolicy)
 
 	shareddeps.Start()
 }

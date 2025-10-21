@@ -1,7 +1,7 @@
 openapi: "3.0.3"
 info:
   title: Enclave API Server
-  description: The entrypoint for all Enclave API requests and communication
+  description: The entrypoint for all Enclave API requests and communication.
   version: "v0.0.0"
 tags:
   - name: Users

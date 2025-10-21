@@ -56,7 +56,7 @@ jobs:
           cd docs-repo
 
           # Configure git
-          git config user.name "Enclave Bot"
+          git config user.name "EnclaveAutomation"
           git config user.email "enclave@marvin-fuchs.de"
 
           # Get the current repository name for commit message

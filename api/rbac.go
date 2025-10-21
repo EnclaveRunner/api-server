@@ -158,7 +158,9 @@ func (s *Server) PostRbacPolicy(
 	}
 
 	if len(fieldErrors) > 0 {
-		return PostRbacPolicy404JSONResponse{fieldErrors}, nil
+		return PostRbacPolicy404JSONResponse{
+			FieldErrorJSONResponse{&fieldErrors},
+		}, nil
 	}
 
 	err := auth.AddPolicy(
@@ -206,7 +208,7 @@ func (s *Server) GetRbacListResourceGroups(
 		return nil, &EmptyInternalServerError{}
 	}
 
-	var resourceGroupsParsed []string
+	resourceGroupsParsed := make([]string, 0)
 	for _, rg := range resourceGroups {
 		if !slices.Contains(resourceGroupsParsed, rg.GroupName) {
 			resourceGroupsParsed = append(resourceGroupsParsed, rg.GroupName)
@@ -304,7 +306,7 @@ func (s *Server) GetRbacListRoles(
 		return nil, &EmptyInternalServerError{}
 	}
 
-	var roles []string
+	roles := make([]string, 0)
 	for _, ug := range groups {
 		if !slices.Contains(roles, ug.GroupName) {
 			roles = append(roles, ug.GroupName)

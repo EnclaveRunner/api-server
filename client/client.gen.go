@@ -115,7 +115,9 @@ type UserResponse struct {
 }
 
 // FieldError defines model for FieldError.
-type FieldError = []ErrField
+type FieldError struct {
+	Errors *[]ErrField `json:"errors,omitempty"`
+}
 
 // GenericBadRequest defines model for GenericBadRequest.
 type GenericBadRequest = ErrGeneric

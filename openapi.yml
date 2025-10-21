@@ -975,9 +975,12 @@ components:
       content:
         application/json:
           schema:
-            type: array
-            items:
-              $ref: "#/components/schemas/ErrField"
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ErrField"
     GenericInternalServerError:
       description: "An internal server error occurred. Look at the server logs for more details."
   securitySchemes:

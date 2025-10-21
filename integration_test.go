@@ -69,6 +69,10 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+// ============================================================================
+// Users Tests
+// ============================================================================
+
 func TestAdminUserExists(t *testing.T) {
 	t.Parallel()
 	resp, err := c.GetUsersListWithResponse(t.Context())
@@ -705,5 +709,856 @@ func TestPatchUsersMeDuplicateName(t *testing.T) {
 	_, _ = c.DeleteUsersUserWithResponse(
 		t.Context(),
 		client.DeleteUsersUserJSONRequestBody{Id: user2Id},
+	)
+}
+
+// ============================================================================
+// RBAC Tests
+// ============================================================================
+
+// Test Role CRUD operations
+func TestRoleCRUD(t *testing.T) {
+	t.Parallel()
+	roleName := "testRoleCRUD"
+
+	// Create Role
+	createResp, err := c.PostRbacRoleWithResponse(
+		t.Context(),
+		client.PostRbacRoleJSONRequestBody{
+			Role: roleName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createResp.StatusCode())
+
+	// Check Role Exists
+	headResp, err := c.HeadRbacRoleWithResponse(
+		t.Context(),
+		client.HeadRbacRoleJSONRequestBody{
+			Role: roleName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, headResp.StatusCode())
+
+	// Get Role (users in role)
+	getResp, err := c.GetRbacRoleWithResponse(
+		t.Context(),
+		client.GetRbacRoleJSONRequestBody{
+			Role: roleName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, getResp.StatusCode())
+	assert.NotNil(t, getResp.JSON200)
+	assert.Equal(t, 0, len(*getResp.JSON200), "New role should have no users")
+
+	// List all roles
+	listResp, err := c.GetRbacListRolesWithResponse(t.Context())
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, listResp.StatusCode())
+	assert.True(t, slices.Contains(*listResp.JSON200, roleName))
+
+	// Delete Role
+	deleteResp, err := c.DeleteRbacRoleWithResponse(
+		t.Context(),
+		client.DeleteRbacRoleJSONRequestBody{
+			Role: roleName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, deleteResp.StatusCode())
+
+	// Verify Role Deletion
+	headRespAfterDelete, err := c.HeadRbacRoleWithResponse(
+		t.Context(),
+		client.HeadRbacRoleJSONRequestBody{
+			Role: roleName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, headRespAfterDelete.StatusCode())
+}
+
+func TestGetRoleNotFound(t *testing.T) {
+	t.Parallel()
+
+	resp, err := c.GetRbacRoleWithResponse(
+		t.Context(),
+		client.GetRbacRoleJSONRequestBody{
+			Role: "nonExistentRole",
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode())
+}
+
+func TestDeleteRoleNotFound(t *testing.T) {
+	t.Parallel()
+
+	resp, err := c.DeleteRbacRoleWithResponse(
+		t.Context(),
+		client.DeleteRbacRoleJSONRequestBody{
+			Role: "nonExistentRole",
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode())
+}
+
+// Test Resource Group CRUD operations
+func TestResourceGroupCRUD(t *testing.T) {
+	t.Parallel()
+	rgName := "testResourceGroupCRUD"
+
+	// Create Resource Group
+	createResp, err := c.PostRbacResourceGroupWithResponse(
+		t.Context(),
+		client.PostRbacResourceGroupJSONRequestBody{
+			ResourceGroup: rgName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createResp.StatusCode())
+
+	// Check Resource Group Exists
+	headResp, err := c.HeadRbacResourceGroupWithResponse(
+		t.Context(),
+		client.HeadRbacResourceGroupJSONRequestBody{
+			ResourceGroup: rgName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, headResp.StatusCode())
+
+	// Get Resource Group
+	getResp, err := c.GetRbacResourceGroupWithResponse(
+		t.Context(),
+		client.GetRbacResourceGroupJSONRequestBody{
+			ResourceGroup: rgName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, getResp.StatusCode())
+	assert.NotNil(t, getResp.JSON200)
+	assert.Equal(
+		t,
+		0,
+		len(*getResp.JSON200),
+		"New resource group should have no endpoints",
+	)
+
+	// List all resource groups
+	listResp, err := c.GetRbacListResourceGroupsWithResponse(t.Context())
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, listResp.StatusCode())
+	assert.True(t, slices.Contains(*listResp.JSON200, rgName))
+
+	// Delete Resource Group
+	deleteResp, err := c.DeleteRbacResourceGroupWithResponse(
+		t.Context(),
+		client.DeleteRbacResourceGroupJSONRequestBody{
+			ResourceGroup: rgName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, deleteResp.StatusCode())
+
+	// Verify Resource Group Deletion
+	headRespAfterDelete, err := c.HeadRbacResourceGroupWithResponse(
+		t.Context(),
+		client.HeadRbacResourceGroupJSONRequestBody{
+			ResourceGroup: rgName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, headRespAfterDelete.StatusCode())
+}
+
+func TestGetResourceGroupNotFound(t *testing.T) {
+	t.Parallel()
+
+	resp, err := c.GetRbacResourceGroupWithResponse(
+		t.Context(),
+		client.GetRbacResourceGroupJSONRequestBody{
+			ResourceGroup: "nonExistentResourceGroup",
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode())
+}
+
+func TestDeleteResourceGroupNotFound(t *testing.T) {
+	t.Parallel()
+
+	resp, err := c.DeleteRbacResourceGroupWithResponse(
+		t.Context(),
+		client.DeleteRbacResourceGroupJSONRequestBody{
+			ResourceGroup: "nonExistentResourceGroup",
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode())
+}
+
+// Test Endpoint to Resource Group assignment
+func TestEndpointResourceGroupAssignment(t *testing.T) {
+	t.Parallel()
+	rgName := "testEndpointRG"
+	endpoint := "/test/endpoint"
+
+	// Create Resource Group
+	createRGResp, err := c.PostRbacResourceGroupWithResponse(
+		t.Context(),
+		client.PostRbacResourceGroupJSONRequestBody{
+			ResourceGroup: rgName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createRGResp.StatusCode())
+
+	// Assign endpoint to resource group
+	assignResp, err := c.PostRbacEndpointWithResponse(
+		t.Context(),
+		client.PostRbacEndpointJSONRequestBody{
+			ResourceGroup: rgName,
+			Endpoint:      endpoint,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, assignResp.StatusCode())
+
+	// Get resource groups for endpoint
+	getEndpointResp, err := c.GetRbacEndpointWithResponse(
+		t.Context(),
+		client.GetRbacEndpointJSONRequestBody{
+			Endpoint: endpoint,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, getEndpointResp.StatusCode())
+	assert.True(t, slices.Contains(*getEndpointResp.JSON200, rgName))
+
+	// Get endpoints in resource group
+	getRGResp, err := c.GetRbacResourceGroupWithResponse(
+		t.Context(),
+		client.GetRbacResourceGroupJSONRequestBody{
+			ResourceGroup: rgName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, getRGResp.StatusCode())
+	assert.True(t, slices.Contains(*getRGResp.JSON200, endpoint))
+
+	// Remove endpoint from resource group
+	removeResp, err := c.DeleteRbacEndpointWithResponse(
+		t.Context(),
+		client.DeleteRbacEndpointJSONRequestBody{
+			ResourceGroup: rgName,
+			Endpoint:      endpoint,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, removeResp.StatusCode())
+
+	// Verify endpoint removed
+	getRGRespAfter, err := c.GetRbacResourceGroupWithResponse(
+		t.Context(),
+		client.GetRbacResourceGroupJSONRequestBody{
+			ResourceGroup: rgName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, getRGRespAfter.StatusCode())
+	assert.False(t, slices.Contains(*getRGRespAfter.JSON200, endpoint))
+
+	// Cleanup
+	_, _ = c.DeleteRbacResourceGroupWithResponse(
+		t.Context(),
+		client.DeleteRbacResourceGroupJSONRequestBody{ResourceGroup: rgName},
+	)
+}
+
+func TestAssignEndpointToNonExistentResourceGroup(t *testing.T) {
+	t.Parallel()
+
+	resp, err := c.PostRbacEndpointWithResponse(
+		t.Context(),
+		client.PostRbacEndpointJSONRequestBody{
+			ResourceGroup: "nonExistentRG",
+			Endpoint:      "/test/endpoint",
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode())
+}
+
+func TestRemoveEndpointFromNonExistentResourceGroup(t *testing.T) {
+	t.Parallel()
+
+	resp, err := c.DeleteRbacEndpointWithResponse(
+		t.Context(),
+		client.DeleteRbacEndpointJSONRequestBody{
+			ResourceGroup: "nonExistentRG",
+			Endpoint:      "/test/endpoint",
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode())
+}
+
+// Test User to Role assignment
+func TestUserRoleAssignment(t *testing.T) {
+	t.Parallel()
+	username := "testUserRole"
+	password := "test"
+	roleName := "testUserRoleAssignment"
+
+	// Create user
+	createUserResp, err := c.PostUsersUserWithResponse(
+		t.Context(),
+		client.PostUsersUserJSONRequestBody{
+			Name:     username,
+			Password: password,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createUserResp.StatusCode())
+	userId := createUserResp.JSON201.Id
+
+	// Create role
+	createRoleResp, err := c.PostRbacRoleWithResponse(
+		t.Context(),
+		client.PostRbacRoleJSONRequestBody{
+			Role: roleName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createRoleResp.StatusCode())
+
+	// Assign role to user
+	assignResp, err := c.PostRbacUserWithResponse(
+		t.Context(),
+		client.PostRbacUserJSONRequestBody{
+			UserId: userId,
+			Role:   roleName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, assignResp.StatusCode())
+
+	// Get roles for user
+	getUserRolesResp, err := c.GetRbacUserWithResponse(
+		t.Context(),
+		client.GetRbacUserJSONRequestBody{
+			UserId: userId,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, getUserRolesResp.StatusCode())
+	assert.True(t, slices.Contains(*getUserRolesResp.JSON200, roleName))
+
+	// Get users in role
+	getRoleUsersResp, err := c.GetRbacRoleWithResponse(
+		t.Context(),
+		client.GetRbacRoleJSONRequestBody{
+			Role: roleName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, getRoleUsersResp.StatusCode())
+	assert.True(t, slices.Contains(*getRoleUsersResp.JSON200, userId))
+
+	// Remove role from user
+	removeResp, err := c.DeleteRbacUserWithResponse(
+		t.Context(),
+		client.DeleteRbacUserJSONRequestBody{
+			UserId: userId,
+			Role:   roleName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, removeResp.StatusCode())
+
+	// Verify role removed
+	getUserRolesRespAfter, err := c.GetRbacUserWithResponse(
+		t.Context(),
+		client.GetRbacUserJSONRequestBody{
+			UserId: userId,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, getUserRolesRespAfter.StatusCode())
+	assert.False(t, slices.Contains(*getUserRolesRespAfter.JSON200, roleName))
+
+	// Cleanup
+	_, _ = c.DeleteRbacRoleWithResponse(
+		t.Context(),
+		client.DeleteRbacRoleJSONRequestBody{Role: roleName},
+	)
+	_, _ = c.DeleteUsersUserWithResponse(
+		t.Context(),
+		client.DeleteUsersUserJSONRequestBody{Id: userId},
+	)
+}
+
+func TestGetRolesForUserInvalidUUID(t *testing.T) {
+	t.Parallel()
+
+	resp, err := c.GetRbacUserWithResponse(
+		t.Context(),
+		client.GetRbacUserJSONRequestBody{
+			UserId: "invalid-uuid",
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode())
+}
+
+func TestGetRolesForNonExistentUser(t *testing.T) {
+	t.Parallel()
+
+	uuidRandom, _ := uuid.NewRandom()
+	resp, err := c.GetRbacUserWithResponse(
+		t.Context(),
+		client.GetRbacUserJSONRequestBody{
+			UserId: uuidRandom.String(),
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode())
+}
+
+func TestAssignRoleToUserInvalidUUID(t *testing.T) {
+	t.Parallel()
+
+	resp, err := c.PostRbacUserWithResponse(
+		t.Context(),
+		client.PostRbacUserJSONRequestBody{
+			UserId: "invalid-uuid",
+			Role:   "someRole",
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode())
+}
+
+func TestAssignRoleToNonExistentUser(t *testing.T) {
+	t.Parallel()
+
+	uuidRandom, _ := uuid.NewRandom()
+	resp, err := c.PostRbacUserWithResponse(
+		t.Context(),
+		client.PostRbacUserJSONRequestBody{
+			UserId: uuidRandom.String(),
+			Role:   "someRole",
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode())
+}
+
+func TestAssignNonExistentRoleToUser(t *testing.T) {
+	t.Parallel()
+
+	// Create user
+	createUserResp, err := c.PostUsersUserWithResponse(
+		t.Context(),
+		client.PostUsersUserJSONRequestBody{
+			Name:     "testUserNonExistentRole",
+			Password: "test",
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createUserResp.StatusCode())
+	userId := createUserResp.JSON201.Id
+
+	// Try to assign non-existent role
+	resp, err := c.PostRbacUserWithResponse(
+		t.Context(),
+		client.PostRbacUserJSONRequestBody{
+			UserId: userId,
+			Role:   "nonExistentRole",
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode())
+
+	// Cleanup
+	_, _ = c.DeleteUsersUserWithResponse(
+		t.Context(),
+		client.DeleteUsersUserJSONRequestBody{Id: userId},
+	)
+}
+
+func TestRemoveRoleFromUserInvalidUUID(t *testing.T) {
+	t.Parallel()
+
+	resp, err := c.DeleteRbacUserWithResponse(
+		t.Context(),
+		client.DeleteRbacUserJSONRequestBody{
+			UserId: "invalid-uuid",
+			Role:   "someRole",
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode())
+}
+
+func TestRemoveRoleFromNonExistentUser(t *testing.T) {
+	t.Parallel()
+
+	uuidRandom, _ := uuid.NewRandom()
+	resp, err := c.DeleteRbacUserWithResponse(
+		t.Context(),
+		client.DeleteRbacUserJSONRequestBody{
+			UserId: uuidRandom.String(),
+			Role:   "someRole",
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode())
+}
+
+func TestRemoveNonExistentRoleFromUser(t *testing.T) {
+	t.Parallel()
+
+	// Create user
+	createUserResp, err := c.PostUsersUserWithResponse(
+		t.Context(),
+		client.PostUsersUserJSONRequestBody{
+			Name:     "testUserRemoveNonExistentRole",
+			Password: "test",
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createUserResp.StatusCode())
+	userId := createUserResp.JSON201.Id
+
+	// Try to remove non-existent role
+	resp, err := c.DeleteRbacUserWithResponse(
+		t.Context(),
+		client.DeleteRbacUserJSONRequestBody{
+			UserId: userId,
+			Role:   "nonExistentRole",
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode())
+
+	// Cleanup
+	_, _ = c.DeleteUsersUserWithResponse(
+		t.Context(),
+		client.DeleteUsersUserJSONRequestBody{Id: userId},
+	)
+}
+
+// Test Policy CRUD operations
+func TestPolicyCRUD(t *testing.T) {
+	t.Parallel()
+	roleName := "testPolicyRole"
+	rgName := "testPolicyRG"
+	permission := client.GET
+
+	// Create role
+	createRoleResp, err := c.PostRbacRoleWithResponse(
+		t.Context(),
+		client.PostRbacRoleJSONRequestBody{
+			Role: roleName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createRoleResp.StatusCode())
+
+	// Create resource group
+	createRGResp, err := c.PostRbacResourceGroupWithResponse(
+		t.Context(),
+		client.PostRbacResourceGroupJSONRequestBody{
+			ResourceGroup: rgName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createRGResp.StatusCode())
+
+	// Create policy
+	createPolicyResp, err := c.PostRbacPolicyWithResponse(
+		t.Context(),
+		client.PostRbacPolicyJSONRequestBody{
+			Role:          roleName,
+			ResourceGroup: rgName,
+			Permission:    permission,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createPolicyResp.StatusCode())
+
+	// List policies and verify
+	listResp, err := c.GetRbacPolicyWithResponse(t.Context())
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, listResp.StatusCode())
+	policyExists := slices.ContainsFunc(
+		*listResp.JSON200,
+		func(p client.RBACPolicy) bool {
+			return p.Role == roleName &&
+				p.ResourceGroup == rgName &&
+				p.Permission == permission
+		},
+	)
+	assert.True(t, policyExists, "Created policy should exist in list")
+
+	// Delete policy
+	deleteResp, err := c.DeleteRbacPolicyWithResponse(
+		t.Context(),
+		client.DeleteRbacPolicyJSONRequestBody{
+			Role:          roleName,
+			ResourceGroup: rgName,
+			Permission:    permission,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, deleteResp.StatusCode())
+
+	// Verify policy deleted
+	listRespAfter, err := c.GetRbacPolicyWithResponse(t.Context())
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, listRespAfter.StatusCode())
+	policyExistsAfter := slices.ContainsFunc(
+		*listRespAfter.JSON200,
+		func(p client.RBACPolicy) bool {
+			return p.Role == roleName &&
+				p.ResourceGroup == rgName &&
+				p.Permission == permission
+		},
+	)
+	assert.False(t, policyExistsAfter, "Deleted policy should not exist")
+
+	// Cleanup
+	_, _ = c.DeleteRbacResourceGroupWithResponse(
+		t.Context(),
+		client.DeleteRbacResourceGroupJSONRequestBody{ResourceGroup: rgName},
+	)
+	_, _ = c.DeleteRbacRoleWithResponse(
+		t.Context(),
+		client.DeleteRbacRoleJSONRequestBody{Role: roleName},
+	)
+}
+
+func TestCreatePolicyWithWildcards(t *testing.T) {
+	t.Parallel()
+
+	// Create policy with wildcards
+	createResp, err := c.PostRbacPolicyWithResponse(
+		t.Context(),
+		client.PostRbacPolicyJSONRequestBody{
+			Role:          "*",
+			ResourceGroup: "*",
+			Permission:    client.Asterisk,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createResp.StatusCode())
+
+	// List and verify
+	listResp, err := c.GetRbacPolicyWithResponse(t.Context())
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, listResp.StatusCode())
+	policyExists := slices.ContainsFunc(
+		*listResp.JSON200,
+		func(p client.RBACPolicy) bool {
+			return p.Role == "*" &&
+				p.ResourceGroup == "*" &&
+				p.Permission == client.Asterisk
+		},
+	)
+	assert.True(t, policyExists)
+
+	// Cleanup
+	_, _ = c.DeleteRbacPolicyWithResponse(
+		t.Context(),
+		client.DeleteRbacPolicyJSONRequestBody{
+			Role:          "*",
+			ResourceGroup: "*",
+			Permission:    client.Asterisk,
+		},
+	)
+}
+
+func TestCreatePolicyWithNonExistentRole(t *testing.T) {
+	t.Parallel()
+	rgName := "testPolicyNonExistentRole"
+
+	// Create resource group
+	createRGResp, err := c.PostRbacResourceGroupWithResponse(
+		t.Context(),
+		client.PostRbacResourceGroupJSONRequestBody{
+			ResourceGroup: rgName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createRGResp.StatusCode())
+
+	// Try to create policy with non-existent role
+	createResp, err := c.PostRbacPolicyWithResponse(
+		t.Context(),
+		client.PostRbacPolicyJSONRequestBody{
+			Role:          "nonExistentRole",
+			ResourceGroup: rgName,
+			Permission:    client.Asterisk,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, createResp.StatusCode())
+
+	// Cleanup
+	_, _ = c.DeleteRbacResourceGroupWithResponse(
+		t.Context(),
+		client.DeleteRbacResourceGroupJSONRequestBody{ResourceGroup: rgName},
+	)
+}
+
+func TestCreatePolicyWithNonExistentResourceGroup(t *testing.T) {
+	t.Parallel()
+	roleName := "testPolicyNonExistentRG"
+
+	// Create role
+	createRoleResp, err := c.PostRbacRoleWithResponse(
+		t.Context(),
+		client.PostRbacRoleJSONRequestBody{
+			Role: roleName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createRoleResp.StatusCode())
+
+	// Try to create policy with non-existent resource group
+	createResp, err := c.PostRbacPolicyWithResponse(
+		t.Context(),
+		client.PostRbacPolicyJSONRequestBody{
+			Role:          roleName,
+			ResourceGroup: "nonExistentRG",
+			Permission:    client.Asterisk,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, createResp.StatusCode())
+
+	// Cleanup
+	_, _ = c.DeleteRbacRoleWithResponse(
+		t.Context(),
+		client.DeleteRbacRoleJSONRequestBody{Role: roleName},
+	)
+}
+
+func TestMultiplePoliciesForSameRole(t *testing.T) {
+	t.Parallel()
+	roleName := "testMultiplePoliciesRole"
+	rgName1 := "testMultiplePoliciesRG1"
+	rgName2 := "testMultiplePoliciesRG2"
+
+	// Create role
+	createRoleResp, err := c.PostRbacRoleWithResponse(
+		t.Context(),
+		client.PostRbacRoleJSONRequestBody{
+			Role: roleName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createRoleResp.StatusCode())
+
+	// Create resource groups
+	createRG1Resp, err := c.PostRbacResourceGroupWithResponse(
+		t.Context(),
+		client.PostRbacResourceGroupJSONRequestBody{
+			ResourceGroup: rgName1,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createRG1Resp.StatusCode())
+
+	createRG2Resp, err := c.PostRbacResourceGroupWithResponse(
+		t.Context(),
+		client.PostRbacResourceGroupJSONRequestBody{
+			ResourceGroup: rgName2,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createRG2Resp.StatusCode())
+
+	// Create multiple policies
+	createPolicy1Resp, err := c.PostRbacPolicyWithResponse(
+		t.Context(),
+		client.PostRbacPolicyJSONRequestBody{
+			Role:          roleName,
+			ResourceGroup: rgName1,
+			Permission:    client.GET,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createPolicy1Resp.StatusCode())
+
+	createPolicy2Resp, err := c.PostRbacPolicyWithResponse(
+		t.Context(),
+		client.PostRbacPolicyJSONRequestBody{
+			Role:          roleName,
+			ResourceGroup: rgName2,
+			Permission:    client.POST,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createPolicy2Resp.StatusCode())
+
+	// List and verify both policies exist
+	listResp, err := c.GetRbacPolicyWithResponse(t.Context())
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, listResp.StatusCode())
+
+	policy1Exists := slices.ContainsFunc(
+		*listResp.JSON200,
+		func(p client.RBACPolicy) bool {
+			return p.Role == roleName &&
+				p.ResourceGroup == rgName1 &&
+				p.Permission == client.GET
+		},
+	)
+	assert.True(t, policy1Exists)
+
+	policy2Exists := slices.ContainsFunc(
+		*listResp.JSON200,
+		func(p client.RBACPolicy) bool {
+			return p.Role == roleName &&
+				p.ResourceGroup == rgName2 &&
+				p.Permission == client.POST
+		},
+	)
+	assert.True(t, policy2Exists)
+
+	// Cleanup
+	_, _ = c.DeleteRbacPolicyWithResponse(
+		t.Context(),
+		client.DeleteRbacPolicyJSONRequestBody{
+			Role:          roleName,
+			ResourceGroup: rgName1,
+			Permission:    client.GET,
+		},
+	)
+	_, _ = c.DeleteRbacPolicyWithResponse(
+		t.Context(),
+		client.DeleteRbacPolicyJSONRequestBody{
+			Role:          roleName,
+			ResourceGroup: rgName2,
+			Permission:    client.POST,
+		},
+	)
+	_, _ = c.DeleteRbacResourceGroupWithResponse(
+		t.Context(),
+		client.DeleteRbacResourceGroupJSONRequestBody{ResourceGroup: rgName1},
+	)
+	_, _ = c.DeleteRbacResourceGroupWithResponse(
+		t.Context(),
+		client.DeleteRbacResourceGroupJSONRequestBody{ResourceGroup: rgName2},
+	)
+	_, _ = c.DeleteRbacRoleWithResponse(
+		t.Context(),
+		client.DeleteRbacRoleJSONRequestBody{Role: roleName},
 	)
 }

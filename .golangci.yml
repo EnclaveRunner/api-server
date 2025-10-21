@@ -14,7 +14,7 @@ formatters:
 
     golines:
       # Target maximum line length
-      max-len: 100
+      max-len: 80
       # Length of a tabulation
       tab-len: 2
       # Shorten single-line comments
@@ -57,7 +57,6 @@ linters:
     - iface
     - importas
     - intrange
-    - ireturn
     - loggercheck
     - makezero
     - mirror

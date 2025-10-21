@@ -31,9 +31,13 @@
 
             # https://github.com/golangci/golangci-lint
             golangci-lint
-            
+
             delve
           ];
+
+          env = {
+            GONOPROXY = "github.com/EnclaveRunner";
+          };
         };
       });
     };

@@ -7,46 +7,6 @@ on:
       - main
 
 jobs:
-  update-docs:
-    name: Update-OpenAPI-Docs
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.BOT_PAT }}
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.24"
-
-      - name: Download dependencies
-        run: go mod download
-
-      - name: Install Swag
-        run: go install github.com/swaggo/swag/cmd/swag@latest
-
-      - name: Run make create-docs
-        run: make create-docs
-
-      - name: Configure git
-        run: |
-          git config user.name "Enclave Bot"
-          git config user.email "enclave-automation@marvin-fuchs.de"
-
-      - name: Check for changes
-        run: |
-          if [ "$(git status --porcelain)" != "" ]; then
-            git add .
-            git commit -m "Update OpenAPI docs"
-            git push origin HEAD:${{ github.head_ref }}
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
-
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -65,8 +25,8 @@ jobs:
         with:
           version: latest
 
-      - name: Run make lint
-        run: make lint
+      - name: Run linting
+        run: golangci-lint run
 
   test:
     name: Test

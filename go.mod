@@ -1,6 +1,8 @@
 module api-server
 
-go 1.24.5
+go 1.25.0
+
+replace github.com/EnclaveRunner/shareddeps => ../shareddeps
 
 require (
 	github.com/EnclaveRunner/shareddeps v0.4.1

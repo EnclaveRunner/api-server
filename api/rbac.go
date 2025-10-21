@@ -118,43 +118,47 @@ func (s *Server) PostRbacPolicy(
 ) (PostRbacPolicyResponseObject, error) {
 	var fieldErrors []ErrField
 
-	// Validate resourceGroup field
-	resourceGroupExists, err := auth.ResourceGroupExists(
-		request.Body.ResourceGroup,
-	)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to check if resource group exists")
-
-		return nil, &EmptyInternalServerError{}
-	}
-
-	if !resourceGroupExists {
-		fieldErrors = append(
-			fieldErrors,
-			ErrField{Field: "resourceGroup", Error: "Resource Group does not exist"},
+	if request.Body.ResourceGroup != string(Asterisk) {
+		// Validate resourceGroup field
+		resourceGroupExists, err := auth.ResourceGroupExists(
+			request.Body.ResourceGroup,
 		)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to check if resource group exists")
+
+			return nil, &EmptyInternalServerError{}
+		}
+
+		if !resourceGroupExists {
+			fieldErrors = append(
+				fieldErrors,
+				ErrField{Field: "resourceGroup", Error: "Resource Group does not exist"},
+			)
+		}
 	}
 
-	// Validate role field
-	roleExists, err := auth.UserGroupExists(request.Body.Role)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to check if role exists")
+	if request.Body.Role != string(Asterisk) {
+		// Validate role field
+		roleExists, err := auth.UserGroupExists(request.Body.Role)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to check if role exists")
 
-		return nil, &EmptyInternalServerError{}
-	}
+			return nil, &EmptyInternalServerError{}
+		}
 
-	if !roleExists {
-		fieldErrors = append(
-			fieldErrors,
-			ErrField{Field: "role", Error: "Role does not exist"},
-		)
+		if !roleExists {
+			fieldErrors = append(
+				fieldErrors,
+				ErrField{Field: "role", Error: "Role does not exist"},
+			)
+		}
 	}
 
 	if len(fieldErrors) > 0 {
 		return PostRbacPolicy404JSONResponse{fieldErrors}, nil
 	}
 
-	err = auth.AddPolicy(
+	err := auth.AddPolicy(
 		request.Body.Role,
 		request.Body.ResourceGroup,
 		string(request.Body.Permission),
@@ -249,7 +253,7 @@ func (s *Server) HeadRbacResourceGroup(
 		}, nil
 	}
 
-	return HeadRbacResourceGroup404JSONResponse{}, nil
+	return HeadRbacResourceGroup200Response{}, nil
 }
 
 // PostRbacResourceGroup implements StrictServerInterface.
@@ -319,7 +323,7 @@ func (s *Server) GetRbacRole(
 		var errNotFound *auth.NotFoundError
 		if errors.As(err, &errNotFound) {
 			return GetRbacRole404JSONResponse{
-				GenericNotFoundJSONResponse{"Provided resource group does not exist"},
+				GenericNotFoundJSONResponse{"Provided role does not exist"},
 			}, nil
 		}
 

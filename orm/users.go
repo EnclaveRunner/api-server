@@ -7,6 +7,7 @@ import (
 
 	"github.com/EnclaveRunner/shareddeps/auth"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -39,8 +40,6 @@ func CreateUser(ctx context.Context, username, password string) (*User, error) {
 		Username: username,
 	}
 
-	var createdUser User
-
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		_, err := gorm.G[User](DB).
 			Where(&User{Username: username}).
@@ -67,12 +66,7 @@ func CreateUser(ctx context.Context, username, password string) (*User, error) {
 			return &DatabaseError{err}
 		}
 
-		createdUser, err = gorm.G[User](DB).
-			Where(&User{Username: username}).
-			First(ctx)
-		if err != nil {
-			return &DatabaseError{err}
-		}
+		log.Info().Str("username", user.Username).Str("id", user.ID.String()).Msg("Created new user")
 
 		hashedPassword, err := bcrypt.GenerateFromPassword(
 			[]byte(password),
@@ -83,7 +77,7 @@ func CreateUser(ctx context.Context, username, password string) (*User, error) {
 		}
 
 		authRecord := Auth_Basic{
-			UserID:   createdUser.ID,
+			UserID:   user.ID,
 			Password: hashedPassword,
 		}
 
@@ -98,7 +92,7 @@ func CreateUser(ctx context.Context, username, password string) (*User, error) {
 		return nil, &GenericError{err}
 	}
 
-	return &createdUser, nil
+	return &user, nil
 }
 
 func PatchUser(

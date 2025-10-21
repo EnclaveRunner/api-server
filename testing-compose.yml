@@ -4,8 +4,8 @@ services:
     container_name: postgres
     restart: unless-stopped
     environment:
-      - POSTGRES_DB=enclave
-      - POSTGRES_USER=enclave
-      - POSTGRES_PASSWORD=enclave
+      - POSTGRES_DB=enclave_db
+      - POSTGRES_USER=enclave_user
+      - POSTGRES_PASSWORD=enclave_password
     ports:
       - 5432:5432

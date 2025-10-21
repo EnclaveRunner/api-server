@@ -1,4 +1,4 @@
-name: Sync OpenAPI to Docs Repository
+name: Documenation
 
 on:
   push:

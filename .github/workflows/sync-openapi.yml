@@ -56,8 +56,8 @@ jobs:
           cd docs-repo
 
           # Configure git
-          git config user.name "EnclaveAutomation"
-          git config user.email "enclave@marvin-fuchs.de"
+          git config user.name "Enclave Bot"
+          git config user.email "enclave-automation@marvin-fuchs.de"
 
           # Get the current repository name for commit message
           REPO_NAME=$(echo ${{ github.repository }} | cut -d'/' -f2)

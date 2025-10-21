@@ -66,7 +66,10 @@ func CreateUser(ctx context.Context, username, password string) (*User, error) {
 			return &DatabaseError{err}
 		}
 
-		log.Info().Str("username", user.Username).Str("id", user.ID.String()).Msg("Created new user")
+		log.Info().
+			Str("username", user.Username).
+			Str("id", user.ID.String()).
+			Msg("Created new user")
 
 		hashedPassword, err := bcrypt.GenerateFromPassword(
 			[]byte(password),

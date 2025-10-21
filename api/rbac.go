@@ -132,7 +132,10 @@ func (s *Server) PostRbacPolicy(
 		if !resourceGroupExists {
 			fieldErrors = append(
 				fieldErrors,
-				ErrField{Field: "resourceGroup", Error: "Resource Group does not exist"},
+				ErrField{
+					Field: "resourceGroup",
+					Error: "Resource Group does not exist",
+				},
 			)
 		}
 	}
@@ -328,7 +331,7 @@ func (s *Server) GetRbacRole(
 		}
 
 		log.Error().Err(err).Msg("Failed to get user groups")
-		
+
 		return nil, &EmptyInternalServerError{}
 	}
 

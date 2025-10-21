@@ -328,6 +328,8 @@ func (s *Server) GetRbacRole(
 		}
 
 		log.Error().Err(err).Msg("Failed to get user groups")
+		
+		return nil, &EmptyInternalServerError{}
 	}
 
 	return (*GetRbacRole200JSONResponse)(&users), nil

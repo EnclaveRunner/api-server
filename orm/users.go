@@ -41,7 +41,7 @@ func CreateUser(ctx context.Context, username, password string) (*User, error) {
 	}
 
 	err := DB.Transaction(func(tx *gorm.DB) error {
-		_, err := gorm.G[User](DB).
+		_, err := gorm.G[User](tx).
 			Where(&User{Username: username}).
 			First(ctx)
 
@@ -55,7 +55,7 @@ func CreateUser(ctx context.Context, username, password string) (*User, error) {
 			}
 		}
 
-		err = gorm.G[User](DB).Create(ctx, &user)
+		err = gorm.G[User](tx).Create(ctx, &user)
 		if err != nil {
 			if errors.Is(err, gorm.ErrDuplicatedKey) {
 				return &ConflictError{
@@ -81,7 +81,7 @@ func CreateUser(ctx context.Context, username, password string) (*User, error) {
 			Password: hashedPassword,
 		}
 
-		err = gorm.G[Auth_Basic](DB).Create(ctx, &authRecord)
+		err = gorm.G[Auth_Basic](tx).Create(ctx, &authRecord)
 		if err != nil {
 			return &DatabaseError{err}
 		}

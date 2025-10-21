@@ -75,7 +75,11 @@ func InitAdminUser() {
 		DB,
 	).Where(&User{Username: config.Cfg.Admin.Username}).
 		First(context.Background())
-	DB.Save(&Auth_Basic{UserID: adminUser.ID, Password: hash})
+
+	err = DB.Save(&Auth_Basic{UserID: adminUser.ID, Password: hash}).Error
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create admin auth record")
+	}
 
 	err = auth.AddUserToGroup(adminUser.ID.String(), "enclaveAdmin")
 	if err != nil {

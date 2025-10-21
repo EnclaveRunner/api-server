@@ -221,12 +221,6 @@ func (s *Server) GetUsersMe(
 			Any("userContext", authenticatedUser).
 			Msg("Unauthenticated user tried to access /users/me endpoint")
 
-		log.Debug().
-			Any("BasicAuthContext", ctx.Value(BasicAuthScopes)).
-			Msg("Basic auth context for unauthenticated user")
-
-		log.Debug().Any("ctx", ctx).Msg("context")
-
 		return GetUsersMe401Response{}, nil
 	}
 

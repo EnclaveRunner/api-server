@@ -25,8 +25,8 @@ func (s *Server) GetUsersList(
 	usersParsed := make([]UserResponse, len(users))
 	for i, user := range users {
 		usersParsed[i] = UserResponse{
-			user.ID.String(),
-			user.Username,
+			Id:   user.ID.String(),
+			Name: user.Username,
 		}
 	}
 
@@ -64,8 +64,8 @@ func (s *Server) GetUsersUser(
 	}
 
 	return GetUsersUser200JSONResponse(UserResponse{
-		user.ID.String(),
-		user.Username,
+		Id:   user.ID.String(),
+		Name: user.Username,
 	}), nil
 }
 
@@ -122,8 +122,8 @@ func (s *Server) PostUsersUser(
 	}
 
 	return PostUsersUser201JSONResponse(UserResponse{
-		user.ID.String(),
-		user.Username,
+		Id:   user.ID.String(),
+		Name: user.Username,
 	}), nil
 }
 
@@ -170,8 +170,8 @@ func (s *Server) PatchUsersUser(
 	}
 
 	return PatchUsersUser200JSONResponse(UserResponse{
-		user.ID.String(),
-		user.Username,
+		Id:   user.ID.String(),
+		Name: user.Username,
 	}), nil
 }
 
@@ -205,8 +205,8 @@ func (s *Server) DeleteUsersUser(
 	}
 
 	return DeleteUsersUser200JSONResponse(UserResponse{
-		user.ID.String(),
-		user.Username,
+		Id:   user.ID.String(),
+		Name: user.Username,
 	}), nil
 }
 
@@ -239,8 +239,8 @@ func (s *Server) GetUsersMe(
 	}
 
 	return GetUsersMe200JSONResponse(UserResponse{
-		user.ID.String(),
-		user.Username,
+		Id:   user.ID.String(),
+		Name: user.Username,
 	}), nil
 }
 
@@ -281,7 +281,7 @@ func (s *Server) PatchUsersMe(
 	}
 
 	return PatchUsersMe200JSONResponse(UserResponse{
-		user.ID.String(),
-		user.Username,
+		Id:   user.ID.String(),
+		Name: user.Username,
 	}), nil
 }

@@ -251,9 +251,7 @@ func (s *Server) HeadRbacResourceGroup(
 	}
 
 	if !exists {
-		return HeadRbacResourceGroup404JSONResponse{
-			GenericNotFoundJSONResponse{"Provided resource group does not exist"},
-		}, nil
+		return HeadRbacResourceGroup404Response{}, nil
 	}
 
 	return HeadRbacResourceGroup200Response{}, nil
@@ -351,9 +349,7 @@ func (s *Server) HeadRbacRole(
 	}
 
 	if !roleExists {
-		return HeadRbacRole404JSONResponse{
-			GenericNotFoundJSONResponse{"Provided role does not exist"},
-		}, nil
+		return HeadRbacRole404Response{}, nil
 	}
 
 	return HeadRbacRole200Response{}, nil

@@ -1327,39 +1327,40 @@ func (response HeadRbacResourceGroup200Response) VisitHeadRbacResourceGroupRespo
 	return nil
 }
 
-type HeadRbacResourceGroup400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response HeadRbacResourceGroup400JSONResponse) VisitHeadRbacResourceGroupResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
+type HeadRbacResourceGroup400Response struct {
 }
 
-type HeadRbacResourceGroup401Response = GenericUnauthenticatedResponse
+func (response HeadRbacResourceGroup400Response) VisitHeadRbacResourceGroupResponse(w http.ResponseWriter) error {
+	w.WriteHeader(400)
+	return nil
+}
+
+type HeadRbacResourceGroup401Response struct {
+}
 
 func (response HeadRbacResourceGroup401Response) VisitHeadRbacResourceGroupResponse(w http.ResponseWriter) error {
 	w.WriteHeader(401)
 	return nil
 }
 
-type HeadRbacResourceGroup403Response = GenericForbiddenResponse
+type HeadRbacResourceGroup403Response struct {
+}
 
 func (response HeadRbacResourceGroup403Response) VisitHeadRbacResourceGroupResponse(w http.ResponseWriter) error {
 	w.WriteHeader(403)
 	return nil
 }
 
-type HeadRbacResourceGroup404JSONResponse struct{ GenericNotFoundJSONResponse }
-
-func (response HeadRbacResourceGroup404JSONResponse) VisitHeadRbacResourceGroupResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
+type HeadRbacResourceGroup404Response struct {
 }
 
-type HeadRbacResourceGroup500Response = GenericInternalServerErrorResponse
+func (response HeadRbacResourceGroup404Response) VisitHeadRbacResourceGroupResponse(w http.ResponseWriter) error {
+	w.WriteHeader(404)
+	return nil
+}
+
+type HeadRbacResourceGroup500Response struct {
+}
 
 func (response HeadRbacResourceGroup500Response) VisitHeadRbacResourceGroupResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
@@ -1557,39 +1558,40 @@ func (response HeadRbacRole200Response) VisitHeadRbacRoleResponse(w http.Respons
 	return nil
 }
 
-type HeadRbacRole400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response HeadRbacRole400JSONResponse) VisitHeadRbacRoleResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
+type HeadRbacRole400Response struct {
 }
 
-type HeadRbacRole401Response = GenericUnauthenticatedResponse
+func (response HeadRbacRole400Response) VisitHeadRbacRoleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(400)
+	return nil
+}
+
+type HeadRbacRole401Response struct {
+}
 
 func (response HeadRbacRole401Response) VisitHeadRbacRoleResponse(w http.ResponseWriter) error {
 	w.WriteHeader(401)
 	return nil
 }
 
-type HeadRbacRole403Response = GenericForbiddenResponse
+type HeadRbacRole403Response struct {
+}
 
 func (response HeadRbacRole403Response) VisitHeadRbacRoleResponse(w http.ResponseWriter) error {
 	w.WriteHeader(403)
 	return nil
 }
 
-type HeadRbacRole404JSONResponse struct{ GenericNotFoundJSONResponse }
-
-func (response HeadRbacRole404JSONResponse) VisitHeadRbacRoleResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
+type HeadRbacRole404Response struct {
 }
 
-type HeadRbacRole500Response = GenericInternalServerErrorResponse
+func (response HeadRbacRole404Response) VisitHeadRbacRoleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(404)
+	return nil
+}
+
+type HeadRbacRole500Response struct {
+}
 
 func (response HeadRbacRole500Response) VisitHeadRbacRoleResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
@@ -2075,39 +2077,40 @@ func (response HeadUsersUser200Response) VisitHeadUsersUserResponse(w http.Respo
 	return nil
 }
 
-type HeadUsersUser400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response HeadUsersUser400JSONResponse) VisitHeadUsersUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
+type HeadUsersUser400Response struct {
 }
 
-type HeadUsersUser401Response = GenericUnauthenticatedResponse
+func (response HeadUsersUser400Response) VisitHeadUsersUserResponse(w http.ResponseWriter) error {
+	w.WriteHeader(400)
+	return nil
+}
+
+type HeadUsersUser401Response struct {
+}
 
 func (response HeadUsersUser401Response) VisitHeadUsersUserResponse(w http.ResponseWriter) error {
 	w.WriteHeader(401)
 	return nil
 }
 
-type HeadUsersUser403Response = GenericForbiddenResponse
+type HeadUsersUser403Response struct {
+}
 
 func (response HeadUsersUser403Response) VisitHeadUsersUserResponse(w http.ResponseWriter) error {
 	w.WriteHeader(403)
 	return nil
 }
 
-type HeadUsersUser404JSONResponse struct{ GenericNotFoundJSONResponse }
-
-func (response HeadUsersUser404JSONResponse) VisitHeadUsersUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
+type HeadUsersUser404Response struct {
 }
 
-type HeadUsersUser500Response = GenericInternalServerErrorResponse
+func (response HeadUsersUser404Response) VisitHeadUsersUserResponse(w http.ResponseWriter) error {
+	w.WriteHeader(404)
+	return nil
+}
+
+type HeadUsersUser500Response struct {
+}
 
 func (response HeadUsersUser500Response) VisitHeadUsersUserResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
@@ -3186,47 +3189,48 @@ func (sh *strictHandler) PostUsersUser(ctx *gin.Context) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"mrTTo6n8L2+W/wsAAP//VnICnUleAAA=",
+	"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",
+	"/wcAAP//dq+XcCpdAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

@@ -76,22 +76,14 @@ func (s *Server) HeadUsersUser(
 ) (HeadUsersUserResponseObject, error) {
 	uuidParser, err := uuid.Parse(request.Body.Id)
 	if err != nil {
-		return HeadUsersUser400JSONResponse{
-			GenericBadRequestJSONResponse{
-				"Provided uuid is invalid",
-			},
-		}, nil
+		return HeadUsersUser400Response{}, nil
 	}
 
 	_, err = orm.GetUserByID(ctx, uuidParser)
 	if err != nil {
 		var errNotFound *orm.NotFoundError
 		if errors.As(err, &errNotFound) {
-			return HeadUsersUser404JSONResponse{
-				GenericNotFoundJSONResponse{
-					"User not found",
-				},
-			}, nil
+			return HeadUsersUser404Response{}, nil
 		}
 
 		log.Error().Err(err).Msg("Failed to get user by ID")
@@ -107,6 +99,14 @@ func (s *Server) PostUsersUser(
 	ctx context.Context,
 	request PostUsersUserRequestObject,
 ) (PostUsersUserResponseObject, error) {
+	if request.Body.Name == "" || request.Body.Password == "" {
+		return PostUsersUser400JSONResponse{
+			GenericBadRequestJSONResponse{
+				"Username and password cannot be empty",
+			},
+		}, nil
+	}
+
 	user, err := orm.CreateUser(ctx, request.Body.Name, request.Body.Password)
 	if err != nil {
 		var errConflict *orm.ConflictError

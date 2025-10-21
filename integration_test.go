@@ -1610,9 +1610,11 @@ func TestPolicyEnforcementNoRole(t *testing.T) {
 					if !ok {
 						req.SetBasicAuth(username, password)
 					}
+
 					return nil
 				},
 			}
+
 			return nil
 		},
 	)
@@ -1699,9 +1701,11 @@ func TestPolicyEnforcementRoleNoPolicy(t *testing.T) {
 					if !ok {
 						req.SetBasicAuth(username, password)
 					}
+
 					return nil
 				},
 			}
+
 			return nil
 		},
 	)
@@ -1802,9 +1806,11 @@ func TestPolicyEnforcementWithPolicy(t *testing.T) {
 					if !ok {
 						req.SetBasicAuth(username, password)
 					}
+
 					return nil
 				},
 			}
+
 			return nil
 		},
 	)
@@ -1913,9 +1919,11 @@ func TestPolicyEnforcementMethodRestriction(t *testing.T) {
 					if !ok {
 						req.SetBasicAuth(username, password)
 					}
+
 					return nil
 				},
 			}
+
 			return nil
 		},
 	)
@@ -2040,9 +2048,11 @@ func TestPolicyEnforcementWildcardPermission(t *testing.T) {
 					if !ok {
 						req.SetBasicAuth(username, password)
 					}
+
 					return nil
 				},
 			}
+
 			return nil
 		},
 	)
@@ -2182,9 +2192,11 @@ func TestPolicyEnforcementResourceGroupIsolation(t *testing.T) {
 					if !ok {
 						req.SetBasicAuth(username, password)
 					}
+
 					return nil
 				},
 			}
+
 			return nil
 		},
 	)
@@ -2347,9 +2359,11 @@ func TestPolicyEnforcementMultipleRoles(t *testing.T) {
 					if !ok {
 						req.SetBasicAuth(username, password)
 					}
+
 					return nil
 				},
 			}
+
 			return nil
 		},
 	)

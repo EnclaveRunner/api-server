@@ -1562,3 +1562,867 @@ func TestMultiplePoliciesForSameRole(t *testing.T) {
 		client.DeleteRbacRoleJSONRequestBody{Role: roleName},
 	)
 }
+
+// ============================================================================
+// RBAC Policy Enforcement Tests
+// ============================================================================
+
+// Test that a user without any roles cannot access protected endpoints
+func TestPolicyEnforcementNoRole(t *testing.T) {
+	t.Parallel()
+	username := "testNoRoleUser"
+	password := "test"
+	rgName := "testNoRoleRG"
+
+	// Create resource group and assign endpoint
+	_, _ = c.PostRbacResourceGroupWithResponse(
+		t.Context(),
+		client.PostRbacResourceGroupJSONRequestBody{
+			ResourceGroup: rgName,
+		},
+	)
+	_, _ = c.PostRbacEndpointWithResponse(
+		t.Context(),
+		client.PostRbacEndpointJSONRequestBody{
+			ResourceGroup: rgName,
+			Endpoint:      "/users/me",
+		},
+	)
+
+	// Create user
+	createUserResp, err := c.PostUsersUserWithResponse(
+		t.Context(),
+		client.PostUsersUserJSONRequestBody{
+			Name:     username,
+			Password: password,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createUserResp.StatusCode())
+	userId := createUserResp.JSON201.Id
+
+	// Create client with new user's credentials
+	userClient, err := client.NewClientWithResponses("http://localhost:8080",
+		func(c *client.Client) error {
+			c.RequestEditors = []client.RequestEditorFn{
+				func(ctx context.Context, req *http.Request) error {
+					_, _, ok := req.BasicAuth()
+					if !ok {
+						req.SetBasicAuth(username, password)
+					}
+					return nil
+				},
+			}
+			return nil
+		},
+	)
+	assert.NoError(t, err)
+
+	// Try to access protected endpoint - should be forbidden
+	meResp, err := userClient.GetUsersMeWithResponse(t.Context())
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusForbidden, meResp.StatusCode())
+
+	// Cleanup
+	_, _ = c.DeleteRbacEndpointWithResponse(
+		t.Context(),
+		client.DeleteRbacEndpointJSONRequestBody{
+			ResourceGroup: rgName,
+			Endpoint:      "/users/me",
+		},
+	)
+	_, _ = c.DeleteRbacResourceGroupWithResponse(
+		t.Context(),
+		client.DeleteRbacResourceGroupJSONRequestBody{ResourceGroup: rgName},
+	)
+	_, _ = c.DeleteUsersUserWithResponse(
+		t.Context(),
+		client.DeleteUsersUserJSONRequestBody{Id: userId},
+	)
+}
+
+// Test that a user with role but no matching policy cannot access endpoint
+func TestPolicyEnforcementRoleNoPolicy(t *testing.T) {
+	username := "testRoleNoPolicyUser"
+	password := "test"
+	roleName := "testRoleNoPolicy"
+	rgName := "testRoleNoPolicyRG"
+
+	// Create resource group and assign endpoint
+	_, _ = c.PostRbacResourceGroupWithResponse(
+		t.Context(),
+		client.PostRbacResourceGroupJSONRequestBody{
+			ResourceGroup: rgName,
+		},
+	)
+	_, _ = c.PostRbacEndpointWithResponse(
+		t.Context(),
+		client.PostRbacEndpointJSONRequestBody{
+			ResourceGroup: rgName,
+			Endpoint:      "/rbac/list-roles",
+		},
+	)
+
+	// Create role (but no policy)
+	_, _ = c.PostRbacRoleWithResponse(
+		t.Context(),
+		client.PostRbacRoleJSONRequestBody{
+			Role: roleName,
+		},
+	)
+
+	// Create user and assign role
+	createUserResp, err := c.PostUsersUserWithResponse(
+		t.Context(),
+		client.PostUsersUserJSONRequestBody{
+			Name:     username,
+			Password: password,
+		},
+	)
+	assert.NoError(t, err)
+	userId := createUserResp.JSON201.Id
+
+	_, _ = c.PostRbacUserWithResponse(
+		t.Context(),
+		client.PostRbacUserJSONRequestBody{
+			UserId: userId,
+			Role:   roleName,
+		},
+	)
+
+	// Create client with user's credentials
+	userClient, err := client.NewClientWithResponses("http://localhost:8080",
+		func(c *client.Client) error {
+			c.RequestEditors = []client.RequestEditorFn{
+				func(ctx context.Context, req *http.Request) error {
+					_, _, ok := req.BasicAuth()
+					if !ok {
+						req.SetBasicAuth(username, password)
+					}
+					return nil
+				},
+			}
+			return nil
+		},
+	)
+	assert.NoError(t, err)
+
+	// Try to access endpoint - should be forbidden (has role but no policy)
+	rolesResp, err := userClient.GetRbacListRolesWithResponse(t.Context())
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusForbidden, rolesResp.StatusCode())
+
+	// Cleanup
+	_, _ = c.DeleteRbacEndpointWithResponse(
+		t.Context(),
+		client.DeleteRbacEndpointJSONRequestBody{
+			ResourceGroup: rgName,
+			Endpoint:      "/rbac/list-roles",
+		},
+	)
+	_, _ = c.DeleteRbacResourceGroupWithResponse(
+		t.Context(),
+		client.DeleteRbacResourceGroupJSONRequestBody{ResourceGroup: rgName},
+	)
+	_, _ = c.DeleteRbacRoleWithResponse(
+		t.Context(),
+		client.DeleteRbacRoleJSONRequestBody{Role: roleName},
+	)
+	_, _ = c.DeleteUsersUserWithResponse(
+		t.Context(),
+		client.DeleteUsersUserJSONRequestBody{Id: userId},
+	)
+}
+
+// Test that a user with proper role and policy CAN access endpoint
+func TestPolicyEnforcementWithPolicy(t *testing.T) {
+	username := "testWithPolicyUser"
+	password := "test"
+	roleName := "testWithPolicyRole"
+	rgName := "testWithPolicyRG"
+
+	// Create resource group and assign endpoint
+	_, _ = c.PostRbacResourceGroupWithResponse(
+		t.Context(),
+		client.PostRbacResourceGroupJSONRequestBody{
+			ResourceGroup: rgName,
+		},
+	)
+	_, _ = c.PostRbacEndpointWithResponse(
+		t.Context(),
+		client.PostRbacEndpointJSONRequestBody{
+			ResourceGroup: rgName,
+			Endpoint:      "/rbac/list-resource-groups",
+		},
+	)
+
+	// Create role
+	_, _ = c.PostRbacRoleWithResponse(
+		t.Context(),
+		client.PostRbacRoleJSONRequestBody{
+			Role: roleName,
+		},
+	)
+
+	// Create policy granting GET access
+	_, _ = c.PostRbacPolicyWithResponse(
+		t.Context(),
+		client.PostRbacPolicyJSONRequestBody{
+			Role:          roleName,
+			ResourceGroup: rgName,
+			Permission:    client.GET,
+		},
+	)
+
+	// Create user and assign role
+	createUserResp, err := c.PostUsersUserWithResponse(
+		t.Context(),
+		client.PostUsersUserJSONRequestBody{
+			Name:     username,
+			Password: password,
+		},
+	)
+	assert.NoError(t, err)
+	userId := createUserResp.JSON201.Id
+
+	_, _ = c.PostRbacUserWithResponse(
+		t.Context(),
+		client.PostRbacUserJSONRequestBody{
+			UserId: userId,
+			Role:   roleName,
+		},
+	)
+
+	// Create client with user's credentials
+	userClient, err := client.NewClientWithResponses("http://localhost:8080",
+		func(c *client.Client) error {
+			c.RequestEditors = []client.RequestEditorFn{
+				func(ctx context.Context, req *http.Request) error {
+					_, _, ok := req.BasicAuth()
+					if !ok {
+						req.SetBasicAuth(username, password)
+					}
+					return nil
+				},
+			}
+			return nil
+		},
+	)
+	assert.NoError(t, err)
+
+	// Now should be able to access endpoint
+	rgResp, err := userClient.GetRbacListResourceGroupsWithResponse(t.Context())
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rgResp.StatusCode())
+
+	// Cleanup
+	_, _ = c.DeleteRbacPolicyWithResponse(
+		t.Context(),
+		client.DeleteRbacPolicyJSONRequestBody{
+			Role:          roleName,
+			ResourceGroup: rgName,
+			Permission:    client.GET,
+		},
+	)
+	_, _ = c.DeleteRbacEndpointWithResponse(
+		t.Context(),
+		client.DeleteRbacEndpointJSONRequestBody{
+			ResourceGroup: rgName,
+			Endpoint:      "/rbac/list-resource-groups",
+		},
+	)
+	_, _ = c.DeleteRbacResourceGroupWithResponse(
+		t.Context(),
+		client.DeleteRbacResourceGroupJSONRequestBody{ResourceGroup: rgName},
+	)
+	_, _ = c.DeleteRbacRoleWithResponse(
+		t.Context(),
+		client.DeleteRbacRoleJSONRequestBody{Role: roleName},
+	)
+	_, _ = c.DeleteUsersUserWithResponse(
+		t.Context(),
+		client.DeleteUsersUserJSONRequestBody{Id: userId},
+	)
+}
+
+// Test that policy restricts by HTTP method
+func TestPolicyEnforcementMethodRestriction(t *testing.T) {
+	username := "testMethodRestrictionUser"
+	password := "test"
+	roleName := "testMethodRestrictionRole"
+	rgName := "testMethodRestrictionRG"
+
+	// Create resource group and assign endpoint
+	_, _ = c.PostRbacResourceGroupWithResponse(
+		t.Context(),
+		client.PostRbacResourceGroupJSONRequestBody{
+			ResourceGroup: rgName,
+		},
+	)
+	_, _ = c.PostRbacEndpointWithResponse(
+		t.Context(),
+		client.PostRbacEndpointJSONRequestBody{
+			ResourceGroup: rgName,
+			Endpoint:      "/users/user",
+		},
+	)
+
+	// Create role
+	_, _ = c.PostRbacRoleWithResponse(
+		t.Context(),
+		client.PostRbacRoleJSONRequestBody{
+			Role: roleName,
+		},
+	)
+
+	// Create policy granting only GET access (not POST)
+	_, _ = c.PostRbacPolicyWithResponse(
+		t.Context(),
+		client.PostRbacPolicyJSONRequestBody{
+			Role:          roleName,
+			ResourceGroup: rgName,
+			Permission:    client.GET,
+		},
+	)
+
+	// Create user and assign role
+	createUserResp, err := c.PostUsersUserWithResponse(
+		t.Context(),
+		client.PostUsersUserJSONRequestBody{
+			Name:     username,
+			Password: password,
+		},
+	)
+	assert.NoError(t, err)
+	userId := createUserResp.JSON201.Id
+
+	_, _ = c.PostRbacUserWithResponse(
+		t.Context(),
+		client.PostRbacUserJSONRequestBody{
+			UserId: userId,
+			Role:   roleName,
+		},
+	)
+
+	// Create client with user's credentials
+	userClient, err := client.NewClientWithResponses("http://localhost:8080",
+		func(c *client.Client) error {
+			c.RequestEditors = []client.RequestEditorFn{
+				func(ctx context.Context, req *http.Request) error {
+					_, _, ok := req.BasicAuth()
+					if !ok {
+						req.SetBasicAuth(username, password)
+					}
+					return nil
+				},
+			}
+			return nil
+		},
+	)
+	assert.NoError(t, err)
+
+	// GET should work
+	getResp, err := userClient.GetUsersUserWithResponse(
+		t.Context(),
+		client.GetUsersUserJSONRequestBody{
+			Id: userId,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, getResp.StatusCode())
+
+	// POST should be forbidden
+	postResp, err := userClient.PostUsersUserWithResponse(
+		t.Context(),
+		client.PostUsersUserJSONRequestBody{
+			Name:     "newUser",
+			Password: "password",
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusForbidden, postResp.StatusCode())
+
+	// Cleanup
+	_, _ = c.DeleteRbacPolicyWithResponse(
+		t.Context(),
+		client.DeleteRbacPolicyJSONRequestBody{
+			Role:          roleName,
+			ResourceGroup: rgName,
+			Permission:    client.GET,
+		},
+	)
+	_, _ = c.DeleteRbacEndpointWithResponse(
+		t.Context(),
+		client.DeleteRbacEndpointJSONRequestBody{
+			ResourceGroup: rgName,
+			Endpoint:      "/users/user",
+		},
+	)
+	_, _ = c.DeleteRbacResourceGroupWithResponse(
+		t.Context(),
+		client.DeleteRbacResourceGroupJSONRequestBody{ResourceGroup: rgName},
+	)
+	_, _ = c.DeleteRbacRoleWithResponse(
+		t.Context(),
+		client.DeleteRbacRoleJSONRequestBody{Role: roleName},
+	)
+	_, _ = c.DeleteUsersUserWithResponse(
+		t.Context(),
+		client.DeleteUsersUserJSONRequestBody{Id: userId},
+	)
+}
+
+// Test wildcard permission grants all access
+func TestPolicyEnforcementWildcardPermission(t *testing.T) {
+	username := "testWildcardPermUser"
+	password := "test"
+	roleName := "testWildcardPermRole"
+	rgName := "testWildcardPermRG"
+
+	// Create resource group and assign endpoint
+	_, _ = c.PostRbacResourceGroupWithResponse(
+		t.Context(),
+		client.PostRbacResourceGroupJSONRequestBody{
+			ResourceGroup: rgName,
+		},
+	)
+	_, _ = c.PostRbacEndpointWithResponse(
+		t.Context(),
+		client.PostRbacEndpointJSONRequestBody{
+			ResourceGroup: rgName,
+			Endpoint:      "/rbac/role",
+		},
+	)
+
+	// Create role
+	_, _ = c.PostRbacRoleWithResponse(
+		t.Context(),
+		client.PostRbacRoleJSONRequestBody{
+			Role: roleName,
+		},
+	)
+
+	// Create policy with wildcard permission
+	_, _ = c.PostRbacPolicyWithResponse(
+		t.Context(),
+		client.PostRbacPolicyJSONRequestBody{
+			Role:          roleName,
+			ResourceGroup: rgName,
+			Permission:    client.Asterisk,
+		},
+	)
+
+	// Create user and assign role
+	createUserResp, err := c.PostUsersUserWithResponse(
+		t.Context(),
+		client.PostUsersUserJSONRequestBody{
+			Name:     username,
+			Password: password,
+		},
+	)
+	assert.NoError(t, err)
+	userId := createUserResp.JSON201.Id
+
+	_, _ = c.PostRbacUserWithResponse(
+		t.Context(),
+		client.PostRbacUserJSONRequestBody{
+			UserId: userId,
+			Role:   roleName,
+		},
+	)
+
+	// Create client with user's credentials
+	userClient, err := client.NewClientWithResponses("http://localhost:8080",
+		func(c *client.Client) error {
+			c.RequestEditors = []client.RequestEditorFn{
+				func(ctx context.Context, req *http.Request) error {
+					_, _, ok := req.BasicAuth()
+					if !ok {
+						req.SetBasicAuth(username, password)
+					}
+					return nil
+				},
+			}
+			return nil
+		},
+	)
+	assert.NoError(t, err)
+
+	// GET should work
+	getRoleResp, err := userClient.GetRbacRoleWithResponse(
+		t.Context(),
+		client.GetRbacRoleJSONRequestBody{
+			Role: roleName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, getRoleResp.StatusCode())
+
+	// HEAD should also work (wildcard allows all)
+	headResp, err := userClient.HeadRbacRoleWithResponse(
+		t.Context(),
+		client.HeadRbacRoleJSONRequestBody{
+			Role: roleName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, headResp.StatusCode())
+
+	// Cleanup
+	_, _ = c.DeleteRbacPolicyWithResponse(
+		t.Context(),
+		client.DeleteRbacPolicyJSONRequestBody{
+			Role:          roleName,
+			ResourceGroup: rgName,
+			Permission:    client.Asterisk,
+		},
+	)
+	_, _ = c.DeleteRbacEndpointWithResponse(
+		t.Context(),
+		client.DeleteRbacEndpointJSONRequestBody{
+			ResourceGroup: rgName,
+			Endpoint:      "/rbac/role",
+		},
+	)
+	_, _ = c.DeleteRbacResourceGroupWithResponse(
+		t.Context(),
+		client.DeleteRbacResourceGroupJSONRequestBody{ResourceGroup: rgName},
+	)
+	_, _ = c.DeleteRbacRoleWithResponse(
+		t.Context(),
+		client.DeleteRbacRoleJSONRequestBody{Role: roleName},
+	)
+	_, _ = c.DeleteUsersUserWithResponse(
+		t.Context(),
+		client.DeleteUsersUserJSONRequestBody{Id: userId},
+	)
+}
+
+// Test that user can only access endpoints in their resource group
+func TestPolicyEnforcementResourceGroupIsolation(t *testing.T) {
+	username := "testRGIsolationUser"
+	password := "test"
+	roleName := "testRGIsolationRole"
+	rgName1 := "testRGIsolation1"
+	rgName2 := "testRGIsolation2"
+
+	// Create two resource groups
+	_, _ = c.PostRbacResourceGroupWithResponse(
+		t.Context(),
+		client.PostRbacResourceGroupJSONRequestBody{
+			ResourceGroup: rgName1,
+		},
+	)
+	_, _ = c.PostRbacResourceGroupWithResponse(
+		t.Context(),
+		client.PostRbacResourceGroupJSONRequestBody{
+			ResourceGroup: rgName2,
+		},
+	)
+
+	// Assign different endpoints to each group
+	_, _ = c.PostRbacEndpointWithResponse(
+		t.Context(),
+		client.PostRbacEndpointJSONRequestBody{
+			ResourceGroup: rgName1,
+			Endpoint:      "/users/list",
+		},
+	)
+	_, _ = c.PostRbacEndpointWithResponse(
+		t.Context(),
+		client.PostRbacEndpointJSONRequestBody{
+			ResourceGroup: rgName2,
+			Endpoint:      "/rbac/policy",
+		},
+	)
+
+	// Create role
+	_, _ = c.PostRbacRoleWithResponse(
+		t.Context(),
+		client.PostRbacRoleJSONRequestBody{
+			Role: roleName,
+		},
+	)
+
+	// Create policy only for rgName1
+	_, _ = c.PostRbacPolicyWithResponse(
+		t.Context(),
+		client.PostRbacPolicyJSONRequestBody{
+			Role:          roleName,
+			ResourceGroup: rgName1,
+			Permission:    client.GET,
+		},
+	)
+
+	// Create user and assign role
+	createUserResp, err := c.PostUsersUserWithResponse(
+		t.Context(),
+		client.PostUsersUserJSONRequestBody{
+			Name:     username,
+			Password: password,
+		},
+	)
+	assert.NoError(t, err)
+	userId := createUserResp.JSON201.Id
+
+	_, _ = c.PostRbacUserWithResponse(
+		t.Context(),
+		client.PostRbacUserJSONRequestBody{
+			UserId: userId,
+			Role:   roleName,
+		},
+	)
+
+	// Create client with user's credentials
+	userClient, err := client.NewClientWithResponses("http://localhost:8080",
+		func(c *client.Client) error {
+			c.RequestEditors = []client.RequestEditorFn{
+				func(ctx context.Context, req *http.Request) error {
+					_, _, ok := req.BasicAuth()
+					if !ok {
+						req.SetBasicAuth(username, password)
+					}
+					return nil
+				},
+			}
+			return nil
+		},
+	)
+	assert.NoError(t, err)
+
+	// Should be able to access endpoint in rgName1
+	listResp, err := userClient.GetUsersListWithResponse(t.Context())
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, listResp.StatusCode())
+
+	// Should NOT be able to access endpoint in rgName2
+	policyResp, err := userClient.GetRbacPolicyWithResponse(t.Context())
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusForbidden, policyResp.StatusCode())
+
+	// Cleanup
+	_, _ = c.DeleteRbacPolicyWithResponse(
+		t.Context(),
+		client.DeleteRbacPolicyJSONRequestBody{
+			Role:          roleName,
+			ResourceGroup: rgName1,
+			Permission:    client.GET,
+		},
+	)
+	_, _ = c.DeleteRbacEndpointWithResponse(
+		t.Context(),
+		client.DeleteRbacEndpointJSONRequestBody{
+			ResourceGroup: rgName1,
+			Endpoint:      "/users/list",
+		},
+	)
+	_, _ = c.DeleteRbacEndpointWithResponse(
+		t.Context(),
+		client.DeleteRbacEndpointJSONRequestBody{
+			ResourceGroup: rgName2,
+			Endpoint:      "/rbac/policy",
+		},
+	)
+	_, _ = c.DeleteRbacResourceGroupWithResponse(
+		t.Context(),
+		client.DeleteRbacResourceGroupJSONRequestBody{ResourceGroup: rgName1},
+	)
+	_, _ = c.DeleteRbacResourceGroupWithResponse(
+		t.Context(),
+		client.DeleteRbacResourceGroupJSONRequestBody{ResourceGroup: rgName2},
+	)
+	_, _ = c.DeleteRbacRoleWithResponse(
+		t.Context(),
+		client.DeleteRbacRoleJSONRequestBody{Role: roleName},
+	)
+	_, _ = c.DeleteUsersUserWithResponse(
+		t.Context(),
+		client.DeleteUsersUserJSONRequestBody{Id: userId},
+	)
+}
+
+// Test that multiple roles grant combined permissions
+func TestPolicyEnforcementMultipleRoles(t *testing.T) {
+	username := "testMultiRolesUser"
+	password := "test"
+	roleName1 := "testMultiRole1"
+	roleName2 := "testMultiRole2"
+	rgName1 := "testMultiRoleRG1"
+	rgName2 := "testMultiRoleRG2"
+
+	// Create two resource groups
+	_, _ = c.PostRbacResourceGroupWithResponse(
+		t.Context(),
+		client.PostRbacResourceGroupJSONRequestBody{
+			ResourceGroup: rgName1,
+		},
+	)
+	_, _ = c.PostRbacResourceGroupWithResponse(
+		t.Context(),
+		client.PostRbacResourceGroupJSONRequestBody{
+			ResourceGroup: rgName2,
+		},
+	)
+
+	// Assign endpoints
+	_, _ = c.PostRbacEndpointWithResponse(
+		t.Context(),
+		client.PostRbacEndpointJSONRequestBody{
+			ResourceGroup: rgName1,
+			Endpoint:      "/rbac/resource-group",
+		},
+	)
+	_, _ = c.PostRbacEndpointWithResponse(
+		t.Context(),
+		client.PostRbacEndpointJSONRequestBody{
+			ResourceGroup: rgName2,
+			Endpoint:      "/rbac/endpoint",
+		},
+	)
+
+	// Create two roles
+	_, _ = c.PostRbacRoleWithResponse(
+		t.Context(),
+		client.PostRbacRoleJSONRequestBody{
+			Role: roleName1,
+		},
+	)
+	_, _ = c.PostRbacRoleWithResponse(
+		t.Context(),
+		client.PostRbacRoleJSONRequestBody{
+			Role: roleName2,
+		},
+	)
+
+	// Create policies for each role/resource group
+	_, _ = c.PostRbacPolicyWithResponse(
+		t.Context(),
+		client.PostRbacPolicyJSONRequestBody{
+			Role:          roleName1,
+			ResourceGroup: rgName1,
+			Permission:    client.GET,
+		},
+	)
+	_, _ = c.PostRbacPolicyWithResponse(
+		t.Context(),
+		client.PostRbacPolicyJSONRequestBody{
+			Role:          roleName2,
+			ResourceGroup: rgName2,
+			Permission:    client.GET,
+		},
+	)
+
+	// Create user and assign BOTH roles
+	createUserResp, err := c.PostUsersUserWithResponse(
+		t.Context(),
+		client.PostUsersUserJSONRequestBody{
+			Name:     username,
+			Password: password,
+		},
+	)
+	assert.NoError(t, err)
+	userId := createUserResp.JSON201.Id
+
+	_, _ = c.PostRbacUserWithResponse(
+		t.Context(),
+		client.PostRbacUserJSONRequestBody{
+			UserId: userId,
+			Role:   roleName1,
+		},
+	)
+	_, _ = c.PostRbacUserWithResponse(
+		t.Context(),
+		client.PostRbacUserJSONRequestBody{
+			UserId: userId,
+			Role:   roleName2,
+		},
+	)
+
+	// Create client with user's credentials
+	userClient, err := client.NewClientWithResponses("http://localhost:8080",
+		func(c *client.Client) error {
+			c.RequestEditors = []client.RequestEditorFn{
+				func(ctx context.Context, req *http.Request) error {
+					_, _, ok := req.BasicAuth()
+					if !ok {
+						req.SetBasicAuth(username, password)
+					}
+					return nil
+				},
+			}
+			return nil
+		},
+	)
+	assert.NoError(t, err)
+
+	// Should be able to access both endpoints (combined permissions)
+	rgResp, err := userClient.GetRbacResourceGroupWithResponse(
+		t.Context(),
+		client.GetRbacResourceGroupJSONRequestBody{
+			ResourceGroup: rgName1,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rgResp.StatusCode())
+
+	endpointResp, err := userClient.GetRbacEndpointWithResponse(
+		t.Context(),
+		client.GetRbacEndpointJSONRequestBody{
+			Endpoint: "/test",
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, endpointResp.StatusCode())
+
+	// Cleanup
+	_, _ = c.DeleteRbacPolicyWithResponse(
+		t.Context(),
+		client.DeleteRbacPolicyJSONRequestBody{
+			Role:          roleName1,
+			ResourceGroup: rgName1,
+			Permission:    client.GET,
+		},
+	)
+	_, _ = c.DeleteRbacPolicyWithResponse(
+		t.Context(),
+		client.DeleteRbacPolicyJSONRequestBody{
+			Role:          roleName2,
+			ResourceGroup: rgName2,
+			Permission:    client.GET,
+		},
+	)
+	_, _ = c.DeleteRbacEndpointWithResponse(
+		t.Context(),
+		client.DeleteRbacEndpointJSONRequestBody{
+			ResourceGroup: rgName1,
+			Endpoint:      "/rbac/resource-group",
+		},
+	)
+	_, _ = c.DeleteRbacEndpointWithResponse(
+		t.Context(),
+		client.DeleteRbacEndpointJSONRequestBody{
+			ResourceGroup: rgName2,
+			Endpoint:      "/rbac/endpoint",
+		},
+	)
+	_, _ = c.DeleteRbacResourceGroupWithResponse(
+		t.Context(),
+		client.DeleteRbacResourceGroupJSONRequestBody{ResourceGroup: rgName1},
+	)
+	_, _ = c.DeleteRbacResourceGroupWithResponse(
+		t.Context(),
+		client.DeleteRbacResourceGroupJSONRequestBody{ResourceGroup: rgName2},
+	)
+	_, _ = c.DeleteRbacRoleWithResponse(
+		t.Context(),
+		client.DeleteRbacRoleJSONRequestBody{Role: roleName1},
+	)
+	_, _ = c.DeleteRbacRoleWithResponse(
+		t.Context(),
+		client.DeleteRbacRoleJSONRequestBody{Role: roleName2},
+	)
+	_, _ = c.DeleteUsersUserWithResponse(
+		t.Context(),
+		client.DeleteUsersUserJSONRequestBody{Id: userId},
+	)
+}

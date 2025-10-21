@@ -31,18 +31,11 @@ fmt:
 
 # Lint code (requires golangci-lint to be installed)
 lint:
-	golangci-lint run
+	golangci-lint run --fix
 
 # Clean test cache
 clean:
 	go clean -testcache
-
-# Create OpenAPI docs via Swagger
-create-docs:
-	@echo "Updating OpenAPI-Docs"
-	export PATH=$$(go env GOPATH)/bin:$$PATH
-	swag init
-	@echo "Docs created."
 
 # Simulate CI tests
 verify:
@@ -65,7 +58,7 @@ help:
 	@echo "  bench         - Run benchmarks"
 	@echo "  test-all      - Run all tests"
 	@echo "  fmt           - Format code"
-	@echo "  lint          - Lint code"
+	@echo "  lint          - Lint and fix code"
 	@echo "  clean         - Clean test cache"
 	@echo "  create-docs   - Update OpenAPI/Swagger-Docs"
 	@echo "  verify        - Simulate CI Checks before opening a PR"

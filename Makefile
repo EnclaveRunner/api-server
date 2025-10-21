@@ -1,4 +1,4 @@
-.PHONY: test test-verbose test-coverage test-race bench clean create-docs verify fmt lint
+.PHONY: test test-verbose test-coverage test-race bench clean verify fmt lint oapi
 
 # Default target
 all: test
@@ -37,6 +37,10 @@ lint:
 clean:
 	go clean -testcache
 
+# Generate OpenAPI server code from spec
+oapi:
+	go generate tools.go
+
 # Simulate CI tests
 verify:
 	@echo "Running CI tests..."
@@ -60,6 +64,6 @@ help:
 	@echo "  fmt           - Format code"
 	@echo "  lint          - Lint and fix code"
 	@echo "  clean         - Clean test cache"
-	@echo "  create-docs   - Update OpenAPI/Swagger-Docs"
+	@echo "  oapi          - Create gin server from OpenAPI spec"
 	@echo "  verify        - Simulate CI Checks before opening a PR"
 	@echo "  help          - Show this help"

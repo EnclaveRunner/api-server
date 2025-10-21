@@ -1,10 +1,12 @@
 package main
 
 import (
+	"api-server/api"
 	"api-server/config"
-	"api-server/handlers"
+	"api-server/orm"
 
 	"github.com/EnclaveRunner/shareddeps"
+	"github.com/spf13/viper"
 )
 
 // @title			Enclave API Server
@@ -14,11 +16,34 @@ import (
 // @license.url	https://www.gnu.org/licenses/gpl-3.0.html
 // @host			localhost:8080
 func main() {
-	// load config and create server
-	shareddeps.Init(config.Cfg, "api-server", "v0.0.0", nil, nil)
+	// Set configuration defaults
+	//nolint:mnd // Default port for PostgreSQL database
+	viper.SetDefault("database.port", 5432)
+	viper.SetDefault("database.sslmode", "disable")
+	viper.SetDefault("database.username", "enclave")
+	viper.SetDefault("database.password", "enclave")
+	viper.SetDefault("database.database", "enclave")
 
-	// health check to see if api-server is reachable / ready
-	shareddeps.Server.GET("/ready", handlers.Ready)
+	// default credentials for admin / initial user
+	viper.SetDefault("admin.username", "enclave")
+	viper.SetDefault("admin.password", "enclave")
+
+	// load config and create server
+	shareddeps.Init(config.Cfg, "api-server", "v0.0.0")
+
+	policyAdapter := orm.InitDB()
+
+	shareddeps.AddAuth(
+		policyAdapter,
+		shareddeps.Authentication{BasicAuthenticator: orm.BasicAuth},
+	)
+
+	// Initialize admin user after auth system is ready
+	orm.InitAdminUser()
+
+	server := api.NewServer()
+	handler := api.NewStrictHandler(server, nil)
+	api.RegisterHandlers(shareddeps.Server, handler)
 
 	shareddeps.Start()
 }

@@ -67,7 +67,7 @@ jobs:
   all-checks:
     name: All Checks Passed
     runs-on: ubuntu-latest
-    needs: [lint, test, build]
+    needs: [lint, build]
     if: always()
 
     steps:

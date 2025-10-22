@@ -1,3 +1,4 @@
+//nolint:dupl // Tests may have duplicate code
 package main
 
 import (
@@ -16,8 +17,9 @@ import (
 )
 
 const (
-	adminPassword = "admin"
-	adminUsername = "admin"
+	adminPassword   = "admin"
+	adminUsername   = "admin"
+	defaultPassword = "test"
 )
 
 var c *client.ClientWithResponses
@@ -87,7 +89,7 @@ func TestAdminUserExists(t *testing.T) {
 func TestUserCRUD(t *testing.T) {
 	t.Parallel()
 	username := "testUserCRUD"
-	password := "test"
+	password := defaultPassword
 	// Create User
 	createResp, err := c.PostUsersUserWithResponse(
 		t.Context(),
@@ -196,7 +198,7 @@ func TestCreateUserEmptyFields(t *testing.T) {
 func TestCreateUserDuplicateName(t *testing.T) {
 	t.Parallel()
 	username := "testUserDuplicate"
-	password := "test"
+	password := defaultPassword
 
 	// Create first user
 	createResp1, err := c.PostUsersUserWithResponse(
@@ -310,7 +312,7 @@ func TestPatchUserDuplicateName(t *testing.T) {
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
 			Name:     "testPatchUser1",
-			Password: "test",
+			Password: defaultPassword,
 		},
 	)
 	assert.NoError(t, err)
@@ -321,7 +323,7 @@ func TestPatchUserDuplicateName(t *testing.T) {
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
 			Name:     "testPatchUser2",
-			Password: "test",
+			Password: defaultPassword,
 		},
 	)
 	assert.NoError(t, err)
@@ -1006,7 +1008,7 @@ func TestRemoveEndpointFromNonExistentResourceGroup(t *testing.T) {
 func TestUserRoleAssignment(t *testing.T) {
 	t.Parallel()
 	username := "testUserRole"
-	password := "test"
+	password := defaultPassword
 	roleName := "testUserRoleAssignment"
 
 	// Create user
@@ -1161,7 +1163,7 @@ func TestAssignNonExistentRoleToUser(t *testing.T) {
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
 			Name:     "testUserNonExistentRole",
-			Password: "test",
+			Password: defaultPassword,
 		},
 	)
 	assert.NoError(t, err)
@@ -1223,7 +1225,7 @@ func TestRemoveNonExistentRoleFromUser(t *testing.T) {
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
 			Name:     "testUserRemoveNonExistentRole",
-			Password: "test",
+			Password: defaultPassword,
 		},
 	)
 	assert.NoError(t, err)
@@ -1566,7 +1568,7 @@ func TestMultiplePoliciesForSameRole(t *testing.T) {
 func TestPolicyEnforcementNoRole(t *testing.T) {
 	t.Parallel()
 	username := "testNoRoleUser"
-	password := "test"
+	password := defaultPassword
 	rgName := "testNoRoleRG"
 
 	// Create resource group and assign endpoint
@@ -1639,9 +1641,11 @@ func TestPolicyEnforcementNoRole(t *testing.T) {
 }
 
 // Test that a user with role but no matching policy cannot access endpoint
+//
+//nolint:paralleltest // Leads to conflicts when run in parallel
 func TestPolicyEnforcementRoleNoPolicy(t *testing.T) {
 	username := "testRoleNoPolicyUser"
-	password := "test"
+	password := defaultPassword
 	roleName := "testRoleNoPolicy"
 	rgName := "testRoleNoPolicyRG"
 
@@ -1734,9 +1738,11 @@ func TestPolicyEnforcementRoleNoPolicy(t *testing.T) {
 }
 
 // Test that a user with proper role and policy CAN access endpoint
+//
+//nolint:paralleltest // Leads to conflicts when run in parallel
 func TestPolicyEnforcementWithPolicy(t *testing.T) {
 	username := "testWithPolicyUser"
-	password := "test"
+	password := defaultPassword
 	roleName := "testWithPolicyRole"
 	rgName := "testWithPolicyRG"
 
@@ -1847,9 +1853,11 @@ func TestPolicyEnforcementWithPolicy(t *testing.T) {
 }
 
 // Test that policy restricts by HTTP method
+//
+//nolint:paralleltest // Leads to conflicts when run in parallel
 func TestPolicyEnforcementMethodRestriction(t *testing.T) {
 	username := "testMethodRestrictionUser"
-	password := "test"
+	password := defaultPassword
 	roleName := "testMethodRestrictionRole"
 	rgName := "testMethodRestrictionRG"
 
@@ -1976,9 +1984,11 @@ func TestPolicyEnforcementMethodRestriction(t *testing.T) {
 }
 
 // Test wildcard permission grants all access
+//
+//nolint:paralleltest // Leads to conflicts when run in parallel
 func TestPolicyEnforcementWildcardPermission(t *testing.T) {
 	username := "testWildcardPermUser"
-	password := "test"
+	password := defaultPassword
 	roleName := "testWildcardPermRole"
 	rgName := "testWildcardPermRG"
 
@@ -2104,9 +2114,11 @@ func TestPolicyEnforcementWildcardPermission(t *testing.T) {
 }
 
 // Test that user can only access endpoints in their resource group
+//
+//nolint:paralleltest // Leads to conflicts when run in parallel
 func TestPolicyEnforcementResourceGroupIsolation(t *testing.T) {
 	username := "testRGIsolationUser"
-	password := "test"
+	password := defaultPassword
 	roleName := "testRGIsolationRole"
 	rgName1 := "testRGIsolation1"
 	rgName2 := "testRGIsolation2"
@@ -2249,9 +2261,11 @@ func TestPolicyEnforcementResourceGroupIsolation(t *testing.T) {
 }
 
 // Test that multiple roles grant combined permissions
+//
+//nolint:paralleltest // Leads to conflicts when run in parallel
 func TestPolicyEnforcementMultipleRoles(t *testing.T) {
 	username := "testMultiRolesUser"
-	password := "test"
+	password := defaultPassword
 	roleName1 := "testMultiRole1"
 	roleName2 := "testMultiRole2"
 	rgName1 := "testMultiRoleRG1"

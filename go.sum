@@ -16,8 +16,8 @@ github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/internal v0.8.0/go.mod h
 github.com/AzureAD/microsoft-authentication-library-for-go v1.0.0/go.mod h1:kgDmCTgBzIEPFElEF+FK0SdjAor06dRq2Go927dnQ6o=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.1.0 h1:HCc0+LpPfpCKs6LGGLAhwBARt9632unrVcI6i8s/8os=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.1.0/go.mod h1:wP83P5OoQ5p6ip3ScPr0BAq0BvuPAvacpEuSzyouqAI=
-github.com/EnclaveRunner/shareddeps v0.4.2 h1:x0mzO6lWMO4Tk/3Jp9qlKp/l/E6hOuqnC8c0dDctlcc=
-github.com/EnclaveRunner/shareddeps v0.4.2/go.mod h1:vsRbcreWGrpEcBj9I5l4G7UMt6j8W0d+neOicwEfsWw=
+github.com/EnclaveRunner/shareddeps v0.4.4 h1:YhHJRJpXl3FDLvh+YK3UVMZ1oyPkSztYwlntyfxWw4s=
+github.com/EnclaveRunner/shareddeps v0.4.4/go.mod h1:ctDvBty/rPfbZ7fJOSCjCavNQPLyjEYLHIlLlitX1uE=
 github.com/bmatcuk/doublestar/v4 v4.6.1/go.mod h1:xBQ8jztBU6kakFMg+8WGxn0c6z1fTSPVIjEY1Wr7jzc=
 github.com/bmatcuk/doublestar/v4 v4.9.1 h1:X8jg9rRZmJd4yRy7ZeNDRnM+T3ZfHv15JiBJ/avrEXE=
 github.com/bmatcuk/doublestar/v4 v4.9.1/go.mod h1:xBQ8jztBU6kakFMg+8WGxn0c6z1fTSPVIjEY1Wr7jzc=
@@ -60,8 +60,8 @@ github.com/gabriel-vasile/mimetype v1.4.10 h1:zyueNbySn/z8mJZHLt6IPw0KoZsiQNszIp
 github.com/gabriel-vasile/mimetype v1.4.10/go.mod h1:d+9Oxyo1wTzWdyVUPMmXFvp4F9tea18J8ufA774AB3s=
 github.com/getkin/kin-openapi v0.132.0 h1:3ISeLMsQzcb5v26yeJrBcdTCEQTag36ZjaGk7MIRUwk=
 github.com/getkin/kin-openapi v0.132.0/go.mod h1:3OlG51PCYNsPByuiMB0t4fjnNlIDnaEDsjiKUV8nL58=
-github.com/gin-contrib/authz v1.0.6 h1:qAO4sSSzOPCwYRZI6YtubC+h2tZVwhwSJeyEZn2W+5k=
-github.com/gin-contrib/authz v1.0.6/go.mod h1:A2B5Im1M/HIoHPjLc31j3RlENSE6j8euJY9NFdzZeYo=
+github.com/gin-contrib/authz v1.0.5 h1:zN6CdnO4NAVQj9LoTBMaVZGOnUicPyjB5RTVMvQ42iE=
+github.com/gin-contrib/authz v1.0.5/go.mod h1:T85j2+UevHJSFvCAj5w6nQFQZ3M4xB4sXz/nVwvIjfo=
 github.com/gin-contrib/sse v1.1.0 h1:n0w2GMuUpWDVp7qSpvze6fAu9iRxJY4Hmj6AmBOU05w=
 github.com/gin-contrib/sse v1.1.0/go.mod h1:hxRZ5gVpWMT7Z0B0gSNYqqsSCNIJMjzvm6fqCz9vjwM=
 github.com/gin-gonic/gin v1.11.0 h1:OW/6PLjyusp2PPXtyxKHU0RbX6I/l28FTdDlae5ueWk=

@@ -1,0 +1,45 @@
+name: Testing
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Write config file
+        run: |
+          cat <<EOF > config.yaml
+          port: 8080
+          log_level: debug
+          production_environment: false
+          human_readable_output: true
+          database:
+            host: localhost
+            port: 5432
+            user: enclave_user
+            password: enclave_password
+            database: enclave_db
+          EOF
+
+      - name: Run tests
+        run: make test
+        
+      - name: Shutdown container
+        run: |
+          docker compose -f docker-compose.test.yml down

@@ -158,7 +158,9 @@ func (s *Server) PostRbacPolicy(
 	}
 
 	if len(fieldErrors) > 0 {
-		return PostRbacPolicy404JSONResponse{fieldErrors}, nil
+		return PostRbacPolicy404JSONResponse{
+			FieldErrorJSONResponse{&fieldErrors},
+		}, nil
 	}
 
 	err := auth.AddPolicy(
@@ -206,7 +208,7 @@ func (s *Server) GetRbacListResourceGroups(
 		return nil, &EmptyInternalServerError{}
 	}
 
-	var resourceGroupsParsed []string
+	resourceGroupsParsed := []string{}
 	for _, rg := range resourceGroups {
 		if !slices.Contains(resourceGroupsParsed, rg.GroupName) {
 			resourceGroupsParsed = append(resourceGroupsParsed, rg.GroupName)
@@ -251,9 +253,7 @@ func (s *Server) HeadRbacResourceGroup(
 	}
 
 	if !exists {
-		return HeadRbacResourceGroup404JSONResponse{
-			GenericNotFoundJSONResponse{"Provided resource group does not exist"},
-		}, nil
+		return HeadRbacResourceGroup404Response{}, nil
 	}
 
 	return HeadRbacResourceGroup200Response{}, nil
@@ -306,7 +306,7 @@ func (s *Server) GetRbacListRoles(
 		return nil, &EmptyInternalServerError{}
 	}
 
-	var roles []string
+	roles := []string{}
 	for _, ug := range groups {
 		if !slices.Contains(roles, ug.GroupName) {
 			roles = append(roles, ug.GroupName)
@@ -351,9 +351,7 @@ func (s *Server) HeadRbacRole(
 	}
 
 	if !roleExists {
-		return HeadRbacRole404JSONResponse{
-			GenericNotFoundJSONResponse{"Provided role does not exist"},
-		}, nil
+		return HeadRbacRole404Response{}, nil
 	}
 
 	return HeadRbacRole200Response{}, nil

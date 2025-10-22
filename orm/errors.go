@@ -8,6 +8,10 @@ func (e *DatabaseError) Error() string {
 	return "Gorm returned an error: " + e.Inner.Error()
 }
 
+func (e *DatabaseError) Unwrap() error {
+	return e.Inner
+}
+
 type NotFoundError struct {
 	Search string
 }
@@ -30,4 +34,8 @@ type GenericError struct {
 
 func (e *GenericError) Error() string {
 	return "An unexpected error occurred: " + e.Inner.Error()
+}
+
+func (e *GenericError) Unwrap() error {
+	return e.Inner
 }

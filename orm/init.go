@@ -36,7 +36,8 @@ func InitDB() *gormadapter.Adapter {
 
 	var err error
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
+		Logger:         logger.Default.LogMode(logger.Silent),
+		TranslateError: true,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to the database")

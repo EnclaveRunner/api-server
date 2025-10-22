@@ -115,7 +115,9 @@ type UserResponse struct {
 }
 
 // FieldError defines model for FieldError.
-type FieldError = []ErrField
+type FieldError struct {
+	Errors *[]ErrField `json:"errors,omitempty"`
+}
 
 // GenericBadRequest defines model for GenericBadRequest.
 type GenericBadRequest = ErrGeneric
@@ -2456,8 +2458,6 @@ func (r GetRbacResourceGroupResponse) StatusCode() int {
 type HeadRbacResourceGroupResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON400      *GenericBadRequest
-	JSON404      *GenericNotFound
 }
 
 // Status returns HTTPResponse.Status
@@ -2550,8 +2550,6 @@ func (r GetRbacRoleResponse) StatusCode() int {
 type HeadRbacRoleResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON400      *GenericBadRequest
-	JSON404      *GenericNotFound
 }
 
 // Status returns HTTPResponse.Status
@@ -2782,8 +2780,6 @@ func (r GetUsersUserResponse) StatusCode() int {
 type HeadUsersUserResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON400      *GenericBadRequest
-	JSON404      *GenericNotFound
 }
 
 // Status returns HTTPResponse.Status
@@ -3592,23 +3588,6 @@ func ParseHeadRbacResourceGroupResponse(rsp *http.Response) (*HeadRbacResourceGr
 		HTTPResponse: rsp,
 	}
 
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest GenericBadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest GenericNotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	}
-
 	return response, nil
 }
 
@@ -3736,23 +3715,6 @@ func ParseHeadRbacRoleResponse(rsp *http.Response) (*HeadRbacRoleResponse, error
 	response := &HeadRbacRoleResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest GenericBadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest GenericNotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
 	}
 
 	return response, nil
@@ -4080,23 +4042,6 @@ func ParseHeadUsersUserResponse(rsp *http.Response) (*HeadUsersUserResponse, err
 	response := &HeadUsersUserResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest GenericBadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest GenericNotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
 	}
 
 	return response, nil

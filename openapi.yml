@@ -55,15 +55,15 @@ paths:
         "200":
           description: User exists.
         "404":
-          $ref: "#/components/responses/GenericNotFound"
+          description: User does not exist.
         "400":
-          $ref: "#/components/responses/GenericBadRequest"
+          description: Bad request.
         "401":
-          $ref: "#/components/responses/GenericUnauthenticated"
+          description: Unauthorized.
         "403":
-          $ref: "#/components/responses/GenericForbidden"
+          description: Forbidden.
         "500":
-          $ref: "#/components/responses/GenericInternalServerError"
+          description: Internal server error.
       security:
         - BasicAuth: []
     post:
@@ -315,15 +315,15 @@ paths:
         "200":
           description: Role exists.
         "404":
-          $ref: "#/components/responses/GenericNotFound"
+          description: Role does not exist.
         "400":
-          $ref: "#/components/responses/GenericBadRequest"
+          description: Bad request.
         "401":
-          $ref: "#/components/responses/GenericUnauthenticated"
+          description: Unauthorized.
         "403":
-          $ref: "#/components/responses/GenericForbidden"
+          description: Forbidden.
         "500":
-          $ref: "#/components/responses/GenericInternalServerError"
+          description: Internal server error.
       security:
         - BasicAuth: []
     post:
@@ -577,15 +577,15 @@ paths:
         "200":
           description: Resource group exists.
         "404":
-          $ref: "#/components/responses/GenericNotFound"
+          description: Resource group does not exist.
         "400":
-          $ref: "#/components/responses/GenericBadRequest"
+          description: Bad request.
         "401":
-          $ref: "#/components/responses/GenericUnauthenticated"
+          description: Unauthorized.
         "403":
-          $ref: "#/components/responses/GenericForbidden"
+          description: Forbidden.
         "500":
-          $ref: "#/components/responses/GenericInternalServerError"
+          description: Internal server error.
       security:
         - BasicAuth: []
     post:
@@ -975,9 +975,12 @@ components:
       content:
         application/json:
           schema:
-            type: array
-            items:
-              $ref: "#/components/schemas/ErrField"
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ErrField"
     GenericInternalServerError:
       description: "An internal server error occurred. Look at the server logs for more details."
   securitySchemes:

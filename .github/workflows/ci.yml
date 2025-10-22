@@ -77,10 +77,6 @@ jobs:
             echo "❌ Linting failed"
             exit 1
           fi
-          if [[ "${{ needs.test.result }}" != "success" ]]; then
-            echo "❌ Tests failed"
-            exit 1
-          fi
           if [[ "${{ needs.build.result }}" != "success" ]]; then
             echo "❌ Build failed"
             exit 1

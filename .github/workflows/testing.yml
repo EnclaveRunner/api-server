@@ -10,20 +10,6 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:18-alpine
-        env:
-          POSTGRES_DB: enclave_db
-          POSTGRES_USER: enclave_user
-          POSTGRES_PASSWORD: enclave_password
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -53,3 +39,7 @@ jobs:
 
       - name: Run tests
         run: make test
+        
+      - name: Shutdown container
+        run: |
+          docker-compose -f docker-compose.test.yml down

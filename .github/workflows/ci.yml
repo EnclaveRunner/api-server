@@ -94,31 +94,23 @@ jobs:
             ## ❌ **CI Checks Failed**
 
             The following checks failed:
-            ${{ needs.lint.result != 'success' && '- Linting' || '' }}
-            ${{ needs.test.result != 'success' && '- Tests' || '' }}
-            ${{ needs.build.result != 'success' && '- Build' || '' }}
+            ${{ needs.lint.result != 'success' && '- Linting (For linting issues: Run `make lint` locally)' || '' }}
+            ${{ needs.test.result != 'success' && '- Tests (For test failures: Run `make test` locally)' || '' }}
+            ${{ needs.build.result != 'success' && '- Build (For build issues: Run `go build ./...` locally)' || '' }}
 
             _Please fix the issues before merging this PR._
-
-            **Quick fixes:**
-            - For linting issues: Run `make lint` locally
-            - For test failures: Run `make test` locally
-            - For build issues: Run `go build ./...` locally
 
             ---
 
             > **Details:**
             > - **Commit:** [`${{ github.sha }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
             > - **Branch:** `${{ github.head_ref || github.ref_name }}`
-            > - **Triggered by:** ${{ github.actor }}
-            > - **Run:** [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
-        uses: actions/github-script@v7
+            > - **Triggered by:** @${{ github.actor }}
+        uses: marocchino/sticky-pull-request-comment@v2
         with:
-          github-token: ${{ secrets.BOT_PAT }}
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
+          GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
+          header: CI FAILED!
+          message: |
+            ```
               body: process.env.COMMENT_BODY
-            });
+              ```

@@ -37,7 +37,7 @@ jobs:
 
       - name: Write config file
         run: |
-          cat <<EOF > config.yml
+          cat <<EOF > config.yaml
           database:
             host: postgres
             port: 5432

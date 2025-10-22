@@ -33,7 +33,6 @@ func TestMain(m *testing.M) {
 	viper.Set("log_level", "debug")
 	viper.Set("production_environment", false)
 	viper.Set("port", 8080)
-	viper.Set("database.host", "localhost")
 	viper.Set("admin.username", adminUsername)
 	viper.Set("admin.password", adminPassword)
 

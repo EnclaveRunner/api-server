@@ -38,12 +38,16 @@ jobs:
       - name: Write config file
         run: |
           cat <<EOF > config.yaml
+          port: 8080
+          log_level: debug
+          production_environment: false
+          human_readable_output: true
           database:
             host: postgres
             port: 5432
             user: enclave_user
             password: enclave_password
-            dbname: enclave_db
+            database: enclave_db
           EOF
 
       - name: Run tests

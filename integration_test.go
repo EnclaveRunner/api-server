@@ -29,10 +29,6 @@ const (
 )
 
 func TestMain(m *testing.M) {
-	viper.Set("human_readable_output", true)
-	viper.Set("log_level", "debug")
-	viper.Set("production_environment", false)
-	viper.Set("port", 8080)
 	viper.Set("admin.username", adminUsername)
 	viper.Set("admin.password", adminPassword)
 

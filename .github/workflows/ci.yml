@@ -110,7 +110,4 @@ jobs:
         with:
           GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
           header: CI FAILED!
-          message: |
-            ```
-              body: process.env.COMMENT_BODY
-              ```
+          message: ${{ env.COMMENT_BODY }}

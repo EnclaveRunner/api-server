@@ -208,7 +208,7 @@ func (s *Server) GetRbacListResourceGroups(
 		return nil, &EmptyInternalServerError{}
 	}
 
-	resourceGroupsParsed := make([]string, 0)
+	resourceGroupsParsed := []string{}
 	for _, rg := range resourceGroups {
 		if !slices.Contains(resourceGroupsParsed, rg.GroupName) {
 			resourceGroupsParsed = append(resourceGroupsParsed, rg.GroupName)
@@ -306,7 +306,7 @@ func (s *Server) GetRbacListRoles(
 		return nil, &EmptyInternalServerError{}
 	}
 
-	roles := make([]string, 0)
+	roles := []string{}
 	for _, ug := range groups {
 		if !slices.Contains(roles, ug.GroupName) {
 			roles = append(roles, ug.GroupName)

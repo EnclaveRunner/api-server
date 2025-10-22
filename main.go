@@ -20,9 +20,9 @@ func main() {
 	//nolint:mnd // Default port for PostgreSQL database
 	viper.SetDefault("database.port", 5432)
 	viper.SetDefault("database.sslmode", "disable")
-	viper.SetDefault("database.username", "enclave")
-	viper.SetDefault("database.password", "enclave")
-	viper.SetDefault("database.database", "enclave")
+	viper.SetDefault("database.username", "enclave_user")
+	viper.SetDefault("database.password", "enclave_password")
+	viper.SetDefault("database.database", "enclave_db")
 
 	// default credentials for admin / initial user
 	viper.SetDefault("admin.username", "enclave")

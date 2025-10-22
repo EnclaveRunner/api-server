@@ -1,29 +1,15 @@
-.PHONY: test test-verbose test-coverage test-race bench clean verify fmt lint oapi
+.PHONY: test clean verify fmt lint build oapi
 
 # Default target
 all: test
 
 # Run tests
 test:
+	docker compose -f docker-compose.test.yml down
+	docker compose -f docker-compose.test.yml up -d
+	sleep 3
 	go test ./...
 
-# Run tests with verbose output
-test-verbose:
-	go test -v ./...
-
-# Run tests with coverage
-test-coverage:
-	go test -cover ./... -coverprofile=coverage.out
-
-# Run tests with race detection
-test-race:
-	go test -race ./...
-
-# Run benchmarks
-bench:
-	go test -bench=.
-
-test-all: test-verbose test-coverage test-race bench
 
 # Format code
 fmt:
@@ -41,29 +27,28 @@ clean:
 oapi:
 	go generate tools.go
 
+build:
+	go build
+
 # Simulate CI tests
 verify:
 	@echo "Running CI tests..."
 	@echo "Checking Linting:"
 	make lint
 	@echo "Checking Tests:"
-	make test-all
+	make test
 	@echo "Checking Build:"
-	go build -v ./...
-	go clean -testcache
+	make build
+	make clean
 	@echo "✅ CI Test will pass, you are ready to commit / open the PR! Thank you for your contribution :)"
 # Show help
 help:
 	@echo "Available targets:"
-	@echo "  test          - Run basic tests"
-	@echo "  test-verbose  - Run tests with verbose output"
-	@echo "  test-coverage - Run tests with coverage"
-	@echo "  test-race     - Run tests with race detection"
-	@echo "  bench         - Run benchmarks"
-	@echo "  test-all      - Run all tests"
+	@echo "  build         - Build the application"
+	@echo "  test          - Run tests"
 	@echo "  fmt           - Format code"
 	@echo "  lint          - Lint and fix code"
 	@echo "  clean         - Clean test cache"
-	@echo "  oapi          - Create gin server from OpenAPI spec"
+	@echo "  oapi          - Create gin server and client from OpenAPI spec"
 	@echo "  verify        - Simulate CI Checks before opening a PR"
 	@echo "  help          - Show this help"

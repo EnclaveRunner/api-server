@@ -12,7 +12,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
 
 jobs:
   build:
@@ -35,12 +34,15 @@ jobs:
         run: |
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+          echo "REGISTRY_IMAGE=${{ env.REGISTRY }}/${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
 
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY_IMAGE }}
+          tags: |
+            type=raw,value=dummy
 
       - name: Log in to Container Registry
         uses: docker/login-action@v3
@@ -99,6 +101,10 @@ jobs:
           pattern: digests-*
           merge-multiple: true
 
+      - name: Prepare
+        run: |
+          echo "REGISTRY_IMAGE=${{ env.REGISTRY }}/${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
       - name: Log in to Container Registry
         uses: docker/login-action@v3
         with:
@@ -114,9 +120,13 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY_IMAGE }}
+          flavor: |
+            latest=false
           tags: |
-            type=ref,event=tag
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}},enable=${{ github.event_name == 'release' }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ github.event_name == 'release' }}
+            type=semver,pattern={{major}},enable=${{ github.event_name == 'release' }}
+            type=raw,value=latest,enable=${{ github.event_name == 'release' && github.event.release.target_commitish == github.event.repository.default_branch }}
             type=raw,value=${{ github.event.inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' }}
 
       - name: Create manifest list and push

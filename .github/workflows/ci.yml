@@ -18,7 +18,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.25"
+          go-version: "1.22"
 
       - name: Install golangci-lint
         uses: golangci/golangci-lint-action@v7
@@ -27,6 +27,7 @@ jobs:
 
       - name: Run linting
         run: golangci-lint run
+
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -38,7 +39,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.25"
+          go-version: "1.22"
 
       - name: Build
         run: go build -v ./...
@@ -65,28 +66,42 @@ jobs:
 
       - name: Comment on PR failure
         if: failure() && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        env:
+          COMMENT_BODY: |
+            ## ❌ **CI Checks Failed**
+
+            The following checks failed:
+            ${{ needs.lint.result != 'success' && '- Linting (For linting issues: Run `make lint` locally)' || '' }}
+            ${{ needs.build.result != 'success' && '- Build (For build issues: Run `go build ./...` locally)' || '' }}
+
+            _Please fix the issues before merging this PR._
+
+            ---
+
+            > **Details:**
+            > - **Commit:** [`${{ github.sha }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+            > - **Branch:** `${{ github.head_ref || github.ref_name }}`
+            > - **Triggered by:** @${{ github.actor }}
+        uses: marocchino/sticky-pull-request-comment@v2
         with:
-          script: |
-            let failedJobs = [];
+          GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
+          header: CI-MONITOR
+          message: ${{ env.COMMENT_BODY }}
 
-            if ("${{ needs.lint.result }}" !== "success") failedJobs.push("Linting");
-            if ("${{ needs.build.result }}" !== "success") failedJobs.push("Build");
+      - name: Comment on PR success
+        if: success() && github.event_name == 'pull_request'
+        env:
+          COMMENT_BODY: |
+            ## ✅ **All CI Checks Passed**
 
-            const failedJobsList = failedJobs.map(job => "- " + job).join("\n");
+            All checks have passed successfully. Thank you for contributing to the project ✌🏼!
 
-            const body = "❌ **CI Checks Failed**\n\n" +
-                         "The following checks failed:\n" +
-                         failedJobsList + "\n\n" +
-                         "Please fix the issues before merging this PR.\n\n" +
-                         "**Quick fixes:**\n" +
-                         "- For linting issues: Run `make lint` locally\n" +
-                         "- For test failures: Run `make test` locally\n" +
-                         "- For build issues: Run `make build` locally";
+            ---
 
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: body
-            });
+            > **Details:**
+            > - **Commit:** (https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
+          header: CI-MONITOR
+          message: ${{ env.COMMENT_BODY }}

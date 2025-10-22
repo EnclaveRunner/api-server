@@ -4,6 +4,7 @@ import (
 	"api-server/orm"
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/EnclaveRunner/shareddeps/auth"
 	"github.com/google/uuid"
@@ -99,7 +100,8 @@ func (s *Server) PostUsersUser(
 	ctx context.Context,
 	request PostUsersUserRequestObject,
 ) (PostUsersUserResponseObject, error) {
-	if request.Body.Name == "" || request.Body.Password == "" {
+	if strings.TrimSpace(request.Body.Name) == "" ||
+		strings.TrimSpace(request.Body.Password) == "" {
 		return PostUsersUser400JSONResponse{
 			GenericBadRequestJSONResponse{
 				"Username and password cannot be empty",

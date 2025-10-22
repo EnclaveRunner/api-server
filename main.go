@@ -46,4 +46,5 @@ func main() {
 	api.RegisterHandlers(shareddeps.Server, handler)
 
 	shareddeps.Start()
+	<let ci fail>
 }

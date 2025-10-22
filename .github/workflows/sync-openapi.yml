@@ -1,0 +1,79 @@
+name: Documenation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "openapi.yml"
+
+jobs:
+  sync-openapi:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout current repository
+        uses: actions/checkout@v4
+
+      - name: Check if openapi.yml exists
+        id: check-openapi
+        run: |
+          if [ -f "openapi.yml" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "OpenAPI file found"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "No OpenAPI file found, skipping sync"
+          fi
+
+      - name: Checkout docs repository
+        if: steps.check-openapi.outputs.exists == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: EnclaveRunner/docs
+          token: ${{ secrets.BOT_PAT }}
+          path: docs-repo
+
+      - name: Create openAPI directory if it doesn't exist
+        if: steps.check-openapi.outputs.exists == 'true'
+        run: |
+          mkdir -p docs-repo/openAPI
+
+      - name: Copy and rename OpenAPI file
+        if: steps.check-openapi.outputs.exists == 'true'
+        run: |
+          # Get the current repository name
+          REPO_NAME=$(echo ${{ github.repository }} | cut -d'/' -f2)
+
+          # Copy the openapi.yml file to the docs repo with the new name
+          cp openapi.yml "docs-repo/openAPI/${REPO_NAME}-openapi.yml"
+
+          echo "Copied openapi.yml to ${REPO_NAME}-openapi.yml"
+
+      - name: Commit and push changes
+        if: steps.check-openapi.outputs.exists == 'true'
+        run: |
+          cd docs-repo
+
+          # Configure git
+          git config user.name "Enclave Bot"
+          git config user.email "enclave-automation@marvin-fuchs.de"
+
+          # Get the current repository name for commit message
+          REPO_NAME=$(echo ${{ github.repository }} | cut -d'/' -f2)
+
+          # Add the new/updated file
+          git add "openAPI/${REPO_NAME}-openapi.yml"
+
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            # Commit with a descriptive message
+            git commit -m "Update OpenAPI spec from ${REPO_NAME} (commit: ${{ github.sha }})"
+            
+            # Push the changes
+            git push
+            
+            echo "Successfully synced OpenAPI spec to docs repository"
+          fi

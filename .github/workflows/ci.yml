@@ -91,6 +91,7 @@ jobs:
         if: failure() && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.BOT_PAT }}
           script: |
             let failedJobs = [];
 

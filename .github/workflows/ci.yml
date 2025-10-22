@@ -89,30 +89,37 @@ jobs:
 
       - name: Comment on PR failure
         if: failure() && github.event_name == 'pull_request'
+        env:
+          COMMENT_BODY: |
+            ## ❌ **CI Checks Failed**
+
+            The following checks failed:
+            ${{ needs.lint.result != 'success' && '- Linting' || '' }}
+            ${{ needs.test.result != 'success' && '- Tests' || '' }}
+            ${{ needs.build.result != 'success' && '- Build' || '' }}
+
+            _Please fix the issues before merging this PR._
+
+            ---
+
+            **Quick fixes:**
+            - For linting issues: Run `make lint` locally
+            - For test failures: Run `make test` locally
+            - For build issues: Run `go build ./...` locally
+
+            ---
+
+            **Details:**
+            - **Commit:** [`${{ github.event.head_commit.id }}`](${{ github.event.head_commit.url }}) - ${{ github.event.head_commit.message }}
+            - **Timestamp:** ${{ github.event.head_commit.timestamp }}
+            - **Author:** ${{ github.event.head_commit.author.name }}
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.BOT_PAT }}
           script: |
-            let failedJobs = [];
-
-            if ("${{ needs.lint.result }}" !== "success") failedJobs.push("Linting");
-            if ("${{ needs.test.result }}" !== "success") failedJobs.push("Tests");
-            if ("${{ needs.build.result }}" !== "success") failedJobs.push("Build");
-
-            const failedJobsList = failedJobs.map(job => "- " + job).join("\n");
-
-            const body = "❌ **CI Checks Failed**\n\n" +
-                         "The following checks failed:\n" +
-                         failedJobsList + "\n\n" +
-                         "Please fix the issues before merging this PR.\n\n" +
-                         "**Quick fixes:**\n" +
-                         "- For linting issues: Run `make lint` locally\n" +
-                         "- For test failures: Run `make test` locally\n" +
-                         "- For build issues: Run `go build ./...` locally";
-
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: body
+              body: process.env.COMMENT_BODY
             });

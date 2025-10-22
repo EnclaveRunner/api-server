@@ -1,5 +1,5 @@
 # Build API-Server executable
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
@@ -8,7 +8,7 @@ COPY . .
 RUN go mod download && CGO_ENABLED=0 GOOS=linux go build -o /app/api-server .
 
 # Create a minimal runtime image
-FROM alpine:3.19
+FROM alpine:3.22
 
 RUN apk --no-cache add ca-certificates
 WORKDIR /app

@@ -100,8 +100,6 @@ jobs:
 
             _Please fix the issues before merging this PR._
 
-            ---
-
             **Quick fixes:**
             - For linting issues: Run `make lint` locally
             - For test failures: Run `make test` locally
@@ -109,10 +107,11 @@ jobs:
 
             ---
 
-            **Details:**
-            - **Commit:** [`${{ github.event.head_commit.id }}`](${{ github.event.head_commit.url }}) - ${{ github.event.head_commit.message }}
-            - **Timestamp:** ${{ github.event.head_commit.timestamp }}
-            - **Author:** ${{ github.event.head_commit.author.name }}
+            > **Details:**
+            > - **Commit:** [`${{ github.sha }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+            > - **Branch:** `${{ github.head_ref || github.ref_name }}`
+            > - **Triggered by:** ${{ github.actor }}
+            > - **Run:** [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.BOT_PAT }}

@@ -109,5 +109,23 @@ jobs:
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
-          header: CI FAILED!
+          header: CI-MONITOR
+          message: ${{ env.COMMENT_BODY }}
+
+      - name: Comment on PR success
+        if: success() && github.event_name == 'pull_request'
+        env:
+          COMMENT_BODY: |
+            ## ✅ **All CI Checks Passed**
+
+            All checks have passed successfully. Thank you for contributing to the project ✌🏼!
+
+            ---
+
+            > **Details:**
+            > - **Commit:** [`${{ github.sha }}`](
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
+          header: CI-MONITOR
           message: ${{ env.COMMENT_BODY }}

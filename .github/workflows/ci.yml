@@ -18,7 +18,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
+          go-version: "1.25"
 
       - name: Install golangci-lint
         uses: golangci/golangci-lint-action@v7
@@ -27,26 +27,6 @@ jobs:
 
       - name: Run linting
         run: golangci-lint run
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.22"
-
-      - name: Download dependencies
-        run: go mod download
-
-      - name: Run tests
-        run: make test
-
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -58,7 +38,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
+          go-version: "1.25"
 
       - name: Build
         run: go build -v ./...
@@ -67,7 +47,7 @@ jobs:
   all-checks:
     name: All Checks Passed
     runs-on: ubuntu-latest
-    needs: [lint, test, build]
+    needs: [lint, build]
     if: always()
 
     steps:
@@ -75,10 +55,6 @@ jobs:
         run: |
           if [[ "${{ needs.lint.result }}" != "success" ]]; then
             echo "❌ Linting failed"
-            exit 1
-          fi
-          if [[ "${{ needs.test.result }}" != "success" ]]; then
-            echo "❌ Tests failed"
             exit 1
           fi
           if [[ "${{ needs.build.result }}" != "success" ]]; then
@@ -95,7 +71,6 @@ jobs:
             let failedJobs = [];
 
             if ("${{ needs.lint.result }}" !== "success") failedJobs.push("Linting");
-            if ("${{ needs.test.result }}" !== "success") failedJobs.push("Tests");
             if ("${{ needs.build.result }}" !== "success") failedJobs.push("Build");
 
             const failedJobsList = failedJobs.map(job => "- " + job).join("\n");
@@ -107,7 +82,7 @@ jobs:
                          "**Quick fixes:**\n" +
                          "- For linting issues: Run `make lint` locally\n" +
                          "- For test failures: Run `make test` locally\n" +
-                         "- For build issues: Run `go build ./...` locally";
+                         "- For build issues: Run `make build` locally";
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,

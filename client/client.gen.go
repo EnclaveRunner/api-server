@@ -30,6 +30,9 @@ const (
 
 // CreateUser defines model for CreateUser.
 type CreateUser struct {
+	// DisplayName The display name for the new user.
+	DisplayName string `json:"displayName"`
+
 	// Name The name of the user to create.
 	Name string `json:"name"`
 
@@ -53,6 +56,9 @@ type ErrGeneric struct {
 
 // PatchMe defines model for PatchMe.
 type PatchMe struct {
+	// NewDisplayName The new display name for the current user.
+	NewDisplayName *string `json:"newDisplayName,omitempty"`
+
 	// NewName The new name for the current user.
 	NewName *string `json:"newName,omitempty"`
 
@@ -64,6 +70,9 @@ type PatchMe struct {
 type PatchUser struct {
 	// Id The uuid of the user to update.
 	Id string `json:"id"`
+
+	// NewDisplayName The new display name for the user.
+	NewDisplayName *string `json:"newDisplayName,omitempty"`
 
 	// NewName The new name for the user.
 	NewName *string `json:"newName,omitempty"`
@@ -107,6 +116,9 @@ type UserRequest struct {
 
 // UserResponse defines model for UserResponse.
 type UserResponse struct {
+	// DisplayName The display name of the user.
+	DisplayName string `json:"displayName"`
+
 	// Id The uuid of the user.
 	Id string `json:"id"`
 

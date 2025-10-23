@@ -17,9 +17,10 @@ import (
 )
 
 const (
-	adminPassword   = "admin"
-	adminUsername   = "admin"
-	defaultPassword = "test"
+	adminPassword    = "admin"
+	adminUsername    = "admin"
+	adminDisplayName = "Administrator"
+	defaultPassword  = "test"
 )
 
 var c *client.ClientWithResponses
@@ -33,6 +34,7 @@ const (
 func TestMain(m *testing.M) {
 	viper.Set("admin.username", adminUsername)
 	viper.Set("admin.password", adminPassword)
+	viper.Set("admin.display_name", adminDisplayName)
 
 	go main()
 
@@ -79,7 +81,8 @@ func TestAdminUserExists(t *testing.T) {
 	adminExists := slices.ContainsFunc(
 		*resp.JSON200,
 		func(element client.UserResponse) bool {
-			return element.Name == adminUsername
+			return element.Name == adminUsername &&
+				element.DisplayName == adminDisplayName
 		},
 	)
 
@@ -89,19 +92,22 @@ func TestAdminUserExists(t *testing.T) {
 func TestUserCRUD(t *testing.T) {
 	t.Parallel()
 	username := "testUserCRUD"
+	displayName := "Test User CRUD"
 	password := defaultPassword
 	// Create User
 	createResp, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     username,
-			Password: password,
+			Name:        username,
+			Password:    password,
+			DisplayName: displayName,
 		},
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, createResp.StatusCode())
 	createduserid := createResp.JSON201.Id
 	assert.Equal(t, username, createResp.JSON201.Name)
+	assert.Equal(t, displayName, createResp.JSON201.DisplayName)
 
 	// Check User Exists
 	headResp, err := c.HeadUsersUserWithResponse(
@@ -123,19 +129,23 @@ func TestUserCRUD(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, getResp.StatusCode())
 	assert.Equal(t, username, getResp.JSON200.Name)
+	assert.Equal(t, displayName, getResp.JSON200.DisplayName)
 
 	// Update User
 	newUsername := "updatedTestUserCRUD"
+	newDisplayName := "Updated Test User CRUD"
 	updateResp, err := c.PatchUsersUserWithResponse(
 		t.Context(),
 		client.PatchUsersUserJSONRequestBody{
-			Id:      createduserid,
-			NewName: &newUsername,
+			Id:             createduserid,
+			NewName:        &newUsername,
+			NewDisplayName: &newDisplayName,
 		},
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, updateResp.StatusCode())
 	assert.Equal(t, newUsername, updateResp.JSON200.Name)
+	assert.Equal(t, newDisplayName, updateResp.JSON200.DisplayName)
 
 	// Delete User
 	deleteResp, err := c.DeleteUsersUserWithResponse(
@@ -165,8 +175,9 @@ func TestCreateUserEmptyFields(t *testing.T) {
 	resp1, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     "",
-			Password: "password",
+			Name:        "",
+			Password:    "password",
+			DisplayName: "Test User",
 		},
 	)
 	assert.NoError(t, err)
@@ -176,36 +187,52 @@ func TestCreateUserEmptyFields(t *testing.T) {
 	resp2, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     "testuser",
-			Password: "",
+			Name:        "testuser",
+			Password:    "",
+			DisplayName: "Test User",
 		},
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, resp2.StatusCode())
 
-	// Both empty
+	// Empty display name
 	resp3, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     "",
-			Password: "",
+			Name:        "testuser",
+			Password:    "password",
+			DisplayName: "",
 		},
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, resp3.StatusCode())
+
+	// All empty
+	resp4, err := c.PostUsersUserWithResponse(
+		t.Context(),
+		client.PostUsersUserJSONRequestBody{
+			Name:        "",
+			Password:    "",
+			DisplayName: "",
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, resp4.StatusCode())
 }
 
 func TestCreateUserDuplicateName(t *testing.T) {
 	t.Parallel()
 	username := "testUserDuplicate"
+	displayName := "Test Duplicate User"
 	password := defaultPassword
 
 	// Create first user
 	createResp1, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     username,
-			Password: password,
+			Name:        username,
+			Password:    password,
+			DisplayName: displayName,
 		},
 	)
 	assert.NoError(t, err)
@@ -216,8 +243,9 @@ func TestCreateUserDuplicateName(t *testing.T) {
 	createResp2, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     username,
-			Password: "different",
+			Name:        username,
+			Password:    "different",
+			DisplayName: "Different Display Name",
 		},
 	)
 	assert.NoError(t, err)
@@ -311,8 +339,9 @@ func TestPatchUserDuplicateName(t *testing.T) {
 	user1Resp, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     "testPatchUser1",
-			Password: defaultPassword,
+			Name:        "testPatchUser1",
+			Password:    defaultPassword,
+			DisplayName: "Test Patch User 1",
 		},
 	)
 	assert.NoError(t, err)
@@ -322,8 +351,9 @@ func TestPatchUserDuplicateName(t *testing.T) {
 	user2Resp, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     "testPatchUser2",
-			Password: defaultPassword,
+			Name:        "testPatchUser2",
+			Password:    defaultPassword,
+			DisplayName: "Test Patch User 2",
 		},
 	)
 	assert.NoError(t, err)
@@ -360,14 +390,16 @@ func TestPatchUserOnlyPassword(t *testing.T) {
 	createResp, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     "testPatchPasswordOnly",
-			Password: "oldpassword",
+			Name:        "testPatchPasswordOnly",
+			Password:    "oldpassword",
+			DisplayName: "Test Password User",
 		},
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, createResp.StatusCode())
 	userId := createResp.JSON201.Id
 	originalName := createResp.JSON201.Name
+	originalDisplayName := createResp.JSON201.DisplayName
 
 	// Update only password
 	newPassword := "newpassword"
@@ -386,6 +418,12 @@ func TestPatchUserOnlyPassword(t *testing.T) {
 		patchResp.JSON200.Name,
 		"Name should remain unchanged",
 	)
+	assert.Equal(
+		t,
+		originalDisplayName,
+		patchResp.JSON200.DisplayName,
+		"Display name should remain unchanged",
+	)
 
 	// Cleanup
 	_, _ = c.DeleteUsersUserWithResponse(
@@ -401,13 +439,15 @@ func TestPatchUserOnlyName(t *testing.T) {
 	createResp, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     "testPatchNameOnly",
-			Password: "password",
+			Name:        "testPatchNameOnly",
+			Password:    "password",
+			DisplayName: "Original Display Name",
 		},
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, createResp.StatusCode())
 	userId := createResp.JSON201.Id
+	originalDisplayName := createResp.JSON201.DisplayName
 
 	// Update only name
 	newName := "testPatchNameOnlyUpdated"
@@ -421,6 +461,55 @@ func TestPatchUserOnlyName(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, patchResp.StatusCode())
 	assert.Equal(t, newName, patchResp.JSON200.Name)
+	assert.Equal(
+		t,
+		originalDisplayName,
+		patchResp.JSON200.DisplayName,
+		"Display name should remain unchanged",
+	)
+
+	// Cleanup
+	_, _ = c.DeleteUsersUserWithResponse(
+		t.Context(),
+		client.DeleteUsersUserJSONRequestBody{Id: userId},
+	)
+}
+
+func TestPatchUserOnlyDisplayName(t *testing.T) {
+	t.Parallel()
+
+	// Create user
+	createResp, err := c.PostUsersUserWithResponse(
+		t.Context(),
+		client.PostUsersUserJSONRequestBody{
+			Name:        "testPatchDisplayNameOnly",
+			Password:    "password",
+			DisplayName: "Original Display Name",
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createResp.StatusCode())
+	userId := createResp.JSON201.Id
+	originalName := createResp.JSON201.Name
+
+	// Update only display name
+	newDisplayName := "Updated Display Name"
+	patchResp, err := c.PatchUsersUserWithResponse(
+		t.Context(),
+		client.PatchUsersUserJSONRequestBody{
+			Id:             userId,
+			NewDisplayName: &newDisplayName,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, patchResp.StatusCode())
+	assert.Equal(
+		t,
+		originalName,
+		patchResp.JSON200.Name,
+		"Name should remain unchanged",
+	)
+	assert.Equal(t, newDisplayName, patchResp.JSON200.DisplayName)
 
 	// Cleanup
 	_, _ = c.DeleteUsersUserWithResponse(
@@ -465,6 +554,7 @@ func TestGetUsersMe(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode())
 	assert.NotNil(t, resp.JSON200)
 	assert.Equal(t, adminUsername, resp.JSON200.Name)
+	assert.Equal(t, adminDisplayName, resp.JSON200.DisplayName)
 	assert.NotEmpty(t, resp.JSON200.Id)
 }
 
@@ -487,8 +577,9 @@ func TestPatchUsersMe(t *testing.T) {
 	createResp, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     "testPatchMe",
-			Password: "password",
+			Name:        "testPatchMe",
+			Password:    "password",
+			DisplayName: "Test Patch Me User",
 		},
 	)
 	assert.NoError(t, err)
@@ -515,12 +606,14 @@ func TestPatchUsersMe(t *testing.T) {
 	)
 	assert.NoError(t, err)
 
-	// Update name
+	// Update name and display name
 	usernameNew := "testPatchMeUpdated"
+	displayNameNew := "Updated Patch Me User"
 	patchResp, err := userClient.PatchUsersMeWithResponse(
 		t.Context(),
 		client.PatchUsersMeJSONRequestBody{
-			NewName: &usernameNew,
+			NewName:        &usernameNew,
+			NewDisplayName: &displayNameNew,
 		},
 	)
 	username = usernameNew
@@ -528,12 +621,14 @@ func TestPatchUsersMe(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, patchResp.StatusCode())
 	assert.Equal(t, username, patchResp.JSON200.Name)
+	assert.Equal(t, displayNameNew, patchResp.JSON200.DisplayName)
 
 	// Verify the update
 	getResp, err := userClient.GetUsersMeWithResponse(t.Context())
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, getResp.StatusCode())
 	assert.Equal(t, username, getResp.JSON200.Name)
+	assert.Equal(t, displayNameNew, getResp.JSON200.DisplayName)
 
 	// Cleanup (using admin client)
 	_, _ = c.DeleteUsersUserWithResponse(
@@ -549,8 +644,9 @@ func TestPatchUsersMePassword(t *testing.T) {
 	createResp, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     "testPatchMePassword",
-			Password: "oldpassword",
+			Name:        "testPatchMePassword",
+			Password:    "oldpassword",
+			DisplayName: "Test Password Update User",
 		},
 	)
 	assert.NoError(t, err)
@@ -644,8 +740,9 @@ func TestPatchUsersMeDuplicateName(t *testing.T) {
 	user1Resp, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     "testPatchMeUser1",
-			Password: "password",
+			Name:        "testPatchMeUser1",
+			Password:    "password",
+			DisplayName: "Test Patch Me User 1",
 		},
 	)
 	assert.NoError(t, err)
@@ -656,8 +753,9 @@ func TestPatchUsersMeDuplicateName(t *testing.T) {
 	user2Resp, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     "testPatchMeUser2",
-			Password: "password",
+			Name:        "testPatchMeUser2",
+			Password:    "password",
+			DisplayName: "Test Patch Me User 2",
 		},
 	)
 	assert.NoError(t, err)
@@ -1012,8 +1110,9 @@ func TestUserRoleAssignment(t *testing.T) {
 	createUserResp, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     username,
-			Password: password,
+			Name:        username,
+			Password:    password,
+			DisplayName: "Test User Role Assignment",
 		},
 	)
 	assert.NoError(t, err)
@@ -1159,8 +1258,9 @@ func TestAssignNonExistentRoleToUser(t *testing.T) {
 	createUserResp, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     "testUserNonExistentRole",
-			Password: defaultPassword,
+			Name:        "testUserNonExistentRole",
+			Password:    defaultPassword,
+			DisplayName: "Test User Non-Existent Role",
 		},
 	)
 	assert.NoError(t, err)
@@ -1221,8 +1321,9 @@ func TestRemoveNonExistentRoleFromUser(t *testing.T) {
 	createUserResp, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     "testUserRemoveNonExistentRole",
-			Password: defaultPassword,
+			Name:        "testUserRemoveNonExistentRole",
+			Password:    defaultPassword,
+			DisplayName: "Test User Remove Non-Existent Role",
 		},
 	)
 	assert.NoError(t, err)
@@ -1566,6 +1667,7 @@ func TestMultiplePoliciesForSameRole(t *testing.T) {
 //nolint:paralleltest // Leads to conflicts when run in parallel
 func TestPolicyEnforcementNoRole(t *testing.T) {
 	username := "testNoRoleUser"
+	displayName := "Test User"
 	password := defaultPassword
 	rgName := "testNoRoleRG"
 
@@ -1588,8 +1690,9 @@ func TestPolicyEnforcementNoRole(t *testing.T) {
 	createUserResp, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     username,
-			Password: password,
+			Name:        username,
+			Password:    password,
+			DisplayName: displayName,
 		},
 	)
 	assert.NoError(t, err)
@@ -1674,11 +1777,13 @@ func TestPolicyEnforcementRoleNoPolicy(t *testing.T) {
 	createUserResp, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     username,
-			Password: password,
+			Name:        username,
+			Password:    password,
+			DisplayName: "Test Role No Policy User",
 		},
 	)
 	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createUserResp.StatusCode())
 	userId := createUserResp.JSON201.Id
 
 	_, _ = c.PostRbacUserWithResponse(
@@ -1781,11 +1886,13 @@ func TestPolicyEnforcementWithPolicy(t *testing.T) {
 	createUserResp, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     username,
-			Password: password,
+			Name:        username,
+			Password:    password,
+			DisplayName: "Test With Policy User",
 		},
 	)
 	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createUserResp.StatusCode())
 	userId := createUserResp.JSON201.Id
 
 	_, _ = c.PostRbacUserWithResponse(
@@ -1896,11 +2003,13 @@ func TestPolicyEnforcementMethodRestriction(t *testing.T) {
 	createUserResp, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     username,
-			Password: password,
+			Name:        username,
+			Password:    password,
+			DisplayName: "Test Method Restriction User",
 		},
 	)
 	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createUserResp.StatusCode())
 	userId := createUserResp.JSON201.Id
 
 	_, _ = c.PostRbacUserWithResponse(
@@ -2027,11 +2136,13 @@ func TestPolicyEnforcementWildcardPermission(t *testing.T) {
 	createUserResp, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     username,
-			Password: password,
+			Name:        username,
+			Password:    password,
+			DisplayName: "Test Wildcard Permission User",
 		},
 	)
 	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createUserResp.StatusCode())
 	userId := createUserResp.JSON201.Id
 
 	_, _ = c.PostRbacUserWithResponse(
@@ -2173,11 +2284,13 @@ func TestPolicyEnforcementResourceGroupIsolation(t *testing.T) {
 	createUserResp, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     username,
-			Password: password,
+			Name:        username,
+			Password:    password,
+			DisplayName: "Test RG Isolation User",
 		},
 	)
 	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createUserResp.StatusCode())
 	userId := createUserResp.JSON201.Id
 
 	_, _ = c.PostRbacUserWithResponse(
@@ -2335,11 +2448,13 @@ func TestPolicyEnforcementMultipleRoles(t *testing.T) {
 	createUserResp, err := c.PostUsersUserWithResponse(
 		t.Context(),
 		client.PostUsersUserJSONRequestBody{
-			Name:     username,
-			Password: password,
+			Name:        username,
+			Password:    password,
+			DisplayName: "Test Multi Roles User",
 		},
 	)
 	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createUserResp.StatusCode())
 	userId := createUserResp.JSON201.Id
 
 	_, _ = c.PostRbacUserWithResponse(

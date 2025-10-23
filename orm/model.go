@@ -5,8 +5,9 @@ import (
 )
 
 type User struct {
-	ID       uuid.UUID `gorm:"primaryKey;type:uuid;default:gen_random_uuid()" json:"id"`
-	Username string    `gorm:"unique;not null"                                json:"username"`
+	ID          uuid.UUID `gorm:"primaryKey;type:uuid;default:gen_random_uuid()" json:"id"`
+	Username    string    `gorm:"unique;not null"                                json:"username"`
+	DisplayName string    `gorm:"not null"                                       json:"displayName"`
 }
 
 type Auth_Basic struct {

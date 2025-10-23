@@ -26,8 +26,9 @@ func (s *Server) GetUsersList(
 	usersParsed := make([]UserResponse, len(users))
 	for i, user := range users {
 		usersParsed[i] = UserResponse{
-			Id:   user.ID.String(),
-			Name: user.Username,
+			Id:          user.ID.String(),
+			Name:        user.Username,
+			DisplayName: user.DisplayName,
 		}
 	}
 
@@ -65,8 +66,9 @@ func (s *Server) GetUsersUser(
 	}
 
 	return GetUsersUser200JSONResponse(UserResponse{
-		Id:   user.ID.String(),
-		Name: user.Username,
+		Id:          user.ID.String(),
+		Name:        user.Username,
+		DisplayName: user.DisplayName,
 	}), nil
 }
 
@@ -101,15 +103,21 @@ func (s *Server) PostUsersUser(
 	request PostUsersUserRequestObject,
 ) (PostUsersUserResponseObject, error) {
 	if strings.TrimSpace(request.Body.Name) == "" ||
-		strings.TrimSpace(request.Body.Password) == "" {
+		strings.TrimSpace(request.Body.Password) == "" ||
+		strings.TrimSpace(request.Body.DisplayName) == "" {
 		return PostUsersUser400JSONResponse{
 			GenericBadRequestJSONResponse{
-				"Username and password cannot be empty",
+				"Username, password, and display name cannot be empty",
 			},
 		}, nil
 	}
 
-	user, err := orm.CreateUser(ctx, request.Body.Name, request.Body.Password)
+	user, err := orm.CreateUser(
+		ctx,
+		request.Body.Name,
+		request.Body.Password,
+		request.Body.DisplayName,
+	)
 	if err != nil {
 		var errConflict *orm.ConflictError
 		if errors.As(err, &errConflict) {
@@ -124,8 +132,9 @@ func (s *Server) PostUsersUser(
 	}
 
 	return PostUsersUser201JSONResponse(UserResponse{
-		Id:   user.ID.String(),
-		Name: user.Username,
+		Id:          user.ID.String(),
+		Name:        user.Username,
+		DisplayName: user.DisplayName,
 	}), nil
 }
 
@@ -148,6 +157,7 @@ func (s *Server) PatchUsersUser(
 		uuidParser,
 		request.Body.NewName,
 		request.Body.NewPassword,
+		request.Body.NewDisplayName,
 	)
 	if err != nil {
 		var errNotFound *orm.NotFoundError
@@ -172,8 +182,9 @@ func (s *Server) PatchUsersUser(
 	}
 
 	return PatchUsersUser200JSONResponse(UserResponse{
-		Id:   user.ID.String(),
-		Name: user.Username,
+		Id:          user.ID.String(),
+		Name:        user.Username,
+		DisplayName: user.DisplayName,
 	}), nil
 }
 
@@ -207,8 +218,9 @@ func (s *Server) DeleteUsersUser(
 	}
 
 	return DeleteUsersUser200JSONResponse(UserResponse{
-		Id:   user.ID.String(),
-		Name: user.Username,
+		Id:          user.ID.String(),
+		Name:        user.Username,
+		DisplayName: user.DisplayName,
 	}), nil
 }
 
@@ -241,8 +253,9 @@ func (s *Server) GetUsersMe(
 	}
 
 	return GetUsersMe200JSONResponse(UserResponse{
-		Id:   user.ID.String(),
-		Name: user.Username,
+		Id:          user.ID.String(),
+		Name:        user.Username,
+		DisplayName: user.DisplayName,
 	}), nil
 }
 
@@ -268,6 +281,7 @@ func (s *Server) PatchUsersMe(
 		uuidParser,
 		request.Body.NewName,
 		request.Body.NewPassword,
+		request.Body.NewDisplayName,
 	)
 	if err != nil {
 		var errConflict *orm.ConflictError
@@ -283,7 +297,8 @@ func (s *Server) PatchUsersMe(
 	}
 
 	return PatchUsersMe200JSONResponse(UserResponse{
-		Id:   user.ID.String(),
-		Name: user.Username,
+		Id:          user.ID.String(),
+		Name:        user.Username,
+		DisplayName: user.DisplayName,
 	}), nil
 }

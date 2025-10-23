@@ -71,13 +71,23 @@ func InitAdminUser() {
 	}
 
 	// generate / update default user
-	DB.Save(&User{Username: config.Cfg.Admin.Username})
+	DB.Save(
+		&User{
+			Username:    config.Cfg.Admin.Username,
+			DisplayName: config.Cfg.Admin.DisplayName,
+		},
+	)
 	adminUser, _ := gorm.G[User](
 		DB,
 	).Where(&User{Username: config.Cfg.Admin.Username}).
 		First(context.Background())
 
-	err = DB.Save(&Auth_Basic{UserID: adminUser.ID, Password: hash}).Error
+	// Create or update auth record
+	authRecord := Auth_Basic{UserID: adminUser.ID, Password: hash}
+	err = DB.Where(Auth_Basic{UserID: adminUser.ID}).
+		Assign(Auth_Basic{Password: hash}).
+		FirstOrCreate(&authRecord).
+		Error
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create admin auth record")
 	}

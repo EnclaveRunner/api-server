@@ -864,6 +864,7 @@ components:
       required:
         - id
         - name
+        - displayName
       properties:
         id:
           type: string
@@ -871,6 +872,9 @@ components:
         name:
           type: string
           description: The name of the user.
+        displayName:
+          type: string
+          description: The display name of the user.
     UserRequest:
       type: object
       required:
@@ -884,6 +888,7 @@ components:
       required:
         - name
         - password
+        - displayName
       properties:
         name:
           type: string
@@ -891,6 +896,9 @@ components:
         password:
           type: string
           description: The password for the new user.
+        displayName:
+          type: string
+          description: The display name for the new user.
     PatchUser:
       type: object
       required:
@@ -905,6 +913,9 @@ components:
         newPassword:
           type: string
           description: The new password for the user.
+        newDisplayName:
+          type: string
+          description: The new display name for the user.
     PatchMe:
       type: object
       properties:
@@ -914,6 +925,9 @@ components:
         newPassword:
           type: string
           description: The new password for the current user.
+        newDisplayName:
+          type: string
+          description: The new display name for the current user.
     RBACRole:
       type: object
       required:

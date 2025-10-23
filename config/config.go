@@ -17,8 +17,9 @@ type AppConfig struct {
 	} `mapstructure:"database" validate:"required"`
 
 	Admin struct {
-		Username string `mapstructure:"username" validate:"required"`
-		Password string `mapstructure:"password" validate:"required"`
+		Username    string `mapstructure:"username"     validate:"required"`
+		DisplayName string `mapstructure:"display_name" validate:"required"`
+		Password    string `mapstructure:"password"     validate:"required"`
 	} `mapstructure:"admin" validate:"required"`
 }
 

@@ -145,12 +145,6 @@ func PatchUser(
 				return &DatabaseError{err}
 			}
 
-			// Reload the user to get the updated data
-			err = tx.First(user, "id = ?", user.ID).Error
-			if err != nil {
-				return &DatabaseError{err}
-			}
-
 			log.Info().
 				Str("username", user.Username).
 				Str("displayName", user.DisplayName).

@@ -82,12 +82,7 @@ func InitAdminUser() {
 	).Where(&User{Username: config.Cfg.Admin.Username}).
 		First(context.Background())
 
-	// Create or update auth record
-	authRecord := Auth_Basic{UserID: adminUser.ID, Password: hash}
-	err = DB.Where(Auth_Basic{UserID: adminUser.ID}).
-		Assign(Auth_Basic{Password: hash}).
-		FirstOrCreate(&authRecord).
-		Error
+	err = DB.Save(&Auth_Basic{UserID: adminUser.ID, Password: hash}).Error
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create admin auth record")
 	}

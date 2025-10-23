@@ -469,7 +469,6 @@ func TestGetUsersMe(t *testing.T) {
 }
 
 func TestGetUsersMeUnauthenticated(t *testing.T) {
-	t.Skip("Needs default RBAC config implementation")
 	t.Parallel()
 
 	// Create client without auth
@@ -482,7 +481,6 @@ func TestGetUsersMeUnauthenticated(t *testing.T) {
 }
 
 func TestPatchUsersMe(t *testing.T) {
-	t.Skip("Needs default RBAC config implementation")
 	t.Parallel()
 
 	// Create a test user to avoid modifying the admin user
@@ -518,22 +516,24 @@ func TestPatchUsersMe(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Update name
-	newName := "testPatchMeUpdated"
+	usernameNew := "testPatchMeUpdated"
 	patchResp, err := userClient.PatchUsersMeWithResponse(
 		t.Context(),
 		client.PatchUsersMeJSONRequestBody{
-			NewName: &newName,
+			NewName: &usernameNew,
 		},
 	)
+	username = usernameNew
+
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, patchResp.StatusCode())
-	assert.Equal(t, newName, patchResp.JSON200.Name)
+	assert.Equal(t, username, patchResp.JSON200.Name)
 
 	// Verify the update
 	getResp, err := userClient.GetUsersMeWithResponse(t.Context())
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, getResp.StatusCode())
-	assert.Equal(t, newName, getResp.JSON200.Name)
+	assert.Equal(t, username, getResp.JSON200.Name)
 
 	// Cleanup (using admin client)
 	_, _ = c.DeleteUsersUserWithResponse(
@@ -543,7 +543,6 @@ func TestPatchUsersMe(t *testing.T) {
 }
 
 func TestPatchUsersMePassword(t *testing.T) {
-	t.Skip("Needs default RBAC configuration implementation")
 	t.Parallel()
 
 	// Create a test user
@@ -621,7 +620,6 @@ func TestPatchUsersMePassword(t *testing.T) {
 }
 
 func TestPatchUsersMeUnauthenticated(t *testing.T) {
-	t.Skip("Needs default RBAC configuration implementation")
 	t.Parallel()
 
 	// Create client without auth
@@ -640,7 +638,6 @@ func TestPatchUsersMeUnauthenticated(t *testing.T) {
 }
 
 func TestPatchUsersMeDuplicateName(t *testing.T) {
-	t.Skip("Needs default RBAC configuration implementation")
 	t.Parallel()
 
 	// Create first user
@@ -1565,8 +1562,9 @@ func TestMultiplePoliciesForSameRole(t *testing.T) {
 // ============================================================================
 
 // Test that a user without any roles cannot access protected endpoints
+//
+//nolint:paralleltest // Leads to conflicts when run in parallel
 func TestPolicyEnforcementNoRole(t *testing.T) {
-	t.Parallel()
 	username := "testNoRoleUser"
 	password := defaultPassword
 	rgName := "testNoRoleRG"
@@ -1582,7 +1580,7 @@ func TestPolicyEnforcementNoRole(t *testing.T) {
 		t.Context(),
 		client.PostRbacEndpointJSONRequestBody{
 			ResourceGroup: rgName,
-			Endpoint:      "/users/me",
+			Endpoint:      "/users/user",
 		},
 	)
 
@@ -1618,7 +1616,7 @@ func TestPolicyEnforcementNoRole(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Try to access protected endpoint - should be forbidden
-	meResp, err := userClient.GetUsersMeWithResponse(t.Context())
+	meResp, err := userClient.GetUsersListWithResponse(t.Context())
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusForbidden, meResp.StatusCode())
 

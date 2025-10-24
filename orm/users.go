@@ -35,9 +35,13 @@ func ListAllUsers(ctx context.Context) ([]User, error) {
 	return users, nil
 }
 
-func CreateUser(ctx context.Context, username, password string) (*User, error) {
+func CreateUser(
+	ctx context.Context,
+	username, password, displayName string,
+) (*User, error) {
 	user := User{
-		Username: username,
+		Username:    username,
+		DisplayName: displayName,
 	}
 
 	err := DB.Transaction(func(tx *gorm.DB) error {
@@ -101,7 +105,7 @@ func CreateUser(ctx context.Context, username, password string) (*User, error) {
 func PatchUser(
 	ctx context.Context,
 	userID uuid.UUID,
-	newUsername, newPassword *string,
+	newUsername, newPassword, newDisplayName *string,
 ) (*User, error) {
 	user, err := GetUserByID(ctx, userID)
 	if err != nil {
@@ -109,8 +113,27 @@ func PatchUser(
 	}
 
 	err = DB.Transaction(func(tx *gorm.DB) error {
+		updated := false
+
 		if newUsername != nil {
+			log.Info().
+				Str("oldUsername", user.Username).
+				Str("newUsername", *newUsername).
+				Msg("Updating username")
 			user.Username = *newUsername
+			updated = true
+		}
+
+		if newDisplayName != nil {
+			log.Info().
+				Str("oldDisplayName", user.DisplayName).
+				Str("newDisplayName", *newDisplayName).
+				Msg("Updating display name")
+			user.DisplayName = *newDisplayName
+			updated = true
+		}
+
+		if updated {
 			err := tx.Save(user).Error
 			if err != nil {
 				if errors.Is(err, gorm.ErrDuplicatedKey) {
@@ -121,6 +144,12 @@ func PatchUser(
 
 				return &DatabaseError{err}
 			}
+
+			log.Info().
+				Str("username", user.Username).
+				Str("displayName", user.DisplayName).
+				Str("id", user.ID.String()).
+				Msg("User updated successfully")
 		}
 
 		if newPassword != nil {

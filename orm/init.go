@@ -71,7 +71,12 @@ func InitAdminUser() {
 	}
 
 	// generate / update default user
-	DB.Save(&User{Username: config.Cfg.Admin.Username})
+	DB.Save(
+		&User{
+			Username:    config.Cfg.Admin.Username,
+			DisplayName: config.Cfg.Admin.DisplayName,
+		},
+	)
 	adminUser, _ := gorm.G[User](
 		DB,
 	).Where(&User{Username: config.Cfg.Admin.Username}).

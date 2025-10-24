@@ -65,7 +65,7 @@ jobs:
           echo "✅ All checks passed!"
 
       - name: Comment on PR failure
-        if: failure() && github.event_name == 'pull_request'
+        if: failure() && github.event_name == 'pull_request' && ${{ github.actor != 'dependabot[bot]' }}
         env:
           COMMENT_BODY: |
             ## ❌ **CI Checks Failed**
@@ -89,7 +89,7 @@ jobs:
           message: ${{ env.COMMENT_BODY }}
 
       - name: Comment on PR success
-        if: success() && github.event_name == 'pull_request'
+        if: success() && github.event_name == 'pull_request' && ${{ github.actor != 'dependabot[bot]' }}
         env:
           COMMENT_BODY: |
             ## ✅ **All CI Checks Passed**

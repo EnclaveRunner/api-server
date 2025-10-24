@@ -1,0 +1,173 @@
+name: Sync OpenAPI Specification
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "openapi.yml"
+
+jobs:
+  sync-to-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout current repository
+        uses: actions/checkout@v4
+
+      - name: Check if openapi.yml exists
+        id: check-openapi
+        run: |
+          if [ -f "openapi.yml" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "OpenAPI file found"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "No OpenAPI file found, skipping sync"
+          fi
+
+      - name: Checkout docs repository
+        if: steps.check-openapi.outputs.exists == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: EnclaveRunner/docs
+          token: ${{ secrets.BOT_PAT }}
+          path: docs-repo
+
+      - name: Create openAPI directory if it doesn't exist
+        if: steps.check-openapi.outputs.exists == 'true'
+        run: |
+          mkdir -p docs-repo/openAPI
+
+      - name: Copy and rename OpenAPI file
+        if: steps.check-openapi.outputs.exists == 'true'
+        run: |
+          # Get the current repository name
+          REPO_NAME=$(echo ${{ github.repository }} | cut -d'/' -f2)
+
+          # Copy the openapi.yml file to the docs repo with the new name
+          cp openapi.yml "docs-repo/openAPI/${REPO_NAME}-openapi.yml"
+
+          echo "Copied openapi.yml to ${REPO_NAME}-openapi.yml"
+
+      - name: Commit and push changes
+        if: steps.check-openapi.outputs.exists == 'true'
+        run: |
+          cd docs-repo
+
+          # Configure git
+          git config user.name "Enclave Bot"
+          git config user.email "enclave-automation@marvin-fuchs.de"
+
+          # Get the current repository name for commit message
+          REPO_NAME=$(echo ${{ github.repository }} | cut -d'/' -f2)
+
+          # Add the new/updated file
+          git add "openAPI/${REPO_NAME}-openapi.yml"
+
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            # Commit with a descriptive message
+            git commit -m "Update OpenAPI spec from ${REPO_NAME} (commit: ${{ github.sha }})"
+
+            # Push the changes
+            git push
+
+            echo "Successfully synced OpenAPI spec to docs repository"
+          fi
+
+  prepare-targets:
+    runs-on: ubuntu-latest
+    outputs:
+      repos: ${{ steps.set-matrix.outputs.repos }}
+      has-targets: ${{ steps.set-matrix.outputs.has-targets }}
+    steps:
+      - name: Checkout current repository
+        uses: actions/checkout@v4
+
+      - name: Read oapi.targets and prepare matrix
+        id: set-matrix
+        run: |
+          if [ ! -f "oapi.targets" ]; then
+            echo "has-targets=false" >> $GITHUB_OUTPUT
+            echo "repos=[]" >> $GITHUB_OUTPUT
+            echo "oapi.targets file not found"
+            exit 0
+          fi
+
+          # Read targets, filter out empty lines and comments
+          REPOS=$(grep -v '^#' oapi.targets | grep -v '^[[:space:]]*$' | sed 's/^/"/;s/$/"/' | paste -sd ',' -)
+
+          if [ -z "$REPOS" ]; then
+            echo "has-targets=false" >> $GITHUB_OUTPUT
+            echo "repos=[]" >> $GITHUB_OUTPUT
+            echo "No targets found in oapi.targets"
+          else
+            echo "has-targets=true" >> $GITHUB_OUTPUT
+            echo "repos=[$REPOS]" >> $GITHUB_OUTPUT
+            echo "Found targets: $REPOS"
+          fi
+
+  update-repos:
+    needs: prepare-targets
+    if: needs.prepare-targets.outputs.has-targets == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        repo: ${{ fromJSON(needs.prepare-targets.outputs.repos) }}
+
+    steps:
+      - name: Checkout current repository
+        uses: actions/checkout@v4
+        with:
+          path: source-repo
+          token: ${{ secrets.BOT_PAT }}
+
+      - name: Check if openapi.yml exists
+        id: check-openapi
+        run: |
+          if [ -f "source-repo/openapi.yml" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "OpenAPI file found"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "No OpenAPI file found, skipping sync"
+          fi
+
+      - name: Checkout target repo
+        if: steps.check-openapi.outputs.exists == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.repo }}
+          token: ${{ secrets.BOT_PAT }}
+          path: target-repo
+
+      - name: Copy openapi.yml to target repo
+        if: steps.check-openapi.outputs.exists == 'true'
+        run: |
+          cp source-repo/openapi.yml target-repo/openapi.yml
+          echo "Copied openapi.yml to ${{ matrix.repo }}"
+
+      - name: Create Pull Request
+        if: steps.check-openapi.outputs.exists == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.BOT_PAT }}
+          path: target-repo
+          commit-message: "chore: update OpenAPI specification"
+          branch: update-openapi-spec
+          committer: "Enclave Bot <enclave-automation@marvin-fuchs.de>"
+          author: "Enclave Bot <enclave-automation@marvin-fuchs.de>"
+          title: "chore: Update OpenAPI specification"
+          body: |
+            # Auto-Sync of OpenAPI Specification 📋
+            Automated update from ${{ github.repository }}.
+
+            This PR syncs the latest OpenAPI specification file.
+
+            **Source commit:** ${{ github.sha }}
+          base: main
+          delete-branch: true

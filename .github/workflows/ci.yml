@@ -10,6 +10,8 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
@@ -31,6 +33,8 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
@@ -49,6 +53,8 @@ jobs:
     name: All Checks Passed
     runs-on: ubuntu-latest
     needs: [lint, build]
+    permissions:
+      contents: none
     if: always()
 
     steps:

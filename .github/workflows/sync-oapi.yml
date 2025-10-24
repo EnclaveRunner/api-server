@@ -10,6 +10,8 @@ on:
 jobs:
   sync-to-docs:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout current repository
@@ -80,6 +82,8 @@ jobs:
 
   prepare-targets:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       repos: ${{ steps.set-matrix.outputs.repos }}
       has-targets: ${{ steps.set-matrix.outputs.has-targets }}
@@ -111,6 +115,8 @@ jobs:
           fi
 
   update-repos:
+    permissions:
+      contents: read
     needs: prepare-targets
     if: needs.prepare-targets.outputs.has-targets == 'true'
     runs-on: ubuntu-latest

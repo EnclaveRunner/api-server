@@ -1,4 +1,3 @@
-
 name: Release
 on:
   workflow_run:
@@ -26,11 +25,45 @@ jobs:
         id: version
         with:
           prefix: "v"
+
+      - name: Update version files and references
+        if: steps.version.outputs.hasNextVersion == 'true'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "📝 Updating to version: $VERSION"
+
+          # Update the Version file
+          echo "$VERSION" > Version
+          echo "✅ Updated Version file"
+
+          # Search for and update version references in other files
+          echo "🔍 Searching for version patterns to update..."
+          find . -type f \( -name "*.go" -o -name "*.md" -o -name "*.yml" -o -name "*.yaml" -o -name "*.json" \) \
+            -not -path "./.git/*" \
+            -not -path "./vendor/*" \
+            -not -path "./.direnv/*" \
+            -not -name "gen.go" \
+            -not -name "client.gen.go" \
+            -exec grep -l "v[0-9]\+\.[0-9]\+\.[0-9]\+" {} \; | \
+          while read -r file; do
+            echo "  🔧 Updating $file"
+            sed -i.bak "s/v[0-9]\+\.[0-9]\+\.[0-9]\+/$VERSION/g" "$file" && rm -f "$file.bak"
+          done
+
+          # Commit all changes together
+          git config user.name "Enclave Bot"
+          git config user.email "enclave-automation@marvin-fuchs.de"
+          git add .
+          git commit -m "chore: bump version to $VERSION"
+          git push origin main
+
+          echo "✅ Version update complete!"
+
       - name: Tag commit
         if: steps.version.outputs.hasNextVersion == 'true'
         run: |
           git config user.name "Enclave Bot"
-          git config user.email "enclave@marvin-fuchs.de"
+          git config user.email "enclave-automation@marvin-fuchs.de"
           git tag ${{ steps.version.outputs.version }}
           git push origin ${{ steps.version.outputs.version }}
 

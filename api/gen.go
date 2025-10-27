@@ -17,6 +17,7 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
+	"github.com/oapi-codegen/runtime"
 	strictgin "github.com/oapi-codegen/runtime/strictmiddleware/gin"
 )
 
@@ -108,12 +109,6 @@ type RBACRole struct {
 	Role string `json:"role"`
 }
 
-// RBACUserRolesRequest defines model for RBACUserRolesRequest.
-type RBACUserRolesRequest struct {
-	// UserId The uuid of the user.
-	UserId string `json:"userId"`
-}
-
 // UserRequest defines model for UserRequest.
 type UserRequest struct {
 	// Id The uuid of the user to retrieve.
@@ -152,10 +147,10 @@ type DeleteRbacEndpointJSONBody struct {
 	ResourceGroup string `json:"resourceGroup"`
 }
 
-// GetRbacEndpointJSONBody defines parameters for GetRbacEndpoint.
-type GetRbacEndpointJSONBody struct {
+// GetRbacEndpointParams defines parameters for GetRbacEndpoint.
+type GetRbacEndpointParams struct {
 	// Endpoint The endpoint to query.
-	Endpoint string `json:"endpoint"`
+	Endpoint string `form:"endpoint" json:"endpoint"`
 }
 
 // PostRbacEndpointJSONBody defines parameters for PostRbacEndpoint.
@@ -173,10 +168,10 @@ type DeleteRbacResourceGroupJSONBody struct {
 	ResourceGroup string `json:"resourceGroup"`
 }
 
-// GetRbacResourceGroupJSONBody defines parameters for GetRbacResourceGroup.
-type GetRbacResourceGroupJSONBody struct {
+// GetRbacResourceGroupParams defines parameters for GetRbacResourceGroup.
+type GetRbacResourceGroupParams struct {
 	// ResourceGroup The name of the resource group.
-	ResourceGroup string `json:"resourceGroup"`
+	ResourceGroup string `form:"resourceGroup" json:"resourceGroup"`
 }
 
 // HeadRbacResourceGroupJSONBody defines parameters for HeadRbacResourceGroup.
@@ -191,6 +186,12 @@ type PostRbacResourceGroupJSONBody struct {
 	ResourceGroup string `json:"resourceGroup"`
 }
 
+// GetRbacRoleParams defines parameters for GetRbacRole.
+type GetRbacRoleParams struct {
+	// Role The name of the role.
+	Role string `form:"role" json:"role"`
+}
+
 // DeleteRbacUserJSONBody defines parameters for DeleteRbacUser.
 type DeleteRbacUserJSONBody struct {
 	// Role The name of the role to remove from the user.
@@ -198,6 +199,12 @@ type DeleteRbacUserJSONBody struct {
 
 	// UserId The uuid of the user.
 	UserId string `json:"userId"`
+}
+
+// GetRbacUserParams defines parameters for GetRbacUser.
+type GetRbacUserParams struct {
+	// UserId The uuid of the user.
+	UserId string `form:"userId" json:"userId"`
 }
 
 // PostRbacUserJSONBody defines parameters for PostRbacUser.
@@ -209,11 +216,14 @@ type PostRbacUserJSONBody struct {
 	UserId string `json:"userId"`
 }
 
+// GetUsersUserParams defines parameters for GetUsersUser.
+type GetUsersUserParams struct {
+	// Id The uuid of the user to retrieve.
+	Id string `form:"id" json:"id"`
+}
+
 // DeleteRbacEndpointJSONRequestBody defines body for DeleteRbacEndpoint for application/json ContentType.
 type DeleteRbacEndpointJSONRequestBody DeleteRbacEndpointJSONBody
-
-// GetRbacEndpointJSONRequestBody defines body for GetRbacEndpoint for application/json ContentType.
-type GetRbacEndpointJSONRequestBody GetRbacEndpointJSONBody
 
 // PostRbacEndpointJSONRequestBody defines body for PostRbacEndpoint for application/json ContentType.
 type PostRbacEndpointJSONRequestBody PostRbacEndpointJSONBody
@@ -227,9 +237,6 @@ type PostRbacPolicyJSONRequestBody = RBACPolicy
 // DeleteRbacResourceGroupJSONRequestBody defines body for DeleteRbacResourceGroup for application/json ContentType.
 type DeleteRbacResourceGroupJSONRequestBody DeleteRbacResourceGroupJSONBody
 
-// GetRbacResourceGroupJSONRequestBody defines body for GetRbacResourceGroup for application/json ContentType.
-type GetRbacResourceGroupJSONRequestBody GetRbacResourceGroupJSONBody
-
 // HeadRbacResourceGroupJSONRequestBody defines body for HeadRbacResourceGroup for application/json ContentType.
 type HeadRbacResourceGroupJSONRequestBody HeadRbacResourceGroupJSONBody
 
@@ -238,9 +245,6 @@ type PostRbacResourceGroupJSONRequestBody PostRbacResourceGroupJSONBody
 
 // DeleteRbacRoleJSONRequestBody defines body for DeleteRbacRole for application/json ContentType.
 type DeleteRbacRoleJSONRequestBody = RBACRole
-
-// GetRbacRoleJSONRequestBody defines body for GetRbacRole for application/json ContentType.
-type GetRbacRoleJSONRequestBody = RBACRole
 
 // HeadRbacRoleJSONRequestBody defines body for HeadRbacRole for application/json ContentType.
 type HeadRbacRoleJSONRequestBody = RBACRole
@@ -251,9 +255,6 @@ type PostRbacRoleJSONRequestBody = RBACRole
 // DeleteRbacUserJSONRequestBody defines body for DeleteRbacUser for application/json ContentType.
 type DeleteRbacUserJSONRequestBody DeleteRbacUserJSONBody
 
-// GetRbacUserJSONRequestBody defines body for GetRbacUser for application/json ContentType.
-type GetRbacUserJSONRequestBody = RBACUserRolesRequest
-
 // PostRbacUserJSONRequestBody defines body for PostRbacUser for application/json ContentType.
 type PostRbacUserJSONRequestBody PostRbacUserJSONBody
 
@@ -262,9 +263,6 @@ type PatchUsersMeJSONRequestBody = PatchMe
 
 // DeleteUsersUserJSONRequestBody defines body for DeleteUsersUser for application/json ContentType.
 type DeleteUsersUserJSONRequestBody = UserRequest
-
-// GetUsersUserJSONRequestBody defines body for GetUsersUser for application/json ContentType.
-type GetUsersUserJSONRequestBody = UserRequest
 
 // HeadUsersUserJSONRequestBody defines body for HeadUsersUser for application/json ContentType.
 type HeadUsersUserJSONRequestBody = UserRequest
@@ -282,7 +280,7 @@ type ServerInterface interface {
 	DeleteRbacEndpoint(c *gin.Context)
 	// Get Resource Group Assigned to Endpoint
 	// (GET /rbac/endpoint)
-	GetRbacEndpoint(c *gin.Context)
+	GetRbacEndpoint(c *gin.Context, params GetRbacEndpointParams)
 	// Assign Endpoint to Resource Group
 	// (POST /rbac/endpoint)
 	PostRbacEndpoint(c *gin.Context)
@@ -306,7 +304,7 @@ type ServerInterface interface {
 	DeleteRbacResourceGroup(c *gin.Context)
 	// Get Endpoints Assigned to Resource Group
 	// (GET /rbac/resource-group)
-	GetRbacResourceGroup(c *gin.Context)
+	GetRbacResourceGroup(c *gin.Context, params GetRbacResourceGroupParams)
 	// Check Resource Group Existence
 	// (HEAD /rbac/resource-group)
 	HeadRbacResourceGroup(c *gin.Context)
@@ -318,7 +316,7 @@ type ServerInterface interface {
 	DeleteRbacRole(c *gin.Context)
 	// Get assigned users for role
 	// (GET /rbac/role)
-	GetRbacRole(c *gin.Context)
+	GetRbacRole(c *gin.Context, params GetRbacRoleParams)
 	// Check Role Existence
 	// (HEAD /rbac/role)
 	HeadRbacRole(c *gin.Context)
@@ -330,7 +328,7 @@ type ServerInterface interface {
 	DeleteRbacUser(c *gin.Context)
 	// Get Roles Assigned to User
 	// (GET /rbac/user)
-	GetRbacUser(c *gin.Context)
+	GetRbacUser(c *gin.Context, params GetRbacUserParams)
 	// Assign Roles to User
 	// (POST /rbac/user)
 	PostRbacUser(c *gin.Context)
@@ -348,7 +346,7 @@ type ServerInterface interface {
 	DeleteUsersUser(c *gin.Context)
 	// Get User Information
 	// (GET /users/user)
-	GetUsersUser(c *gin.Context)
+	GetUsersUser(c *gin.Context, params GetUsersUserParams)
 	// Check User Existence
 	// (HEAD /users/user)
 	HeadUsersUser(c *gin.Context)
@@ -387,7 +385,27 @@ func (siw *ServerInterfaceWrapper) DeleteRbacEndpoint(c *gin.Context) {
 // GetRbacEndpoint operation middleware
 func (siw *ServerInterfaceWrapper) GetRbacEndpoint(c *gin.Context) {
 
+	var err error
+
 	c.Set(BasicAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetRbacEndpointParams
+
+	// ------------- Required query parameter "endpoint" -------------
+
+	if paramValue := c.Query("endpoint"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandler(c, fmt.Errorf("Query argument endpoint is required, but not found"), http.StatusBadRequest)
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "endpoint", c.Request.URL.Query(), &params.Endpoint)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter endpoint: %w", err), http.StatusBadRequest)
+		return
+	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -396,7 +414,7 @@ func (siw *ServerInterfaceWrapper) GetRbacEndpoint(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.GetRbacEndpoint(c)
+	siw.Handler.GetRbacEndpoint(c, params)
 }
 
 // PostRbacEndpoint operation middleware
@@ -507,7 +525,27 @@ func (siw *ServerInterfaceWrapper) DeleteRbacResourceGroup(c *gin.Context) {
 // GetRbacResourceGroup operation middleware
 func (siw *ServerInterfaceWrapper) GetRbacResourceGroup(c *gin.Context) {
 
+	var err error
+
 	c.Set(BasicAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetRbacResourceGroupParams
+
+	// ------------- Required query parameter "resourceGroup" -------------
+
+	if paramValue := c.Query("resourceGroup"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandler(c, fmt.Errorf("Query argument resourceGroup is required, but not found"), http.StatusBadRequest)
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "resourceGroup", c.Request.URL.Query(), &params.ResourceGroup)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter resourceGroup: %w", err), http.StatusBadRequest)
+		return
+	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -516,7 +554,7 @@ func (siw *ServerInterfaceWrapper) GetRbacResourceGroup(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.GetRbacResourceGroup(c)
+	siw.Handler.GetRbacResourceGroup(c, params)
 }
 
 // HeadRbacResourceGroup operation middleware
@@ -567,7 +605,27 @@ func (siw *ServerInterfaceWrapper) DeleteRbacRole(c *gin.Context) {
 // GetRbacRole operation middleware
 func (siw *ServerInterfaceWrapper) GetRbacRole(c *gin.Context) {
 
+	var err error
+
 	c.Set(BasicAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetRbacRoleParams
+
+	// ------------- Required query parameter "role" -------------
+
+	if paramValue := c.Query("role"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandler(c, fmt.Errorf("Query argument role is required, but not found"), http.StatusBadRequest)
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "role", c.Request.URL.Query(), &params.Role)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter role: %w", err), http.StatusBadRequest)
+		return
+	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -576,7 +634,7 @@ func (siw *ServerInterfaceWrapper) GetRbacRole(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.GetRbacRole(c)
+	siw.Handler.GetRbacRole(c, params)
 }
 
 // HeadRbacRole operation middleware
@@ -627,7 +685,27 @@ func (siw *ServerInterfaceWrapper) DeleteRbacUser(c *gin.Context) {
 // GetRbacUser operation middleware
 func (siw *ServerInterfaceWrapper) GetRbacUser(c *gin.Context) {
 
+	var err error
+
 	c.Set(BasicAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetRbacUserParams
+
+	// ------------- Required query parameter "userId" -------------
+
+	if paramValue := c.Query("userId"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandler(c, fmt.Errorf("Query argument userId is required, but not found"), http.StatusBadRequest)
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "userId", c.Request.URL.Query(), &params.UserId)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter userId: %w", err), http.StatusBadRequest)
+		return
+	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -636,7 +714,7 @@ func (siw *ServerInterfaceWrapper) GetRbacUser(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.GetRbacUser(c)
+	siw.Handler.GetRbacUser(c, params)
 }
 
 // PostRbacUser operation middleware
@@ -717,7 +795,27 @@ func (siw *ServerInterfaceWrapper) DeleteUsersUser(c *gin.Context) {
 // GetUsersUser operation middleware
 func (siw *ServerInterfaceWrapper) GetUsersUser(c *gin.Context) {
 
+	var err error
+
 	c.Set(BasicAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetUsersUserParams
+
+	// ------------- Required query parameter "id" -------------
+
+	if paramValue := c.Query("id"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandler(c, fmt.Errorf("Query argument id is required, but not found"), http.StatusBadRequest)
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "id", c.Request.URL.Query(), &params.Id)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -726,7 +824,7 @@ func (siw *ServerInterfaceWrapper) GetUsersUser(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.GetUsersUser(c)
+	siw.Handler.GetUsersUser(c, params)
 }
 
 // HeadUsersUser operation middleware
@@ -903,7 +1001,7 @@ func (response DeleteRbacEndpoint500Response) VisitDeleteRbacEndpointResponse(w 
 }
 
 type GetRbacEndpointRequestObject struct {
-	Body *GetRbacEndpointJSONRequestBody
+	Params GetRbacEndpointParams
 }
 
 type GetRbacEndpointResponseObject interface {
@@ -1272,7 +1370,7 @@ func (response DeleteRbacResourceGroup500Response) VisitDeleteRbacResourceGroupR
 }
 
 type GetRbacResourceGroupRequestObject struct {
-	Body *GetRbacResourceGroupJSONRequestBody
+	Params GetRbacResourceGroupParams
 }
 
 type GetRbacResourceGroupResponseObject interface {
@@ -1503,7 +1601,7 @@ func (response DeleteRbacRole500Response) VisitDeleteRbacRoleResponse(w http.Res
 }
 
 type GetRbacRoleRequestObject struct {
-	Body *GetRbacRoleJSONRequestBody
+	Params GetRbacRoleParams
 }
 
 type GetRbacRoleResponseObject interface {
@@ -1725,7 +1823,7 @@ func (response DeleteRbacUser500Response) VisitDeleteRbacUserResponse(w http.Res
 }
 
 type GetRbacUserRequestObject struct {
-	Body *GetRbacUserJSONRequestBody
+	Params GetRbacUserParams
 }
 
 type GetRbacUserResponseObject interface {
@@ -2022,7 +2120,7 @@ func (response DeleteUsersUser500Response) VisitDeleteUsersUserResponse(w http.R
 }
 
 type GetUsersUserRequestObject struct {
-	Body *GetUsersUserJSONRequestBody
+	Params GetUsersUserParams
 }
 
 type GetUsersUserResponseObject interface {
@@ -2385,16 +2483,10 @@ func (sh *strictHandler) DeleteRbacEndpoint(ctx *gin.Context) {
 }
 
 // GetRbacEndpoint operation middleware
-func (sh *strictHandler) GetRbacEndpoint(ctx *gin.Context) {
+func (sh *strictHandler) GetRbacEndpoint(ctx *gin.Context, params GetRbacEndpointParams) {
 	var request GetRbacEndpointRequestObject
 
-	var body GetRbacEndpointJSONRequestBody
-	if err := ctx.ShouldBindJSON(&body); err != nil {
-		ctx.Status(http.StatusBadRequest)
-		ctx.Error(err)
-		return
-	}
-	request.Body = &body
+	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.GetRbacEndpoint(ctx, request.(GetRbacEndpointRequestObject))
@@ -2625,16 +2717,10 @@ func (sh *strictHandler) DeleteRbacResourceGroup(ctx *gin.Context) {
 }
 
 // GetRbacResourceGroup operation middleware
-func (sh *strictHandler) GetRbacResourceGroup(ctx *gin.Context) {
+func (sh *strictHandler) GetRbacResourceGroup(ctx *gin.Context, params GetRbacResourceGroupParams) {
 	var request GetRbacResourceGroupRequestObject
 
-	var body GetRbacResourceGroupJSONRequestBody
-	if err := ctx.ShouldBindJSON(&body); err != nil {
-		ctx.Status(http.StatusBadRequest)
-		ctx.Error(err)
-		return
-	}
-	request.Body = &body
+	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.GetRbacResourceGroup(ctx, request.(GetRbacResourceGroupRequestObject))
@@ -2757,16 +2843,10 @@ func (sh *strictHandler) DeleteRbacRole(ctx *gin.Context) {
 }
 
 // GetRbacRole operation middleware
-func (sh *strictHandler) GetRbacRole(ctx *gin.Context) {
+func (sh *strictHandler) GetRbacRole(ctx *gin.Context, params GetRbacRoleParams) {
 	var request GetRbacRoleRequestObject
 
-	var body GetRbacRoleJSONRequestBody
-	if err := ctx.ShouldBindJSON(&body); err != nil {
-		ctx.Status(http.StatusBadRequest)
-		ctx.Error(err)
-		return
-	}
-	request.Body = &body
+	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.GetRbacRole(ctx, request.(GetRbacRoleRequestObject))
@@ -2889,16 +2969,10 @@ func (sh *strictHandler) DeleteRbacUser(ctx *gin.Context) {
 }
 
 // GetRbacUser operation middleware
-func (sh *strictHandler) GetRbacUser(ctx *gin.Context) {
+func (sh *strictHandler) GetRbacUser(ctx *gin.Context, params GetRbacUserParams) {
 	var request GetRbacUserRequestObject
 
-	var body GetRbacUserJSONRequestBody
-	if err := ctx.ShouldBindJSON(&body); err != nil {
-		ctx.Status(http.StatusBadRequest)
-		ctx.Error(err)
-		return
-	}
-	request.Body = &body
+	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.GetRbacUser(ctx, request.(GetRbacUserRequestObject))
@@ -3071,16 +3145,10 @@ func (sh *strictHandler) DeleteUsersUser(ctx *gin.Context) {
 }
 
 // GetUsersUser operation middleware
-func (sh *strictHandler) GetUsersUser(ctx *gin.Context) {
+func (sh *strictHandler) GetUsersUser(ctx *gin.Context, params GetUsersUserParams) {
 	var request GetUsersUserRequestObject
 
-	var body GetUsersUserJSONRequestBody
-	if err := ctx.ShouldBindJSON(&body); err != nil {
-		ctx.Status(http.StatusBadRequest)
-		ctx.Error(err)
-		return
-	}
-	request.Body = &body
+	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.GetUsersUser(ctx, request.(GetUsersUserRequestObject))
@@ -3205,48 +3273,49 @@ func (sh *strictHandler) PostUsersUser(ctx *gin.Context) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

@@ -218,8 +218,8 @@ type PostRbacUserJSONBody struct {
 
 // GetUsersUserParams defines parameters for GetUsersUser.
 type GetUsersUserParams struct {
-	// Id The uuid of the user to retrieve.
-	Id string `form:"id" json:"id"`
+	// UserId The uuid of the user to retrieve.
+	UserId string `form:"userId" json:"userId"`
 }
 
 // DeleteRbacEndpointJSONRequestBody defines body for DeleteRbacEndpoint for application/json ContentType.
@@ -802,18 +802,18 @@ func (siw *ServerInterfaceWrapper) GetUsersUser(c *gin.Context) {
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetUsersUserParams
 
-	// ------------- Required query parameter "id" -------------
+	// ------------- Required query parameter "userId" -------------
 
-	if paramValue := c.Query("id"); paramValue != "" {
+	if paramValue := c.Query("userId"); paramValue != "" {
 
 	} else {
-		siw.ErrorHandler(c, fmt.Errorf("Query argument id is required, but not found"), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Query argument userId is required, but not found"), http.StatusBadRequest)
 		return
 	}
 
-	err = runtime.BindQueryParameter("form", true, true, "id", c.Request.URL.Query(), &params.Id)
+	err = runtime.BindQueryParameter("form", true, true, "userId", c.Request.URL.Query(), &params.UserId)
 	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter userId: %w", err), http.StatusBadRequest)
 		return
 	}
 
@@ -3313,9 +3313,9 @@ var swaggerSpec = []string{
 	"UptuEP0O94XQeOSsgRT3ngh3vZOX9L7XaS4ELUV0XgnBAyDznnO48LSBzLUXNcg07uLwAwZ9ZfGyuoan",
 	"uAaKxjG6hvwyDc9h7vKyjgJY2++mFNenjC/adgLlUxexuXwOvZr1ejVGds1eTXFTyiP3a3JDWsMmK6c+",
 	"1MHxHOjs6+GYCe6ZYQ9DPUfeflmZEbt3CxbNQGWC2cvZiicOFeYudjobuW8Vk9ZNY8a0W1zwr91vad4n",
-	"4+u90N32XR4kfepImw428DCJ2qgEbfyeptFeEeZ8u5j7GQA8nnq/djK/16733NVOppnVt5O5ae7eShPu",
-	"nas/IJSq2/v2MZN4Vnn6vh/mehL5/bhae/joQXd7/KEtzrn5dnzbeXcmdzjGsD3T2a9jDB1lgLnU1f7W",
-	"tJivhXFI94Jgs9SEMHIDCdjLu/LU3JJcBePodL7Y61A0ffrV1er/AQAA//9vkwLlwl0AAA==",
+	"sye9lwdJoTpSp4MdPEyyNipJG7+vabRXhDrfTuZ+BgGPt96v3czvtSs+d7WbaWb17WZumr+3UoV75+sP",
+	"CKXqBr99zCaeVa6+7we6nkSOP67eHj5+0N0if2iLc26/Hd963p3JHY4ybM909usoQ0cpYC52tb81LeZr",
+	"YRzSvSTYLDUhjNxAAvYCrzw9tyRXwTg6nS/3OhRNr351tfp/AAAA//8W8NqMxl0AAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

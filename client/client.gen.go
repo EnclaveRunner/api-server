@@ -213,8 +213,8 @@ type PostRbacUserJSONBody struct {
 
 // GetUsersUserParams defines parameters for GetUsersUser.
 type GetUsersUserParams struct {
-	// Id The uuid of the user to retrieve.
-	Id string `form:"id" json:"id"`
+	// UserId The uuid of the user to retrieve.
+	UserId string `form:"userId" json:"userId"`
 }
 
 // DeleteRbacEndpointJSONRequestBody defines body for DeleteRbacEndpoint for application/json ContentType.
@@ -1882,7 +1882,7 @@ func NewGetUsersUserRequest(server string, params *GetUsersUserParams) (*http.Re
 	if params != nil {
 		queryValues := queryURL.Query()
 
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "id", runtime.ParamLocationQuery, params.Id); err != nil {
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "userId", runtime.ParamLocationQuery, params.UserId); err != nil {
 			return nil, err
 		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 			return nil, err

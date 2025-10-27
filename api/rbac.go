@@ -16,7 +16,7 @@ func (s *Server) GetRbacEndpoint(
 	ctx context.Context,
 	request GetRbacEndpointRequestObject,
 ) (GetRbacEndpointResponseObject, error) {
-	groups, err := auth.GetGroupsForResource(request.Body.Endpoint)
+	groups, err := auth.GetGroupsForResource(request.Params.Endpoint)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get groups for resource")
 
@@ -223,7 +223,7 @@ func (s *Server) GetRbacResourceGroup(
 	ctx context.Context,
 	request GetRbacResourceGroupRequestObject,
 ) (GetRbacResourceGroupResponseObject, error) {
-	resources, err := auth.GetResourceGroup(request.Body.ResourceGroup)
+	resources, err := auth.GetResourceGroup(request.Params.ResourceGroup)
 	if err != nil {
 		var errNotFound *auth.NotFoundError
 		if errors.As(err, &errNotFound) {
@@ -321,7 +321,7 @@ func (s *Server) GetRbacRole(
 	ctx context.Context,
 	request GetRbacRoleRequestObject,
 ) (GetRbacRoleResponseObject, error) {
-	users, err := auth.GetUserGroup(request.Body.Role)
+	users, err := auth.GetUserGroup(request.Params.Role)
 	if err != nil {
 		var errNotFound *auth.NotFoundError
 		if errors.As(err, &errNotFound) {
@@ -406,7 +406,7 @@ func (s *Server) GetRbacUser(
 	ctx context.Context,
 	request GetRbacUserRequestObject,
 ) (GetRbacUserResponseObject, error) {
-	uuidParsed, err := uuid.Parse(request.Body.UserId)
+	uuidParsed, err := uuid.Parse(request.Params.UserId)
 	if err != nil {
 		return GetRbacUser400JSONResponse{
 			GenericBadRequestJSONResponse{
@@ -429,7 +429,7 @@ func (s *Server) GetRbacUser(
 		return nil, &EmptyInternalServerError{}
 	}
 
-	users, err := auth.GetGroupsForUser(request.Body.UserId)
+	users, err := auth.GetGroupsForUser(request.Params.UserId)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get roles for user")
 

@@ -16,7 +16,7 @@ paths:
       tags:
         - Users
       parameters:
-        - name: id
+        - name: userId
           in: query
           required: true
           schema:

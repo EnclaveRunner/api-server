@@ -15,12 +15,13 @@ paths:
       description: Retrieve information about a specific user.
       tags:
         - Users
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UserRequest"
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The uuid of the user to retrieve.
       responses:
         "200":
           description: Successful response with user information.
@@ -273,12 +274,13 @@ paths:
       description: Retrieve a list of users assigned to a specific role.
       tags:
         - RBAC
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RBACRole"
+      parameters:
+        - name: role
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The name of the role.
       responses:
         "200":
           description: Successful response with a list of users assigned to the role.
@@ -395,12 +397,13 @@ paths:
       description: Retrieve a list of roles assigned to a specific user.
       tags:
         - RBAC
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RBACUserRolesRequest"
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The uuid of the user.
       responses:
         "200":
           description: Successful response with a list of roles assigned to the user.
@@ -523,18 +526,13 @@ paths:
       description: Retrieve a list of endpoints assigned to a specific resource group.
       tags:
         - RBAC
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - resourceGroup
-              properties:
-                resourceGroup:
-                  type: string
-                  description: The name of the resource group.
+      parameters:
+        - name: resourceGroup
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The name of the resource group.
       responses:
         "200":
           description: Successful response with a list of roles assigned to the resource group.
@@ -662,18 +660,13 @@ paths:
       description: Retrieve the resource group assigned to a specific endpoint.
       tags:
         - RBAC
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - endpoint
-              properties:
-                endpoint:
-                  type: string
-                  description: The endpoint to query.
+      parameters:
+        - name: endpoint
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The endpoint to query.
       responses:
         "200":
           description: Successful response with the resource group assigned to the endpoint. Empty array if endpoint is not assigned to any resource group.

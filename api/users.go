@@ -40,7 +40,7 @@ func (s *Server) GetUsersUser(
 	ctx context.Context,
 	request GetUsersUserRequestObject,
 ) (GetUsersUserResponseObject, error) {
-	uuidParser, err := uuid.Parse(request.Body.Id)
+	uuidParser, err := uuid.Parse(request.Params.UserId)
 	if err != nil {
 		return GetUsersUser400JSONResponse{
 			GenericBadRequestJSONResponse{

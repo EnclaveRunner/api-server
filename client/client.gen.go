@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/oapi-codegen/runtime"
 )
 
 const (
@@ -102,12 +104,6 @@ type RBACRole struct {
 	Role string `json:"role"`
 }
 
-// RBACUserRolesRequest defines model for RBACUserRolesRequest.
-type RBACUserRolesRequest struct {
-	// UserId The uuid of the user.
-	UserId string `json:"userId"`
-}
-
 // UserRequest defines model for UserRequest.
 type UserRequest struct {
 	// Id The uuid of the user to retrieve.
@@ -146,10 +142,10 @@ type DeleteRbacEndpointJSONBody struct {
 	ResourceGroup string `json:"resourceGroup"`
 }
 
-// GetRbacEndpointJSONBody defines parameters for GetRbacEndpoint.
-type GetRbacEndpointJSONBody struct {
+// GetRbacEndpointParams defines parameters for GetRbacEndpoint.
+type GetRbacEndpointParams struct {
 	// Endpoint The endpoint to query.
-	Endpoint string `json:"endpoint"`
+	Endpoint string `form:"endpoint" json:"endpoint"`
 }
 
 // PostRbacEndpointJSONBody defines parameters for PostRbacEndpoint.
@@ -167,10 +163,10 @@ type DeleteRbacResourceGroupJSONBody struct {
 	ResourceGroup string `json:"resourceGroup"`
 }
 
-// GetRbacResourceGroupJSONBody defines parameters for GetRbacResourceGroup.
-type GetRbacResourceGroupJSONBody struct {
+// GetRbacResourceGroupParams defines parameters for GetRbacResourceGroup.
+type GetRbacResourceGroupParams struct {
 	// ResourceGroup The name of the resource group.
-	ResourceGroup string `json:"resourceGroup"`
+	ResourceGroup string `form:"resourceGroup" json:"resourceGroup"`
 }
 
 // HeadRbacResourceGroupJSONBody defines parameters for HeadRbacResourceGroup.
@@ -185,6 +181,12 @@ type PostRbacResourceGroupJSONBody struct {
 	ResourceGroup string `json:"resourceGroup"`
 }
 
+// GetRbacRoleParams defines parameters for GetRbacRole.
+type GetRbacRoleParams struct {
+	// Role The name of the role.
+	Role string `form:"role" json:"role"`
+}
+
 // DeleteRbacUserJSONBody defines parameters for DeleteRbacUser.
 type DeleteRbacUserJSONBody struct {
 	// Role The name of the role to remove from the user.
@@ -192,6 +194,12 @@ type DeleteRbacUserJSONBody struct {
 
 	// UserId The uuid of the user.
 	UserId string `json:"userId"`
+}
+
+// GetRbacUserParams defines parameters for GetRbacUser.
+type GetRbacUserParams struct {
+	// UserId The uuid of the user.
+	UserId string `form:"userId" json:"userId"`
 }
 
 // PostRbacUserJSONBody defines parameters for PostRbacUser.
@@ -203,11 +211,14 @@ type PostRbacUserJSONBody struct {
 	UserId string `json:"userId"`
 }
 
+// GetUsersUserParams defines parameters for GetUsersUser.
+type GetUsersUserParams struct {
+	// UserId The uuid of the user to retrieve.
+	UserId string `form:"userId" json:"userId"`
+}
+
 // DeleteRbacEndpointJSONRequestBody defines body for DeleteRbacEndpoint for application/json ContentType.
 type DeleteRbacEndpointJSONRequestBody DeleteRbacEndpointJSONBody
-
-// GetRbacEndpointJSONRequestBody defines body for GetRbacEndpoint for application/json ContentType.
-type GetRbacEndpointJSONRequestBody GetRbacEndpointJSONBody
 
 // PostRbacEndpointJSONRequestBody defines body for PostRbacEndpoint for application/json ContentType.
 type PostRbacEndpointJSONRequestBody PostRbacEndpointJSONBody
@@ -221,9 +232,6 @@ type PostRbacPolicyJSONRequestBody = RBACPolicy
 // DeleteRbacResourceGroupJSONRequestBody defines body for DeleteRbacResourceGroup for application/json ContentType.
 type DeleteRbacResourceGroupJSONRequestBody DeleteRbacResourceGroupJSONBody
 
-// GetRbacResourceGroupJSONRequestBody defines body for GetRbacResourceGroup for application/json ContentType.
-type GetRbacResourceGroupJSONRequestBody GetRbacResourceGroupJSONBody
-
 // HeadRbacResourceGroupJSONRequestBody defines body for HeadRbacResourceGroup for application/json ContentType.
 type HeadRbacResourceGroupJSONRequestBody HeadRbacResourceGroupJSONBody
 
@@ -232,9 +240,6 @@ type PostRbacResourceGroupJSONRequestBody PostRbacResourceGroupJSONBody
 
 // DeleteRbacRoleJSONRequestBody defines body for DeleteRbacRole for application/json ContentType.
 type DeleteRbacRoleJSONRequestBody = RBACRole
-
-// GetRbacRoleJSONRequestBody defines body for GetRbacRole for application/json ContentType.
-type GetRbacRoleJSONRequestBody = RBACRole
 
 // HeadRbacRoleJSONRequestBody defines body for HeadRbacRole for application/json ContentType.
 type HeadRbacRoleJSONRequestBody = RBACRole
@@ -245,9 +250,6 @@ type PostRbacRoleJSONRequestBody = RBACRole
 // DeleteRbacUserJSONRequestBody defines body for DeleteRbacUser for application/json ContentType.
 type DeleteRbacUserJSONRequestBody DeleteRbacUserJSONBody
 
-// GetRbacUserJSONRequestBody defines body for GetRbacUser for application/json ContentType.
-type GetRbacUserJSONRequestBody = RBACUserRolesRequest
-
 // PostRbacUserJSONRequestBody defines body for PostRbacUser for application/json ContentType.
 type PostRbacUserJSONRequestBody PostRbacUserJSONBody
 
@@ -256,9 +258,6 @@ type PatchUsersMeJSONRequestBody = PatchMe
 
 // DeleteUsersUserJSONRequestBody defines body for DeleteUsersUser for application/json ContentType.
 type DeleteUsersUserJSONRequestBody = UserRequest
-
-// GetUsersUserJSONRequestBody defines body for GetUsersUser for application/json ContentType.
-type GetUsersUserJSONRequestBody = UserRequest
 
 // HeadUsersUserJSONRequestBody defines body for HeadUsersUser for application/json ContentType.
 type HeadUsersUserJSONRequestBody = UserRequest
@@ -347,10 +346,8 @@ type ClientInterface interface {
 
 	DeleteRbacEndpoint(ctx context.Context, body DeleteRbacEndpointJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetRbacEndpointWithBody request with any body
-	GetRbacEndpointWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	GetRbacEndpoint(ctx context.Context, body GetRbacEndpointJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetRbacEndpoint request
+	GetRbacEndpoint(ctx context.Context, params *GetRbacEndpointParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PostRbacEndpointWithBody request with any body
 	PostRbacEndpointWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -381,10 +378,8 @@ type ClientInterface interface {
 
 	DeleteRbacResourceGroup(ctx context.Context, body DeleteRbacResourceGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetRbacResourceGroupWithBody request with any body
-	GetRbacResourceGroupWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	GetRbacResourceGroup(ctx context.Context, body GetRbacResourceGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetRbacResourceGroup request
+	GetRbacResourceGroup(ctx context.Context, params *GetRbacResourceGroupParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// HeadRbacResourceGroupWithBody request with any body
 	HeadRbacResourceGroupWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -401,10 +396,8 @@ type ClientInterface interface {
 
 	DeleteRbacRole(ctx context.Context, body DeleteRbacRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetRbacRoleWithBody request with any body
-	GetRbacRoleWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	GetRbacRole(ctx context.Context, body GetRbacRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetRbacRole request
+	GetRbacRole(ctx context.Context, params *GetRbacRoleParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// HeadRbacRoleWithBody request with any body
 	HeadRbacRoleWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -421,10 +414,8 @@ type ClientInterface interface {
 
 	DeleteRbacUser(ctx context.Context, body DeleteRbacUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetRbacUserWithBody request with any body
-	GetRbacUserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	GetRbacUser(ctx context.Context, body GetRbacUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetRbacUser request
+	GetRbacUser(ctx context.Context, params *GetRbacUserParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PostRbacUserWithBody request with any body
 	PostRbacUserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -447,10 +438,8 @@ type ClientInterface interface {
 
 	DeleteUsersUser(ctx context.Context, body DeleteUsersUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetUsersUserWithBody request with any body
-	GetUsersUserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	GetUsersUser(ctx context.Context, body GetUsersUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetUsersUser request
+	GetUsersUser(ctx context.Context, params *GetUsersUserParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// HeadUsersUserWithBody request with any body
 	HeadUsersUserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -492,20 +481,8 @@ func (c *Client) DeleteRbacEndpoint(ctx context.Context, body DeleteRbacEndpoint
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetRbacEndpointWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetRbacEndpointRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetRbacEndpoint(ctx context.Context, body GetRbacEndpointJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetRbacEndpointRequest(c.Server, body)
+func (c *Client) GetRbacEndpoint(ctx context.Context, params *GetRbacEndpointParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetRbacEndpointRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -648,20 +625,8 @@ func (c *Client) DeleteRbacResourceGroup(ctx context.Context, body DeleteRbacRes
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetRbacResourceGroupWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetRbacResourceGroupRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetRbacResourceGroup(ctx context.Context, body GetRbacResourceGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetRbacResourceGroupRequest(c.Server, body)
+func (c *Client) GetRbacResourceGroup(ctx context.Context, params *GetRbacResourceGroupParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetRbacResourceGroupRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -744,20 +709,8 @@ func (c *Client) DeleteRbacRole(ctx context.Context, body DeleteRbacRoleJSONRequ
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetRbacRoleWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetRbacRoleRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetRbacRole(ctx context.Context, body GetRbacRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetRbacRoleRequest(c.Server, body)
+func (c *Client) GetRbacRole(ctx context.Context, params *GetRbacRoleParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetRbacRoleRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -840,20 +793,8 @@ func (c *Client) DeleteRbacUser(ctx context.Context, body DeleteRbacUserJSONRequ
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetRbacUserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetRbacUserRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetRbacUser(ctx context.Context, body GetRbacUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetRbacUserRequest(c.Server, body)
+func (c *Client) GetRbacUser(ctx context.Context, params *GetRbacUserParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetRbacUserRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -960,20 +901,8 @@ func (c *Client) DeleteUsersUser(ctx context.Context, body DeleteUsersUserJSONRe
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetUsersUserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetUsersUserRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetUsersUser(ctx context.Context, body GetUsersUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetUsersUserRequest(c.Server, body)
+func (c *Client) GetUsersUser(ctx context.Context, params *GetUsersUserParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetUsersUserRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -1096,19 +1025,8 @@ func NewDeleteRbacEndpointRequestWithBody(server string, contentType string, bod
 	return req, nil
 }
 
-// NewGetRbacEndpointRequest calls the generic GetRbacEndpoint builder with application/json body
-func NewGetRbacEndpointRequest(server string, body GetRbacEndpointJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewGetRbacEndpointRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewGetRbacEndpointRequestWithBody generates requests for GetRbacEndpoint with any type of body
-func NewGetRbacEndpointRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewGetRbacEndpointRequest generates requests for GetRbacEndpoint
+func NewGetRbacEndpointRequest(server string, params *GetRbacEndpointParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -1126,12 +1044,28 @@ func NewGetRbacEndpointRequestWithBody(server string, contentType string, body i
 		return nil, err
 	}
 
-	req, err := http.NewRequest("GET", queryURL.String(), body)
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "endpoint", runtime.ParamLocationQuery, params.Endpoint); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
-
-	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -1377,19 +1311,8 @@ func NewDeleteRbacResourceGroupRequestWithBody(server string, contentType string
 	return req, nil
 }
 
-// NewGetRbacResourceGroupRequest calls the generic GetRbacResourceGroup builder with application/json body
-func NewGetRbacResourceGroupRequest(server string, body GetRbacResourceGroupJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewGetRbacResourceGroupRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewGetRbacResourceGroupRequestWithBody generates requests for GetRbacResourceGroup with any type of body
-func NewGetRbacResourceGroupRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewGetRbacResourceGroupRequest generates requests for GetRbacResourceGroup
+func NewGetRbacResourceGroupRequest(server string, params *GetRbacResourceGroupParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -1407,12 +1330,28 @@ func NewGetRbacResourceGroupRequestWithBody(server string, contentType string, b
 		return nil, err
 	}
 
-	req, err := http.NewRequest("GET", queryURL.String(), body)
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "resourceGroup", runtime.ParamLocationQuery, params.ResourceGroup); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
-
-	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -1537,19 +1476,8 @@ func NewDeleteRbacRoleRequestWithBody(server string, contentType string, body io
 	return req, nil
 }
 
-// NewGetRbacRoleRequest calls the generic GetRbacRole builder with application/json body
-func NewGetRbacRoleRequest(server string, body GetRbacRoleJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewGetRbacRoleRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewGetRbacRoleRequestWithBody generates requests for GetRbacRole with any type of body
-func NewGetRbacRoleRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewGetRbacRoleRequest generates requests for GetRbacRole
+func NewGetRbacRoleRequest(server string, params *GetRbacRoleParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -1567,12 +1495,28 @@ func NewGetRbacRoleRequestWithBody(server string, contentType string, body io.Re
 		return nil, err
 	}
 
-	req, err := http.NewRequest("GET", queryURL.String(), body)
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "role", runtime.ParamLocationQuery, params.Role); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
-
-	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -1697,19 +1641,8 @@ func NewDeleteRbacUserRequestWithBody(server string, contentType string, body io
 	return req, nil
 }
 
-// NewGetRbacUserRequest calls the generic GetRbacUser builder with application/json body
-func NewGetRbacUserRequest(server string, body GetRbacUserJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewGetRbacUserRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewGetRbacUserRequestWithBody generates requests for GetRbacUser with any type of body
-func NewGetRbacUserRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewGetRbacUserRequest generates requests for GetRbacUser
+func NewGetRbacUserRequest(server string, params *GetRbacUserParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -1727,12 +1660,28 @@ func NewGetRbacUserRequestWithBody(server string, contentType string, body io.Re
 		return nil, err
 	}
 
-	req, err := http.NewRequest("GET", queryURL.String(), body)
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "userId", runtime.ParamLocationQuery, params.UserId); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
-
-	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -1911,19 +1860,8 @@ func NewDeleteUsersUserRequestWithBody(server string, contentType string, body i
 	return req, nil
 }
 
-// NewGetUsersUserRequest calls the generic GetUsersUser builder with application/json body
-func NewGetUsersUserRequest(server string, body GetUsersUserJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewGetUsersUserRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewGetUsersUserRequestWithBody generates requests for GetUsersUser with any type of body
-func NewGetUsersUserRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewGetUsersUserRequest generates requests for GetUsersUser
+func NewGetUsersUserRequest(server string, params *GetUsersUserParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -1941,12 +1879,28 @@ func NewGetUsersUserRequestWithBody(server string, contentType string, body io.R
 		return nil, err
 	}
 
-	req, err := http.NewRequest("GET", queryURL.String(), body)
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "userId", runtime.ParamLocationQuery, params.UserId); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
-
-	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -2119,10 +2073,8 @@ type ClientWithResponsesInterface interface {
 
 	DeleteRbacEndpointWithResponse(ctx context.Context, body DeleteRbacEndpointJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteRbacEndpointResponse, error)
 
-	// GetRbacEndpointWithBodyWithResponse request with any body
-	GetRbacEndpointWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetRbacEndpointResponse, error)
-
-	GetRbacEndpointWithResponse(ctx context.Context, body GetRbacEndpointJSONRequestBody, reqEditors ...RequestEditorFn) (*GetRbacEndpointResponse, error)
+	// GetRbacEndpointWithResponse request
+	GetRbacEndpointWithResponse(ctx context.Context, params *GetRbacEndpointParams, reqEditors ...RequestEditorFn) (*GetRbacEndpointResponse, error)
 
 	// PostRbacEndpointWithBodyWithResponse request with any body
 	PostRbacEndpointWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostRbacEndpointResponse, error)
@@ -2153,10 +2105,8 @@ type ClientWithResponsesInterface interface {
 
 	DeleteRbacResourceGroupWithResponse(ctx context.Context, body DeleteRbacResourceGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteRbacResourceGroupResponse, error)
 
-	// GetRbacResourceGroupWithBodyWithResponse request with any body
-	GetRbacResourceGroupWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetRbacResourceGroupResponse, error)
-
-	GetRbacResourceGroupWithResponse(ctx context.Context, body GetRbacResourceGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*GetRbacResourceGroupResponse, error)
+	// GetRbacResourceGroupWithResponse request
+	GetRbacResourceGroupWithResponse(ctx context.Context, params *GetRbacResourceGroupParams, reqEditors ...RequestEditorFn) (*GetRbacResourceGroupResponse, error)
 
 	// HeadRbacResourceGroupWithBodyWithResponse request with any body
 	HeadRbacResourceGroupWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*HeadRbacResourceGroupResponse, error)
@@ -2173,10 +2123,8 @@ type ClientWithResponsesInterface interface {
 
 	DeleteRbacRoleWithResponse(ctx context.Context, body DeleteRbacRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteRbacRoleResponse, error)
 
-	// GetRbacRoleWithBodyWithResponse request with any body
-	GetRbacRoleWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetRbacRoleResponse, error)
-
-	GetRbacRoleWithResponse(ctx context.Context, body GetRbacRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*GetRbacRoleResponse, error)
+	// GetRbacRoleWithResponse request
+	GetRbacRoleWithResponse(ctx context.Context, params *GetRbacRoleParams, reqEditors ...RequestEditorFn) (*GetRbacRoleResponse, error)
 
 	// HeadRbacRoleWithBodyWithResponse request with any body
 	HeadRbacRoleWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*HeadRbacRoleResponse, error)
@@ -2193,10 +2141,8 @@ type ClientWithResponsesInterface interface {
 
 	DeleteRbacUserWithResponse(ctx context.Context, body DeleteRbacUserJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteRbacUserResponse, error)
 
-	// GetRbacUserWithBodyWithResponse request with any body
-	GetRbacUserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetRbacUserResponse, error)
-
-	GetRbacUserWithResponse(ctx context.Context, body GetRbacUserJSONRequestBody, reqEditors ...RequestEditorFn) (*GetRbacUserResponse, error)
+	// GetRbacUserWithResponse request
+	GetRbacUserWithResponse(ctx context.Context, params *GetRbacUserParams, reqEditors ...RequestEditorFn) (*GetRbacUserResponse, error)
 
 	// PostRbacUserWithBodyWithResponse request with any body
 	PostRbacUserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostRbacUserResponse, error)
@@ -2219,10 +2165,8 @@ type ClientWithResponsesInterface interface {
 
 	DeleteUsersUserWithResponse(ctx context.Context, body DeleteUsersUserJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteUsersUserResponse, error)
 
-	// GetUsersUserWithBodyWithResponse request with any body
-	GetUsersUserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetUsersUserResponse, error)
-
-	GetUsersUserWithResponse(ctx context.Context, body GetUsersUserJSONRequestBody, reqEditors ...RequestEditorFn) (*GetUsersUserResponse, error)
+	// GetUsersUserWithResponse request
+	GetUsersUserWithResponse(ctx context.Context, params *GetUsersUserParams, reqEditors ...RequestEditorFn) (*GetUsersUserResponse, error)
 
 	// HeadUsersUserWithBodyWithResponse request with any body
 	HeadUsersUserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*HeadUsersUserResponse, error)
@@ -2876,17 +2820,9 @@ func (c *ClientWithResponses) DeleteRbacEndpointWithResponse(ctx context.Context
 	return ParseDeleteRbacEndpointResponse(rsp)
 }
 
-// GetRbacEndpointWithBodyWithResponse request with arbitrary body returning *GetRbacEndpointResponse
-func (c *ClientWithResponses) GetRbacEndpointWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetRbacEndpointResponse, error) {
-	rsp, err := c.GetRbacEndpointWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetRbacEndpointResponse(rsp)
-}
-
-func (c *ClientWithResponses) GetRbacEndpointWithResponse(ctx context.Context, body GetRbacEndpointJSONRequestBody, reqEditors ...RequestEditorFn) (*GetRbacEndpointResponse, error) {
-	rsp, err := c.GetRbacEndpoint(ctx, body, reqEditors...)
+// GetRbacEndpointWithResponse request returning *GetRbacEndpointResponse
+func (c *ClientWithResponses) GetRbacEndpointWithResponse(ctx context.Context, params *GetRbacEndpointParams, reqEditors ...RequestEditorFn) (*GetRbacEndpointResponse, error) {
+	rsp, err := c.GetRbacEndpoint(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -2988,17 +2924,9 @@ func (c *ClientWithResponses) DeleteRbacResourceGroupWithResponse(ctx context.Co
 	return ParseDeleteRbacResourceGroupResponse(rsp)
 }
 
-// GetRbacResourceGroupWithBodyWithResponse request with arbitrary body returning *GetRbacResourceGroupResponse
-func (c *ClientWithResponses) GetRbacResourceGroupWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetRbacResourceGroupResponse, error) {
-	rsp, err := c.GetRbacResourceGroupWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetRbacResourceGroupResponse(rsp)
-}
-
-func (c *ClientWithResponses) GetRbacResourceGroupWithResponse(ctx context.Context, body GetRbacResourceGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*GetRbacResourceGroupResponse, error) {
-	rsp, err := c.GetRbacResourceGroup(ctx, body, reqEditors...)
+// GetRbacResourceGroupWithResponse request returning *GetRbacResourceGroupResponse
+func (c *ClientWithResponses) GetRbacResourceGroupWithResponse(ctx context.Context, params *GetRbacResourceGroupParams, reqEditors ...RequestEditorFn) (*GetRbacResourceGroupResponse, error) {
+	rsp, err := c.GetRbacResourceGroup(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -3056,17 +2984,9 @@ func (c *ClientWithResponses) DeleteRbacRoleWithResponse(ctx context.Context, bo
 	return ParseDeleteRbacRoleResponse(rsp)
 }
 
-// GetRbacRoleWithBodyWithResponse request with arbitrary body returning *GetRbacRoleResponse
-func (c *ClientWithResponses) GetRbacRoleWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetRbacRoleResponse, error) {
-	rsp, err := c.GetRbacRoleWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetRbacRoleResponse(rsp)
-}
-
-func (c *ClientWithResponses) GetRbacRoleWithResponse(ctx context.Context, body GetRbacRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*GetRbacRoleResponse, error) {
-	rsp, err := c.GetRbacRole(ctx, body, reqEditors...)
+// GetRbacRoleWithResponse request returning *GetRbacRoleResponse
+func (c *ClientWithResponses) GetRbacRoleWithResponse(ctx context.Context, params *GetRbacRoleParams, reqEditors ...RequestEditorFn) (*GetRbacRoleResponse, error) {
+	rsp, err := c.GetRbacRole(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -3124,17 +3044,9 @@ func (c *ClientWithResponses) DeleteRbacUserWithResponse(ctx context.Context, bo
 	return ParseDeleteRbacUserResponse(rsp)
 }
 
-// GetRbacUserWithBodyWithResponse request with arbitrary body returning *GetRbacUserResponse
-func (c *ClientWithResponses) GetRbacUserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetRbacUserResponse, error) {
-	rsp, err := c.GetRbacUserWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetRbacUserResponse(rsp)
-}
-
-func (c *ClientWithResponses) GetRbacUserWithResponse(ctx context.Context, body GetRbacUserJSONRequestBody, reqEditors ...RequestEditorFn) (*GetRbacUserResponse, error) {
-	rsp, err := c.GetRbacUser(ctx, body, reqEditors...)
+// GetRbacUserWithResponse request returning *GetRbacUserResponse
+func (c *ClientWithResponses) GetRbacUserWithResponse(ctx context.Context, params *GetRbacUserParams, reqEditors ...RequestEditorFn) (*GetRbacUserResponse, error) {
+	rsp, err := c.GetRbacUser(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -3210,17 +3122,9 @@ func (c *ClientWithResponses) DeleteUsersUserWithResponse(ctx context.Context, b
 	return ParseDeleteUsersUserResponse(rsp)
 }
 
-// GetUsersUserWithBodyWithResponse request with arbitrary body returning *GetUsersUserResponse
-func (c *ClientWithResponses) GetUsersUserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetUsersUserResponse, error) {
-	rsp, err := c.GetUsersUserWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetUsersUserResponse(rsp)
-}
-
-func (c *ClientWithResponses) GetUsersUserWithResponse(ctx context.Context, body GetUsersUserJSONRequestBody, reqEditors ...RequestEditorFn) (*GetUsersUserResponse, error) {
-	rsp, err := c.GetUsersUser(ctx, body, reqEditors...)
+// GetUsersUserWithResponse request returning *GetUsersUserResponse
+func (c *ClientWithResponses) GetUsersUserWithResponse(ctx context.Context, params *GetUsersUserParams, reqEditors ...RequestEditorFn) (*GetUsersUserResponse, error) {
+	rsp, err := c.GetUsersUser(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}

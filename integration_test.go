@@ -122,8 +122,8 @@ func TestUserCRUD(t *testing.T) {
 	// Get User
 	getResp, err := c.GetUsersUserWithResponse(
 		t.Context(),
-		client.GetUsersUserJSONRequestBody{
-			Id: createduserid,
+		&client.GetUsersUserParams{
+			UserId: createduserid,
 		},
 	)
 	assert.NoError(t, err)
@@ -265,8 +265,8 @@ func TestGetUserInvalidUUID(t *testing.T) {
 
 	resp, err := c.GetUsersUserWithResponse(
 		t.Context(),
-		client.GetUsersUserJSONRequestBody{
-			Id: "not-a-valid-uuid",
+		&client.GetUsersUserParams{
+			UserId: "not-a-valid-uuid",
 		},
 	)
 	assert.NoError(t, err)
@@ -280,8 +280,8 @@ func TestGetUserNotFound(t *testing.T) {
 	uuidRandom, _ := uuid.NewRandom()
 	resp, err := c.GetUsersUserWithResponse(
 		t.Context(),
-		client.GetUsersUserJSONRequestBody{
-			Id: uuidRandom.String(),
+		&client.GetUsersUserParams{
+			UserId: uuidRandom.String(),
 		},
 	)
 	assert.NoError(t, err)
@@ -836,7 +836,7 @@ func TestRoleCRUD(t *testing.T) {
 	// Get Role (users in role)
 	getResp, err := c.GetRbacRoleWithResponse(
 		t.Context(),
-		client.GetRbacRoleJSONRequestBody{
+		&client.GetRbacRoleParams{
 			Role: roleName,
 		},
 	)
@@ -877,7 +877,7 @@ func TestGetRoleNotFound(t *testing.T) {
 
 	resp, err := c.GetRbacRoleWithResponse(
 		t.Context(),
-		client.GetRbacRoleJSONRequestBody{
+		&client.GetRbacRoleParams{
 			Role: "nonExistentRole",
 		},
 	)
@@ -926,7 +926,7 @@ func TestResourceGroupCRUD(t *testing.T) {
 	// Get Resource Group
 	getResp, err := c.GetRbacResourceGroupWithResponse(
 		t.Context(),
-		client.GetRbacResourceGroupJSONRequestBody{
+		&client.GetRbacResourceGroupParams{
 			ResourceGroup: rgName,
 		},
 	)
@@ -972,7 +972,7 @@ func TestGetResourceGroupNotFound(t *testing.T) {
 
 	resp, err := c.GetRbacResourceGroupWithResponse(
 		t.Context(),
-		client.GetRbacResourceGroupJSONRequestBody{
+		&client.GetRbacResourceGroupParams{
 			ResourceGroup: "nonExistentResourceGroup",
 		},
 	)
@@ -1023,7 +1023,7 @@ func TestEndpointResourceGroupAssignment(t *testing.T) {
 	// Get resource groups for endpoint
 	getEndpointResp, err := c.GetRbacEndpointWithResponse(
 		t.Context(),
-		client.GetRbacEndpointJSONRequestBody{
+		&client.GetRbacEndpointParams{
 			Endpoint: endpoint,
 		},
 	)
@@ -1034,7 +1034,7 @@ func TestEndpointResourceGroupAssignment(t *testing.T) {
 	// Get endpoints in resource group
 	getRGResp, err := c.GetRbacResourceGroupWithResponse(
 		t.Context(),
-		client.GetRbacResourceGroupJSONRequestBody{
+		&client.GetRbacResourceGroupParams{
 			ResourceGroup: rgName,
 		},
 	)
@@ -1056,7 +1056,7 @@ func TestEndpointResourceGroupAssignment(t *testing.T) {
 	// Verify endpoint removed
 	getRGRespAfter, err := c.GetRbacResourceGroupWithResponse(
 		t.Context(),
-		client.GetRbacResourceGroupJSONRequestBody{
+		&client.GetRbacResourceGroupParams{
 			ResourceGroup: rgName,
 		},
 	)
@@ -1143,7 +1143,7 @@ func TestUserRoleAssignment(t *testing.T) {
 	// Get roles for user
 	getUserRolesResp, err := c.GetRbacUserWithResponse(
 		t.Context(),
-		client.GetRbacUserJSONRequestBody{
+		&client.GetRbacUserParams{
 			UserId: userId,
 		},
 	)
@@ -1154,7 +1154,7 @@ func TestUserRoleAssignment(t *testing.T) {
 	// Get users in role
 	getRoleUsersResp, err := c.GetRbacRoleWithResponse(
 		t.Context(),
-		client.GetRbacRoleJSONRequestBody{
+		&client.GetRbacRoleParams{
 			Role: roleName,
 		},
 	)
@@ -1176,7 +1176,7 @@ func TestUserRoleAssignment(t *testing.T) {
 	// Verify role removed
 	getUserRolesRespAfter, err := c.GetRbacUserWithResponse(
 		t.Context(),
-		client.GetRbacUserJSONRequestBody{
+		&client.GetRbacUserParams{
 			UserId: userId,
 		},
 	)
@@ -1200,7 +1200,7 @@ func TestGetRolesForUserInvalidUUID(t *testing.T) {
 
 	resp, err := c.GetRbacUserWithResponse(
 		t.Context(),
-		client.GetRbacUserJSONRequestBody{
+		&client.GetRbacUserParams{
 			UserId: "invalid-uuid",
 		},
 	)
@@ -1214,7 +1214,7 @@ func TestGetRolesForNonExistentUser(t *testing.T) {
 	uuidRandom, _ := uuid.NewRandom()
 	resp, err := c.GetRbacUserWithResponse(
 		t.Context(),
-		client.GetRbacUserJSONRequestBody{
+		&client.GetRbacUserParams{
 			UserId: uuidRandom.String(),
 		},
 	)
@@ -2042,8 +2042,8 @@ func TestPolicyEnforcementMethodRestriction(t *testing.T) {
 	// GET should work
 	getResp, err := userClient.GetUsersUserWithResponse(
 		t.Context(),
-		client.GetUsersUserJSONRequestBody{
-			Id: userId,
+		&client.GetUsersUserParams{
+			UserId: userId,
 		},
 	)
 	assert.NoError(t, err)
@@ -2175,7 +2175,7 @@ func TestPolicyEnforcementWildcardPermission(t *testing.T) {
 	// GET should work
 	getRoleResp, err := userClient.GetRbacRoleWithResponse(
 		t.Context(),
-		client.GetRbacRoleJSONRequestBody{
+		&client.GetRbacRoleParams{
 			Role: roleName,
 		},
 	)
@@ -2494,7 +2494,7 @@ func TestPolicyEnforcementMultipleRoles(t *testing.T) {
 	// Should be able to access both endpoints (combined permissions)
 	rgResp, err := userClient.GetRbacResourceGroupWithResponse(
 		t.Context(),
-		client.GetRbacResourceGroupJSONRequestBody{
+		&client.GetRbacResourceGroupParams{
 			ResourceGroup: rgName1,
 		},
 	)
@@ -2503,7 +2503,7 @@ func TestPolicyEnforcementMultipleRoles(t *testing.T) {
 
 	endpointResp, err := userClient.GetRbacEndpointWithResponse(
 		t.Context(),
-		client.GetRbacEndpointJSONRequestBody{
+		&client.GetRbacEndpointParams{
 			Endpoint: "/test",
 		},
 	)

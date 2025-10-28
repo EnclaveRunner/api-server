@@ -16,7 +16,7 @@ jobs:
       should_release: ${{ steps.version.outputs.hasNextVersion }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           token: ${{ secrets.BOT_PAT }}
@@ -77,7 +77,7 @@ jobs:
     if: needs.update-version.outputs.should_release == 'true'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Generate release notes

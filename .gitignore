@@ -2,3 +2,4 @@
 .direnv
 config.yaml
 coverage.out
+api-server

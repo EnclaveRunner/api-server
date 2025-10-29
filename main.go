@@ -25,7 +25,7 @@ func main() {
 	viper.SetDefault("admin.password", "enclave")
 
 	// load config and create server
-	shareddeps.Init(config.Cfg, "api-server", "v0.3.0")
+	shareddeps.Init(config.Cfg, "api-server", "v0.3.1")
 
 	policyAdapter := orm.InitDB()
 

@@ -3,7 +3,7 @@ module api-server
 go 1.25.0
 
 require (
-	github.com/EnclaveRunner/shareddeps v0.5.0
+	github.com/EnclaveRunner/shareddeps v0.5.2
 	github.com/casbin/gorm-adapter/v3 v3.37.0
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/gin-gonic/gin v1.11.0

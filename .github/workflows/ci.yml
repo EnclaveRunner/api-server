@@ -22,13 +22,10 @@ jobs:
         with:
           go-version: "1.25"
 
-      - name: Install golangci-lint
+      - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v8
         with:
-          version: latest
-
-      - name: Run linting
-        run: golangci-lint run
+          version: v2.5.0
 
   build:
     name: Build

@@ -901,13 +901,27 @@ func TestGetUsersUserByQueryParam(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, createResp.StatusCode())
 	userId := createResp.JSON201.Id
 
-	// Get user by query param
+	// Get user by id param
 	getResp, err := c.GetUsersUserWithResponse(
 		t.Context(),
 		&client.GetUsersUserParams{
 			UserId: &userId,
 		},
 	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, getResp.StatusCode())
+	assert.Equal(t, userId, getResp.JSON200.Id)
+	assert.Equal(t, "testGetUserByQueryParam", getResp.JSON200.Name)
+	assert.Equal(t, "Test Get User By Query Param", getResp.JSON200.DisplayName)
+	
+	// Get user by name param
+	getResp, err = c.GetUsersUserWithResponse(
+		t.Context(),
+		&client.GetUsersUserParams{
+			Name: &createResp.JSON201.Name,
+		},
+	)
+	
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, getResp.StatusCode())
 	assert.Equal(t, userId, getResp.JSON200.Id)

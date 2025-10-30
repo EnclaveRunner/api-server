@@ -16,10 +16,8 @@ github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/internal v0.8.0/go.mod h
 github.com/AzureAD/microsoft-authentication-library-for-go v1.0.0/go.mod h1:kgDmCTgBzIEPFElEF+FK0SdjAor06dRq2Go927dnQ6o=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.1.0 h1:HCc0+LpPfpCKs6LGGLAhwBARt9632unrVcI6i8s/8os=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.1.0/go.mod h1:wP83P5OoQ5p6ip3ScPr0BAq0BvuPAvacpEuSzyouqAI=
-github.com/EnclaveRunner/shareddeps v0.5.0 h1:we7IDuLqG4NcWQ/tSjK9gJ367SKnzWH0pftb8JyQzF4=
-github.com/EnclaveRunner/shareddeps v0.5.0/go.mod h1:QQlk4qCrXv6Mniq73Kf3KPLT4yDHebeXUjif3B2eAYE=
-github.com/EnclaveRunner/shareddeps v0.5.2 h1:xJuJATVeT+HL+8+aRsQ2Q4uEm3p3pxt1nHaHsUpc8uE=
-github.com/EnclaveRunner/shareddeps v0.5.2/go.mod h1:5KKL2+RHmMXFT3OHwIE1V2fYkO+IkqxPGT+2RHmuCeI=
+github.com/EnclaveRunner/shareddeps v0.6.0 h1:DbQeyOUDuQIYfljIgmsx3rqmL59tYk6mUchDYMBIKN0=
+github.com/EnclaveRunner/shareddeps v0.6.0/go.mod h1:AXMrCDmnT9bBoFlwN+DwJ40lpFG3jVYxXWNYybpzVEA=
 github.com/RaveNoX/go-jsoncommentstrip v1.0.0/go.mod h1:78ihd09MekBnJnxpICcwzCMzGrKSKYe4AqU6PDYYpjk=
 github.com/apapsch/go-jsonmerge/v2 v2.0.0 h1:axGnT1gRIfimI7gJifB699GoE/oq+F2MU7Dml6nw9rQ=
 github.com/apapsch/go-jsonmerge/v2 v2.0.0/go.mod h1:lvDnEdqiQrp0O42VQGgmlKpxL1AP2+08jFMw88y4klk=
@@ -66,8 +64,8 @@ github.com/gabriel-vasile/mimetype v1.4.10 h1:zyueNbySn/z8mJZHLt6IPw0KoZsiQNszIp
 github.com/gabriel-vasile/mimetype v1.4.10/go.mod h1:d+9Oxyo1wTzWdyVUPMmXFvp4F9tea18J8ufA774AB3s=
 github.com/getkin/kin-openapi v0.133.0 h1:pJdmNohVIJ97r4AUFtEXRXwESr8b0bD721u/Tz6k8PQ=
 github.com/getkin/kin-openapi v0.133.0/go.mod h1:boAciF6cXk5FhPqe/NQeBTeenbjqU4LhWBf09ILVvWE=
-github.com/gin-contrib/authz v1.0.5 h1:zN6CdnO4NAVQj9LoTBMaVZGOnUicPyjB5RTVMvQ42iE=
-github.com/gin-contrib/authz v1.0.5/go.mod h1:T85j2+UevHJSFvCAj5w6nQFQZ3M4xB4sXz/nVwvIjfo=
+github.com/gin-contrib/authz v1.0.6 h1:qAO4sSSzOPCwYRZI6YtubC+h2tZVwhwSJeyEZn2W+5k=
+github.com/gin-contrib/authz v1.0.6/go.mod h1:A2B5Im1M/HIoHPjLc31j3RlENSE6j8euJY9NFdzZeYo=
 github.com/gin-contrib/sse v1.1.0 h1:n0w2GMuUpWDVp7qSpvze6fAu9iRxJY4Hmj6AmBOU05w=
 github.com/gin-contrib/sse v1.1.0/go.mod h1:hxRZ5gVpWMT7Z0B0gSNYqqsSCNIJMjzvm6fqCz9vjwM=
 github.com/gin-gonic/gin v1.11.0 h1:OW/6PLjyusp2PPXtyxKHU0RbX6I/l28FTdDlae5ueWk=

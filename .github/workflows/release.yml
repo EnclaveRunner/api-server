@@ -39,12 +39,7 @@ jobs:
 
           # Search for and update version references in other files
           echo "🔍 Searching for version patterns to update..."
-          find . -type f \( -name "*.go" -o -name "*.md" -o -name "*.yml" -o -name "*.yaml" -o -name "*.json" \) \
-            -not -path "./.git/*" \
-            -not -path "./vendor/*" \
-            -not -path "./.direnv/*" \
-            -not -name "gen.go" \
-            -not -name "client.gen.go" \
+          find . -type f \( -name "main.go" \) \
             -exec grep -l "v[0-9]\+\.[0-9]\+\.[0-9]\+" {} \; | \
           while read -r file; do
             echo "  🔧 Updating $file"

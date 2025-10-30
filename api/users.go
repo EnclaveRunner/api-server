@@ -40,36 +40,66 @@ func (s *Server) GetUsersUser(
 	ctx context.Context,
 	request GetUsersUserRequestObject,
 ) (GetUsersUserResponseObject, error) {
-	uuidParser, err := uuid.Parse(request.Params.UserId)
-	if err != nil {
-		return GetUsersUser400JSONResponse{
-			GenericBadRequestJSONResponse{
-				"Provided uuid is invalid",
-			},
-		}, nil
-	}
-
-	user, err := orm.GetUserByID(ctx, uuidParser)
-	if err != nil {
-		var errNotFound *orm.NotFoundError
-		if errors.As(err, &errNotFound) {
-			return GetUsersUser404JSONResponse{
-				GenericNotFoundJSONResponse{
-					"User not found",
+	if request.Params.UserId != nil {
+		uuidParser, err := uuid.Parse(*request.Params.UserId)
+		if err != nil {
+			return GetUsersUser400JSONResponse{
+				GenericBadRequestJSONResponse{
+					"Provided uuid is invalid",
 				},
 			}, nil
 		}
 
-		log.Error().Err(err).Msg("Failed to get user by ID")
+		user, err := orm.GetUserByID(ctx, uuidParser)
+		if err != nil {
+			var errNotFound *orm.NotFoundError
+			if errors.As(err, &errNotFound) {
+				return GetUsersUser404JSONResponse{
+					GenericNotFoundJSONResponse{
+						"User not found",
+					},
+				}, nil
+			}
 
-		return nil, &EmptyInternalServerError{}
+			log.Error().Err(err).Msg("Failed to get user by ID")
+
+			return nil, &EmptyInternalServerError{}
+		}
+
+		return GetUsersUser200JSONResponse(UserResponse{
+			Id:          user.ID.String(),
+			Name:        user.Username,
+			DisplayName: user.DisplayName,
+		}), nil
+	} else if request.Params.Name != nil {
+		user, err := orm.GetUserByUsername(ctx, *request.Params.Name)
+		if err != nil {
+			var errNotFound *orm.NotFoundError
+			if errors.As(err, &errNotFound) {
+				return GetUsersUser404JSONResponse{
+					GenericNotFoundJSONResponse{
+						"User not found",
+					},
+				}, nil
+			}
+
+			log.Error().Err(err).Msg("Failed to get user by name")
+
+			return nil, &EmptyInternalServerError{}
+		}
+
+		return GetUsersUser200JSONResponse(UserResponse{
+			Id:          user.ID.String(),
+			Name:        user.Username,
+			DisplayName: user.DisplayName,
+		}), nil
 	}
 
-	return GetUsersUser200JSONResponse(UserResponse{
-		Id:          user.ID.String(),
-		Name:        user.Username,
-		DisplayName: user.DisplayName,
-	}), nil
+	return GetUsersUser400JSONResponse{
+		GenericBadRequestJSONResponse{
+			"Either userId or name must be provided",
+		},
+	}, nil
 }
 
 // HeadUsersUser implements StrictServerInterface.
@@ -297,6 +327,38 @@ func (s *Server) PatchUsersMe(
 	}
 
 	return PatchUsersMe200JSONResponse(UserResponse{
+		Id:          user.ID.String(),
+		Name:        user.Username,
+		DisplayName: user.DisplayName,
+	}), nil
+}
+
+// DeleteUsersMe implements StrictServerInterface.
+func (s *Server) DeleteUsersMe(
+	ctx context.Context,
+	request DeleteUsersMeRequestObject,
+) (DeleteUsersMeResponseObject, error) {
+	authenticatedUser := auth.RetrieveAuthenticatedUser(ctx)
+
+	if authenticatedUser == auth.UnauthenticatedUser {
+		return DeleteUsersMe401Response{}, nil
+	}
+
+	uuidParser, err := uuid.Parse(authenticatedUser)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to parse user ID as UUID")
+
+		return nil, &EmptyInternalServerError{}
+	}
+
+	user, err := orm.DeleteUserByID(ctx, uuidParser)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to delete user")
+
+		return nil, &EmptyInternalServerError{}
+	}
+
+	return DeleteUsersMe200JSONResponse(UserResponse{
 		Id:          user.ID.String(),
 		Name:        user.Username,
 		DisplayName: user.DisplayName,

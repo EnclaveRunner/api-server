@@ -12,16 +12,22 @@ paths:
   /users/user:
     get:
       summary: Get User Information
-      description: Retrieve information about a specific user.
+      description: Retrieve information about a specific user. Either the user ID or name must be provided.
       tags:
         - Users
       parameters:
         - name: userId
           in: query
-          required: true
+          required: false
           schema:
             type: string
           description: The uuid of the user to retrieve.
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+          description: The name of the user to retrieve.
       responses:
         "200":
           description: Successful response with user information.
@@ -241,6 +247,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrGeneric"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    delete:
+      summary: Delete Current User
+      description: Delete the currently authenticated user.
+      tags:
+        - Users
+      responses:
+        "200":
+          description: Current user deleted successfully. Returns the deleted user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:

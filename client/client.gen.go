@@ -214,7 +214,10 @@ type PostRbacUserJSONBody struct {
 // GetUsersUserParams defines parameters for GetUsersUser.
 type GetUsersUserParams struct {
 	// UserId The uuid of the user to retrieve.
-	UserId string `form:"userId" json:"userId"`
+	UserId *string `form:"userId,omitempty" json:"userId,omitempty"`
+
+	// Name The name of the user to retrieve.
+	Name *string `form:"name,omitempty" json:"name,omitempty"`
 }
 
 // DeleteRbacEndpointJSONRequestBody defines body for DeleteRbacEndpoint for application/json ContentType.
@@ -424,6 +427,9 @@ type ClientInterface interface {
 
 	// GetUsersList request
 	GetUsersList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteUsersMe request
+	DeleteUsersMe(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetUsersMe request
 	GetUsersMe(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -831,6 +837,18 @@ func (c *Client) PostRbacUser(ctx context.Context, body PostRbacUserJSONRequestB
 
 func (c *Client) GetUsersList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetUsersListRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteUsersMe(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteUsersMeRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -1753,6 +1771,33 @@ func NewGetUsersListRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewDeleteUsersMeRequest generates requests for DeleteUsersMe
+func NewDeleteUsersMeRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/users/me")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetUsersMeRequest generates requests for GetUsersMe
 func NewGetUsersMeRequest(server string) (*http.Request, error) {
 	var err error
@@ -1882,16 +1927,36 @@ func NewGetUsersUserRequest(server string, params *GetUsersUserParams) (*http.Re
 	if params != nil {
 		queryValues := queryURL.Query()
 
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "userId", runtime.ParamLocationQuery, params.UserId); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
+		if params.UserId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "userId", runtime.ParamLocationQuery, *params.UserId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
 				}
 			}
+
+		}
+
+		if params.Name != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
 		}
 
 		queryURL.RawQuery = queryValues.Encode()
@@ -2151,6 +2216,9 @@ type ClientWithResponsesInterface interface {
 
 	// GetUsersListWithResponse request
 	GetUsersListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetUsersListResponse, error)
+
+	// DeleteUsersMeWithResponse request
+	DeleteUsersMeWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*DeleteUsersMeResponse, error)
 
 	// GetUsersMeWithResponse request
 	GetUsersMeWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetUsersMeResponse, error)
@@ -2639,6 +2707,28 @@ func (r GetUsersListResponse) StatusCode() int {
 	return 0
 }
 
+type DeleteUsersMeResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *UserResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteUsersMeResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteUsersMeResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type GetUsersMeResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -3077,6 +3167,15 @@ func (c *ClientWithResponses) GetUsersListWithResponse(ctx context.Context, reqE
 		return nil, err
 	}
 	return ParseGetUsersListResponse(rsp)
+}
+
+// DeleteUsersMeWithResponse request returning *DeleteUsersMeResponse
+func (c *ClientWithResponses) DeleteUsersMeWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*DeleteUsersMeResponse, error) {
+	rsp, err := c.DeleteUsersMe(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteUsersMeResponse(rsp)
 }
 
 // GetUsersMeWithResponse request returning *GetUsersMeResponse
@@ -3791,6 +3890,32 @@ func ParseGetUsersListResponse(rsp *http.Response) (*GetUsersListResponse, error
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest []UserResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteUsersMeResponse parses an HTTP response from a DeleteUsersMeWithResponse call
+func ParseDeleteUsersMeResponse(rsp *http.Response) (*DeleteUsersMeResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteUsersMeResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest UserResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

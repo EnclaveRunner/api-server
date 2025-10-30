@@ -26,6 +26,20 @@ func GetUserByID(ctx context.Context, userID uuid.UUID) (*User, error) {
 	return &user, nil
 }
 
+func GetUserByUsername(ctx context.Context, username string) (*User, error) {
+	user, err := gorm.G[User](DB).Where(&User{Username: username}).
+		First(ctx)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, &NotFoundError{"User with username " + username}
+		} else {
+			return nil, &DatabaseError{err}
+		}
+	}
+
+	return &user, nil
+}
+
 func ListAllUsers(ctx context.Context) ([]User, error) {
 	users, err := gorm.G[User](DB).Find(ctx)
 	if err != nil {

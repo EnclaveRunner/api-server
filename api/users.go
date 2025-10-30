@@ -97,7 +97,7 @@ func (s *Server) GetUsersUser(
 
 	return GetUsersUser400JSONResponse{
 		GenericBadRequestJSONResponse{
-			"Either userId or userName must be provided",
+			"Either userId or name must be provided",
 		},
 	}, nil
 }

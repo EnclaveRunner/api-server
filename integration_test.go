@@ -123,7 +123,7 @@ func TestUserCRUD(t *testing.T) {
 	getResp, err := c.GetUsersUserWithResponse(
 		t.Context(),
 		&client.GetUsersUserParams{
-			UserId: createduserid,
+			UserId: &createduserid,
 		},
 	)
 	assert.NoError(t, err)
@@ -262,11 +262,13 @@ func TestCreateUserDuplicateName(t *testing.T) {
 
 func TestGetUserInvalidUUID(t *testing.T) {
 	t.Parallel()
+	
+	invalidUUID := "not-a-valid-uuid"
 
 	resp, err := c.GetUsersUserWithResponse(
 		t.Context(),
 		&client.GetUsersUserParams{
-			UserId: "not-a-valid-uuid",
+			UserId: &invalidUUID,
 		},
 	)
 	assert.NoError(t, err)
@@ -281,7 +283,7 @@ func TestGetUserNotFound(t *testing.T) {
 	resp, err := c.GetUsersUserWithResponse(
 		t.Context(),
 		&client.GetUsersUserParams{
-			UserId: uuidRandom.String(),
+			UserId: ptr uuidRandom.String(),
 		},
 	)
 	assert.NoError(t, err)
@@ -801,6 +803,120 @@ func TestPatchUsersMeDuplicateName(t *testing.T) {
 	_, _ = c.DeleteUsersUserWithResponse(
 		t.Context(),
 		client.DeleteUsersUserJSONRequestBody{Id: user2Id},
+	)
+}
+
+func TestDeleteUsersMe(t *testing.T) {
+	t.Parallel()
+
+	// Create a test user
+	createResp, err := c.PostUsersUserWithResponse(
+		t.Context(),
+		client.PostUsersUserJSONRequestBody{
+			Name:        "testDeleteMe",
+			Password:    "password",
+			DisplayName: "Test Delete Me User",
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createResp.StatusCode())
+	userId := createResp.JSON201.Id
+	username := createResp.JSON201.Name
+
+	// Create client with the user's credentials
+	userClient, err := client.NewClientWithResponses("http://localhost:8080",
+		func(c *client.Client) error {
+			c.RequestEditors = []client.RequestEditorFn{
+				func(ctx context.Context, req *http.Request) error {
+					_, _, ok := req.BasicAuth()
+					if !ok {
+						req.SetBasicAuth(username, "password")
+					}
+
+					return nil
+				},
+			}
+
+			return nil
+		},
+	)
+	assert.NoError(t, err)
+
+	// Verify user exists first
+	getMeResp, err := userClient.GetUsersMeWithResponse(t.Context())
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, getMeResp.StatusCode())
+	assert.Equal(t, username, getMeResp.JSON200.Name)
+
+	// Delete self
+	deleteResp, err := userClient.DeleteUsersMeWithResponse(t.Context())
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, deleteResp.StatusCode())
+	assert.NotNil(t, deleteResp.JSON200)
+	assert.Equal(t, userId, deleteResp.JSON200.Id)
+	assert.Equal(t, username, deleteResp.JSON200.Name)
+
+	// Verify user can no longer authenticate
+	getMeRespAfterDelete, err := userClient.GetUsersMeWithResponse(t.Context())
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusUnauthorized, getMeRespAfterDelete.StatusCode())
+
+	// Verify user no longer exists (using admin client)
+	headResp, err := c.HeadUsersUserWithResponse(
+		t.Context(),
+		client.HeadUsersUserJSONRequestBody{
+			Id: userId,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, headResp.StatusCode())
+}
+
+func TestDeleteUsersMeUnauthenticated(t *testing.T) {
+	t.Parallel()
+
+	// Create client without auth
+	noAuthClient, err := client.NewClientWithResponses("http://localhost:8080")
+	assert.NoError(t, err)
+
+	resp, err := noAuthClient.DeleteUsersMeWithResponse(t.Context())
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode())
+}
+
+func TestGetUsersUserByQueryParam(t *testing.T) {
+	t.Parallel()
+
+	// Create a test user
+	createResp, err := c.PostUsersUserWithResponse(
+		t.Context(),
+		client.PostUsersUserJSONRequestBody{
+			Name:        "testGetUserByQueryParam",
+			Password:    defaultPassword,
+			DisplayName: "Test Get User By Query Param",
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, createResp.StatusCode())
+	userId := createResp.JSON201.Id
+
+	// Get user by query param
+	getResp, err := c.GetUsersUserWithResponse(
+		t.Context(),
+		&client.GetUsersUserParams{
+			UserId: userId,
+		},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, getResp.StatusCode())
+	assert.Equal(t, userId, getResp.JSON200.Id)
+	assert.Equal(t, "testGetUserByQueryParam", getResp.JSON200.Name)
+	assert.Equal(t, "Test Get User By Query Param", getResp.JSON200.DisplayName)
+
+	// Cleanup
+	_, _ = c.DeleteUsersUserWithResponse(
+		t.Context(),
+		client.DeleteUsersUserJSONRequestBody{Id: userId},
 	)
 }
 

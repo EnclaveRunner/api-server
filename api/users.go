@@ -334,7 +334,10 @@ func (s *Server) PatchUsersMe(
 }
 
 // DeleteUsersMe implements StrictServerInterface.
-func (s *Server) DeleteUsersMe(ctx context.Context, request DeleteUsersMeRequestObject) (DeleteUsersMeResponseObject, error) {
+func (s *Server) DeleteUsersMe(
+	ctx context.Context,
+	request DeleteUsersMeRequestObject,
+) (DeleteUsersMeResponseObject, error) {
 	authenticatedUser := auth.RetrieveAuthenticatedUser(ctx)
 
 	if authenticatedUser == auth.UnauthenticatedUser {

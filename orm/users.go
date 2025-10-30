@@ -31,7 +31,7 @@ func GetUserByUsername(ctx context.Context, username string) (*User, error) {
 		First(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, &NotFoundError{fmt.Sprintf("User with username %s", username)}
+			return nil, &NotFoundError{"User with username " + username}
 		} else {
 			return nil, &DatabaseError{err}
 		}

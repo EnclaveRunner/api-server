@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/EnclaveRunner/shareddeps/utils"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
@@ -262,7 +263,7 @@ func TestCreateUserDuplicateName(t *testing.T) {
 
 func TestGetUserInvalidUUID(t *testing.T) {
 	t.Parallel()
-	
+
 	invalidUUID := "not-a-valid-uuid"
 
 	resp, err := c.GetUsersUserWithResponse(
@@ -283,7 +284,7 @@ func TestGetUserNotFound(t *testing.T) {
 	resp, err := c.GetUsersUserWithResponse(
 		t.Context(),
 		&client.GetUsersUserParams{
-			UserId: ptr uuidRandom.String(),
+			UserId: utils.Ptr(uuidRandom.String()),
 		},
 	)
 	assert.NoError(t, err)
@@ -904,7 +905,7 @@ func TestGetUsersUserByQueryParam(t *testing.T) {
 	getResp, err := c.GetUsersUserWithResponse(
 		t.Context(),
 		&client.GetUsersUserParams{
-			UserId: userId,
+			UserId: &userId,
 		},
 	)
 	assert.NoError(t, err)
@@ -2159,7 +2160,7 @@ func TestPolicyEnforcementMethodRestriction(t *testing.T) {
 	getResp, err := userClient.GetUsersUserWithResponse(
 		t.Context(),
 		&client.GetUsersUserParams{
-			UserId: userId,
+			UserId: &userId,
 		},
 	)
 	assert.NoError(t, err)

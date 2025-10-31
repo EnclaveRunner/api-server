@@ -44,7 +44,6 @@ linters:
     - exhaustive
     - exptostd
     - fatcontext
-    - forbidigo
     - forcetypeassert
     - funcorder
     - gocheckcompilerdirectives

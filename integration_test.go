@@ -8,12 +8,10 @@ import (
 	"os"
 	"slices"
 	"testing"
-	"time"
 
 	"github.com/EnclaveRunner/shareddeps/utils"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,9 +31,10 @@ const (
 )
 
 func TestMain(m *testing.M) {
-	viper.Set("admin.username", adminUsername)
-	viper.Set("admin.password", adminPassword)
-	viper.Set("admin.display_name", adminDisplayName)
+	_ = os.Setenv("ENCLAVE_ADMIN_USERNAME", adminUsername)
+	_ = os.Setenv("ENCLAVE_ADMIN_PASSWORD", adminPassword)
+	_ = os.Setenv("ENCLAVE_ADMIN_DISPLAY_NAME", adminDisplayName)
+	_ = os.Setenv("ENCLAVE_DATABASE_HOST", "localhost")
 
 	go main()
 
@@ -62,9 +61,19 @@ func TestMain(m *testing.M) {
 	c = cTmp
 
 	log.Info().Msg("Waiting for the server to start...")
-	time.Sleep(3 * time.Second)
+	for {
+		_, err := c.GetUsersMeWithResponse(context.Background())
+		if err == nil {
+			break
+		}
+	}
 
 	code := m.Run()
+
+	_ = os.Unsetenv("ENCLAVE_ADMIN_USERNAME")
+	_ = os.Unsetenv("ENCLAVE_ADMIN_PASSWORD")
+	_ = os.Unsetenv("ENCLAVE_ADMIN_DISPLAY_NAME")
+	_ = os.Unsetenv("ENCLAVE_DATABASE_HOST")
 
 	os.Exit(code)
 }

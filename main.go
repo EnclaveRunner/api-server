@@ -7,25 +7,26 @@ import (
 
 	"github.com/EnclaveRunner/shareddeps"
 	"github.com/EnclaveRunner/shareddeps/auth"
+	shareddepsConfig "github.com/EnclaveRunner/shareddeps/config"
 	"github.com/rs/zerolog/log"
-	"github.com/spf13/viper"
 )
 
 func main() {
 	// Set configuration defaults
-	//nolint:mnd // Default port for PostgreSQL database
-	viper.SetDefault("database.port", 5432)
-	viper.SetDefault("database.sslmode", "disable")
-	viper.SetDefault("database.username", "enclave_user")
-	viper.SetDefault("database.password", "enclave_password")
-	viper.SetDefault("database.database", "enclave_db")
-
-	// default credentials for admin / initial user
-	viper.SetDefault("admin.username", "enclave")
-	viper.SetDefault("admin.password", "enclave")
+	defaults := []shareddepsConfig.DefaultValue{
+		//nolint:mnd // Default port of postgres
+		{Key: "database.port", Value: 5432},
+		{Key: "database.host", Value: "postgres"},
+		{Key: "database.sslmode", Value: "disable"},
+		{Key: "database.username", Value: "enclave_user"},
+		{Key: "database.password", Value: "enclave_password"},
+		{Key: "database.database", Value: "enclave_db"},
+		{Key: "admin.username", Value: "enclave"},
+		{Key: "admin.password", Value: "enclave"},
+	}
 
 	// load config and create server
-	shareddeps.Init(config.Cfg, "api-server", "v0.4.0")
+	shareddeps.InitRESTServer(config.Cfg, "api-server", "v0.4.0", defaults...)
 
 	policyAdapter := orm.InitDB()
 
@@ -42,9 +43,9 @@ func main() {
 
 	server := api.NewServer()
 	handler := api.NewStrictHandler(server, nil)
-	api.RegisterHandlers(shareddeps.Server, handler)
+	api.RegisterHandlers(shareddeps.RESTServer, handler)
 
-	shareddeps.Start()
+	shareddeps.StartRESTServer()
 }
 
 // Init needed and default RBAC policies, resource groups and roles

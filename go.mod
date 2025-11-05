@@ -3,7 +3,7 @@ module api-server
 go 1.25.0
 
 require (
-	github.com/EnclaveRunner/shareddeps v0.6.0
+	github.com/EnclaveRunner/shareddeps v0.7.0
 	github.com/casbin/gorm-adapter/v3 v3.37.0
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/gin-gonic/gin v1.11.0
@@ -95,6 +95,8 @@ require (
 	golang.org/x/net v0.46.0 // indirect
 	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/text v0.30.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250804133106-a7a43d27e69b // indirect
+	google.golang.org/grpc v1.76.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

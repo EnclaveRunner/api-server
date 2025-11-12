@@ -4,6 +4,7 @@ import (
 	"api-server/api"
 	"api-server/config"
 	"api-server/orm"
+	"api-server/proto_gen"
 
 	"github.com/EnclaveRunner/shareddeps"
 	"github.com/EnclaveRunner/shareddeps/auth"
@@ -44,6 +45,13 @@ func main() {
 	server := api.NewServer()
 	handler := api.NewStrictHandler(server, nil)
 	api.RegisterHandlers(shareddeps.RESTServer, handler)
+
+	shareddeps.InitGRPCClient(
+		config.Cfg.ArtifactRegistry.Host,
+		config.Cfg.ArtifactRegistry.Port,
+	)
+
+	proto_gen.Client = proto_gen.NewRegistryServiceClient(shareddeps.GRPCClient)
 
 	shareddeps.StartRESTServer()
 }

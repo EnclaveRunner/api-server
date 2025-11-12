@@ -8,7 +8,7 @@ package registry;
 service RegistryService {
     rpc QueryArtifacts(ArtifactQuery) returns (ArtifactListResponse);
     rpc PullArtifact(PullArtifactRequest) returns (stream ArtifactContent);
-    rpc UploadArtifact(UploadArtifactRequest) returns (Artifact);
+    rpc UploadArtifact(stream UploadArtifactRequest) returns (Artifact);
     rpc DeleteArtifact(ArtifactIdentifier) returns (Artifact);
     rpc GetArtifact(ArtifactIdentifier) returns (Artifact);
     rpc AddTag(AddRemoveTagRequest) returns (Artifact);
@@ -64,9 +64,15 @@ message ArtifactContent {
 }
 
 message UploadArtifactRequest {
+    oneof request {
+        UploadMetadata metadata = 1;
+        ArtifactContent content = 2;
+    }
+}
+
+message UploadMetadata {
     FullQualifiedName fqn = 1;
     repeated string tags = 2;
-    bytes content = 3;
 }
 
 message AddRemoveTagRequest {

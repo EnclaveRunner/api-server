@@ -34,7 +34,10 @@
             
             git
 
-            delve
+            # Proto/Grpc compiler
+            protobuf_29
+            protoc-gen-go
+            protoc-gen-go-grpc
           ];
 
           env = {

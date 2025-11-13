@@ -5,6 +5,7 @@ import (
 	"api-server/config"
 	"api-server/orm"
 	"api-server/proto_gen"
+	"context"
 
 	"github.com/EnclaveRunner/shareddeps"
 	"github.com/EnclaveRunner/shareddeps/auth"

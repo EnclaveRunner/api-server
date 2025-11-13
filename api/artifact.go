@@ -487,7 +487,7 @@ func (s *Server) uploadArtifactWithFile(
 ) (PostArtifactUploadResponseObject, error) {
 	stream, err := pb.Client.UploadArtifact(ctx)
 
-	//nolint:errcheck // CloseSent always returns a nil error according to the
+	//nolint:errcheck // CloseSend always returns a nil error according to the
 	// documentation
 	defer stream.CloseSend()
 

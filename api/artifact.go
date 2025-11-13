@@ -38,7 +38,7 @@ func (s *Server) DeleteArtifact(
 	ctx context.Context,
 	request DeleteArtifactRequestObject,
 ) (DeleteArtifactResponseObject, error) {
-	artifactIdentifier := &pb.ArtifactIdentifier{Fqn: &pb.FullQualifiedName{
+	artifactIdentifier := &pb.ArtifactIdentifier{Fqn: &pb.FullyQualifiedName{
 		Source: request.Body.Fqn.Source,
 		Author: request.Body.Fqn.Author,
 		Name:   request.Body.Fqn.Name,
@@ -78,7 +78,7 @@ func (s *Server) DeleteArtifactTag(
 	request DeleteArtifactTagRequestObject,
 ) (DeleteArtifactTagResponseObject, error) {
 	removeTagRequest := &pb.AddRemoveTagRequest{
-		Fqn: &pb.FullQualifiedName{
+		Fqn: &pb.FullyQualifiedName{
 			Source: request.Body.Fqn.Source,
 			Author: request.Body.Fqn.Author,
 			Name:   request.Body.Fqn.Name,
@@ -111,7 +111,7 @@ func (s *Server) GetArtifact(
 	ctx context.Context,
 	request GetArtifactRequestObject,
 ) (GetArtifactResponseObject, error) {
-	artifactIdentifier := &pb.ArtifactIdentifier{Fqn: &pb.FullQualifiedName{
+	artifactIdentifier := &pb.ArtifactIdentifier{Fqn: &pb.FullyQualifiedName{
 		Source: request.Params.Source,
 		Author: request.Params.Author,
 		Name:   request.Params.Name,
@@ -185,7 +185,7 @@ func (s *Server) GetArtifactUpload(
 	request GetArtifactUploadRequestObject,
 ) (GetArtifactUploadResponseObject, error) {
 	pullRequest := &pb.PullArtifactRequest{
-		Fqn: &pb.FullQualifiedName{
+		Fqn: &pb.FullyQualifiedName{
 			Source: request.Params.Source,
 			Author: request.Params.Author,
 			Name:   request.Params.Name,
@@ -249,7 +249,7 @@ func (s *Server) HeadArtifact(
 	ctx context.Context,
 	request HeadArtifactRequestObject,
 ) (HeadArtifactResponseObject, error) {
-	artifactIdentifier := &pb.ArtifactIdentifier{Fqn: &pb.FullQualifiedName{
+	artifactIdentifier := &pb.ArtifactIdentifier{Fqn: &pb.FullyQualifiedName{
 		Source: request.Params.Source,
 		Author: request.Params.Author,
 		Name:   request.Params.Name,
@@ -285,7 +285,7 @@ func (s *Server) PostArtifactTag(
 	request PostArtifactTagRequestObject,
 ) (PostArtifactTagResponseObject, error) {
 	addTagRequest := &pb.AddRemoveTagRequest{
-		Fqn: &pb.FullQualifiedName{
+		Fqn: &pb.FullyQualifiedName{
 			Source: request.Body.Fqn.Source,
 			Author: request.Body.Fqn.Author,
 			Name:   request.Body.Fqn.Name,
@@ -498,7 +498,7 @@ func (s *Server) uploadArtifactWithFile(
 	}
 
 	metadata := &pb.UploadMetadata{
-		Fqn: &pb.FullQualifiedName{
+		Fqn: &pb.FullyQualifiedName{
 			Source: source,
 			Author: author,
 			Name:   name,

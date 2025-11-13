@@ -1,5 +1,5 @@
 .DS_Store
 .direnv
-config.yaml
+api-server.yml
 coverage.out
 api-server

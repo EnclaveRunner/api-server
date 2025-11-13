@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+option go_package = "proto_gen/";
+import "google/protobuf/timestamp.proto";
+
+package registry;
+
+service RegistryService {
+    rpc QueryArtifacts(ArtifactQuery) returns (ArtifactListResponse);
+    rpc PullArtifact(PullArtifactRequest) returns (stream ArtifactContent);
+    rpc UploadArtifact(UploadArtifactRequest) returns (Artifact);
+    rpc DeleteArtifact(ArtifactIdentifier) returns (Artifact);
+    rpc GetArtifact(ArtifactIdentifier) returns (Artifact);
+    rpc AddTag(AddRemoveTagRequest) returns (Artifact);
+    rpc RemoveTag(AddRemoveTagRequest) returns (Artifact);
+}
+
+message FullQualifiedName {
+    string source = 1;
+    string author = 2;
+    string name = 3;
+}
+
+message ArtifactIdentifier {
+    FullQualifiedName fqn = 1;
+    oneof identifier {
+        string versionHash = 2;
+        string tag = 3;
+    }
+}
+
+message Artifact {
+    FullQualifiedName fqn = 1;
+    string versionHash = 2;
+    repeated string tags = 3;
+    MetaData metadata = 4;
+}
+
+message MetaData {
+    google.protobuf.Timestamp created = 1;
+    int64 pulls = 2;
+}
+
+message ArtifactQuery {
+    optional string source = 1;
+    optional string author = 2;
+    optional string name = 3;
+}
+
+message ArtifactListResponse {
+    repeated Artifact artifacts = 1;
+}
+
+message PullArtifactRequest {
+    FullQualifiedName fqn = 1;
+    oneof identifier {
+        string versionHash = 2;
+        string tag = 3;
+    }
+}
+
+message ArtifactContent {
+    bytes data = 1;
+}
+
+message UploadArtifactRequest {
+    FullQualifiedName fqn = 1;
+    repeated string tags = 2;
+    bytes content = 3;
+}
+
+message AddRemoveTagRequest {
+    FullQualifiedName fqn = 1;
+    string versionHash = 2;
+    string tag = 3;
+}

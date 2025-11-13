@@ -3,7 +3,7 @@ module api-server
 go 1.25.0
 
 require (
-	github.com/EnclaveRunner/shareddeps v0.7.0
+	github.com/EnclaveRunner/shareddeps v0.8.0
 	github.com/casbin/gorm-adapter/v3 v3.37.0
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/gin-gonic/gin v1.11.0
@@ -21,7 +21,7 @@ require (
 require (
 	github.com/bmatcuk/doublestar/v4 v4.9.1 // indirect
 	github.com/bytedance/sonic/loader v0.3.0 // indirect
-	github.com/casbin/casbin/v2 v2.128.0 // indirect
+	github.com/casbin/casbin/v2 v2.132.0 // indirect
 	github.com/casbin/govaluate v1.10.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect

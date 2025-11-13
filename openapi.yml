@@ -1425,7 +1425,7 @@ components:
           description: The allowed permission (e.g., "GET", "POST", "*").
     FQN:
       type: object
-      description: full qualified Name of an artifact.
+      description: Fully qualified name of an artifact.
       required:
         - source
         - author

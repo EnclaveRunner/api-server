@@ -915,7 +915,7 @@ paths:
   /artifact:
     head:
       summary: Check Artifact Existence
-      description: Check if a specific artifact exists based on its full qualified name (FQN).
+      description: Check if a specific artifact exists based on its fully qualified name (FQN).
       tags:
         - Artifacts
       parameters:
@@ -962,7 +962,7 @@ paths:
         - BasicAuth: []
     get:
       summary: Retrieve Artifact Metadata
-      description: Retrieve metadata for a specific artifact based on its full qualified name (FQN).
+      description: Retrieve metadata for a specific artifact based on its fully qualified name (FQN).
       tags:
         - Artifacts
       parameters:
@@ -1013,7 +1013,7 @@ paths:
         - BasicAuth: []
     delete:
       summary: Delete Artifact
-      description: Delete a specific artifact based on its full qualified name (FQN).
+      description: Delete a specific artifact based on its fully qualified name (FQN).
       tags:
         - Artifacts
       requestBody:
@@ -1138,7 +1138,7 @@ paths:
   /artifact/upload:
     get:
       summary: Download Artifact
-      description: Download the artifact file based on its full qualified name (FQN) and identifier.
+      description: Download the artifact file based on its fully qualified name (FQN) and identifier.
       tags:
         - Artifacts
       parameters:

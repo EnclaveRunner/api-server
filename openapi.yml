@@ -43,6 +43,8 @@ paths:
           $ref: "#/components/responses/GenericForbidden"
         "404":
           $ref: "#/components/responses/GenericNotFound"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -69,6 +71,8 @@ paths:
           description: Unauthorized.
         "403":
           description: Forbidden.
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           description: Internal server error.
       security:
@@ -98,11 +102,13 @@ paths:
         "403":
           $ref: "#/components/responses/GenericForbidden"
         "409":
-          description: "A user with the given name already exists."
+          description: "User already exists."
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrGeneric"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -134,11 +140,13 @@ paths:
         "404":
           $ref: "#/components/responses/GenericNotFound"
         "409":
-          description: "A user with the given new name already exists."
+          description: "User already exists with the new name."
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrGeneric"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -169,6 +177,8 @@ paths:
           $ref: "#/components/responses/GenericForbidden"
         "404":
           $ref: "#/components/responses/GenericNotFound"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -192,6 +202,8 @@ paths:
           $ref: "#/components/responses/GenericUnauthenticated"
         "403":
           $ref: "#/components/responses/GenericForbidden"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -213,6 +225,8 @@ paths:
           $ref: "#/components/responses/GenericUnauthenticated"
         "403":
           $ref: "#/components/responses/GenericForbidden"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -242,11 +256,13 @@ paths:
         "403":
           $ref: "#/components/responses/GenericForbidden"
         "409":
-          description: "A user with the given new name already exists."
+          description: "User already exists with the new name."
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrGeneric"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -267,6 +283,8 @@ paths:
           $ref: "#/components/responses/GenericUnauthenticated"
         "403":
           $ref: "#/components/responses/GenericForbidden"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -290,6 +308,8 @@ paths:
           $ref: "#/components/responses/GenericUnauthenticated"
         "403":
           $ref: "#/components/responses/GenericForbidden"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -324,6 +344,8 @@ paths:
           $ref: "#/components/responses/GenericForbidden"
         "404":
           $ref: "#/components/responses/GenericNotFound"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -350,6 +372,8 @@ paths:
           description: Unauthorized.
         "403":
           description: Forbidden.
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           description: Internal server error.
       security:
@@ -375,11 +399,13 @@ paths:
         "403":
           $ref: "#/components/responses/GenericForbidden"
         "409":
-          description: "A role with the given name already exists."
+          description: "Role already exists."
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrGeneric"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -407,12 +433,13 @@ paths:
         "404":
           $ref: "#/components/responses/GenericNotFound"
         "409":
-          description: "The resource group could not be deleted due to internal restrictions."
+          description: "Role is still assigned to users."
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrGeneric"
-
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -447,6 +474,8 @@ paths:
           $ref: "#/components/responses/GenericForbidden"
         "404":
           $ref: "#/components/responses/GenericNotFound"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -483,6 +512,8 @@ paths:
           $ref: "#/components/responses/GenericForbidden"
         "404":
           $ref: "#/components/responses/GenericNotFound"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -519,6 +550,8 @@ paths:
           $ref: "#/components/responses/GenericForbidden"
         "404":
           $ref: "#/components/responses/GenericNotFound"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -542,6 +575,8 @@ paths:
           $ref: "#/components/responses/GenericUnauthenticated"
         "403":
           $ref: "#/components/responses/GenericForbidden"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -576,6 +611,8 @@ paths:
           $ref: "#/components/responses/GenericForbidden"
         "404":
           $ref: "#/components/responses/GenericNotFound"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -608,6 +645,8 @@ paths:
           description: Unauthorized.
         "403":
           description: Forbidden.
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           description: Internal server error.
       security:
@@ -639,11 +678,13 @@ paths:
         "403":
           $ref: "#/components/responses/GenericForbidden"
         "409":
-          description: "A resource group with the given name already exists."
+          description: "Resource group already exists."
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrGeneric"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -676,6 +717,8 @@ paths:
           $ref: "#/components/responses/GenericForbidden"
         "404":
           $ref: "#/components/responses/GenericNotFound"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -708,6 +751,8 @@ paths:
           $ref: "#/components/responses/GenericUnauthenticated"
         "403":
           $ref: "#/components/responses/GenericForbidden"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -744,6 +789,8 @@ paths:
           $ref: "#/components/responses/GenericForbidden"
         "404":
           $ref: "#/components/responses/GenericNotFound"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -780,6 +827,8 @@ paths:
           $ref: "#/components/responses/GenericForbidden"
         "404":
           $ref: "#/components/responses/GenericNotFound"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -803,6 +852,8 @@ paths:
           $ref: "#/components/responses/GenericUnauthenticated"
         "403":
           $ref: "#/components/responses/GenericForbidden"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -829,6 +880,8 @@ paths:
           $ref: "#/components/responses/GenericForbidden"
         "404":
           $ref: "#/components/responses/FieldError"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -853,6 +906,390 @@ paths:
           $ref: "#/components/responses/GenericUnauthenticated"
         "403":
           $ref: "#/components/responses/GenericForbidden"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+  /artifact:
+    head:
+      summary: Check Artifact Existence
+      description: Check if a specific artifact exists based on its fully qualified name (FQN).
+      tags:
+        - Artifacts
+      parameters:
+        - name: source
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The source of the artifact.
+        - name: author
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The author of the artifact.
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The name of the artifact.
+        - name: identifier
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Either the version hash or tag of the artifact.
+      responses:
+        "200":
+          description: Artifact exists.
+        "404":
+          description: Artifact does not exist.
+        "400":
+          description: Bad request.
+        "401":
+          description: Unauthorized.
+        "403":
+          description: Forbidden.
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
+        "500":
+          description: Internal server error.
+      security:
+        - BasicAuth: []
+    get:
+      summary: Retrieve Artifact Metadata
+      description: Retrieve metadata for a specific artifact based on its fully qualified name (FQN).
+      tags:
+        - Artifacts
+      parameters:
+        - name: source
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The source of the artifact.
+        - name: author
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The author of the artifact.
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The name of the artifact.
+        - name: identifier
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Either the version hash or tag of the artifact.
+      responses:
+        "200":
+          description: Successful response with artifact metadata.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artifact"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    delete:
+      summary: Delete Artifact
+      description: Delete a specific artifact based on its fully qualified name (FQN).
+      tags:
+        - Artifacts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - fqn
+                - identifier
+              properties:
+                fqn:
+                  $ref: "#/components/schemas/FQN"
+                identifier:
+                  type: string
+                  description: Either the version hash or tag of the artifact.
+      responses:
+        "200":
+          description: Artifact deleted successfully. Returns the deleted artifact metadata.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artifact"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+  /artifact/tag:
+    post:
+      summary: Tag Artifact Version
+      description: Assign a new tag to a specific version of an artifact. If the tag is assigned to a different version already, it will be moved to the new version.
+      tags:
+        - Artifacts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - fqn
+                - versionHash
+                - newTag
+              properties:
+                fqn:
+                  $ref: "#/components/schemas/FQN"
+                versionHash:
+                  type: string
+                  description: The version hash of the artifact to tag.
+                newTag:
+                  type: string
+                  description: The new tag to assign to the artifact version.
+      responses:
+        "201":
+          description: Tag assigned to artifact version successfully.
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    delete:
+      tags:
+        - Artifacts
+      summary: Remove Tag from Artifact
+      description: Remove a tag from an artifact.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - fqn
+                - versionHash
+                - tag
+              properties:
+                fqn:
+                  $ref: "#/components/schemas/FQN"
+                versionHash:
+                  type: string
+                  description: The version hash of the artifact to untag.
+                tag:
+                  type: string
+                  description: The tag to remove from the artifact.
+      responses:
+        "200":
+          description: Tag removed from artifact successfully.
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+  /artifact/upload:
+    get:
+      summary: Download Artifact
+      description: Download the artifact file based on its fully qualified name (FQN) and identifier.
+      tags:
+        - Artifacts
+      parameters:
+        - name: source
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The source of the artifact.
+        - name: author
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The author of the artifact.
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The name of the artifact.
+        - name: identifier
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Either the version hash or tag of the artifact.
+      responses:
+        "200":
+          description: Successful response with artifact file.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    post:
+      summary: Upload Artifact
+      description: Upload a new artifact with its metadata and file content.
+      tags:
+        - Artifacts
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - source
+                - author
+                - name
+                - file
+              properties:
+                source:
+                  type: string
+                  description: The source of the artifact.
+                author:
+                  type: string
+                  description: The author of the artifact.
+                name:
+                  type: string
+                  description: The name of the artifact.
+                tags:
+                  type: array
+                  description: Tags to assign to the artifact.
+                  items:
+                    type: string
+                file:
+                  type: string
+                  format: binary
+                  description: The artifact file to upload.
+      responses:
+        "201":
+          description: Artifact uploaded successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artifact"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "409":
+          description: "Artifact already exists."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrGeneric"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+  /artifact/list:
+    get:
+      summary: Query Artifact Metadata
+      description: Retrieve metadata for one or more artifacts based on provided query parameters.
+      tags:
+        - Artifacts
+      parameters:
+        - name: source
+          in: query
+          required: false
+          schema:
+            type: string
+          description: The source of the artifact.
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+          description: The name of the artifact.
+        - name: author
+          in: query
+          required: false
+          schema:
+            type: string
+          description: The author of the artifact.
+      responses:
+        "200":
+          description: Successful response with a list of artifact metadata.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Artifact"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
@@ -986,6 +1423,50 @@ components:
             - HEAD
             - "*"
           description: The allowed permission (e.g., "GET", "POST", "*").
+    FQN:
+      type: object
+      description: Fully qualified name of an artifact.
+      required:
+        - source
+        - author
+        - name
+      properties:
+        source:
+          type: string
+          description: The source of the artifact.
+        author:
+          type: string
+          description: The author of the artifact.
+        name:
+          type: string
+          description: The name of the artifact.
+    Artifact:
+      type: object
+      description: Metadata of an artifact.
+      required:
+        - fqn
+        - versionHash
+        - createdAt
+        - pulls
+        - tags
+      properties:
+        fqn:
+          $ref: "#/components/schemas/FQN"
+        versionHash:
+          type: string
+          description: The version hash of the artifact.
+        createdAt:
+          type: string
+          format: date-time
+          description: The creation timestamp of the artifact.
+        pulls:
+          type: integer
+          description: The number of times the artifact has been pulled.
+        tags:
+          type: array
+          description: Tags associated with the artifact.
+          items:
+            type: string
   responses:
     GenericBadRequest:
       description: "The request was malformed or invalid."
@@ -999,6 +1480,12 @@ components:
       description: "The authenticated user does not have permission to access the requested resource."
     GenericNotFound:
       description: "The requested resource was not found."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrGeneric"
+    GenericTooLarge:
+      description: "The request payload is too large."
       content:
         application/json:
           schema:

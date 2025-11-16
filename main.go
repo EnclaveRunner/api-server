@@ -24,6 +24,9 @@ func main() {
 		{Key: "database.database", Value: "enclave_db"},
 		{Key: "admin.username", Value: "enclave"},
 		{Key: "admin.password", Value: "enclave"},
+		{Key: "artifact_registry.host", Value: "artifactregistry"},
+		//nolint:mnd // Default port of artifact registry
+		{Key: "artifact_registry.port", Value: 5000},
 	}
 
 	// load config and create server

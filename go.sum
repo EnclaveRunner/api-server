@@ -16,8 +16,6 @@ github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/internal v0.8.0/go.mod h
 github.com/AzureAD/microsoft-authentication-library-for-go v1.0.0/go.mod h1:kgDmCTgBzIEPFElEF+FK0SdjAor06dRq2Go927dnQ6o=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.1.0 h1:HCc0+LpPfpCKs6LGGLAhwBARt9632unrVcI6i8s/8os=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.1.0/go.mod h1:wP83P5OoQ5p6ip3ScPr0BAq0BvuPAvacpEuSzyouqAI=
-github.com/EnclaveRunner/shareddeps v0.7.0 h1:I1i001/JqnoPjTjD7enK11ke+/mGoWod/tstlEk2c3k=
-github.com/EnclaveRunner/shareddeps v0.7.0/go.mod h1:Ig7TRgvzj9HDCUyIlGylamwAjtzQ1p1qHu2kFQWCevo=
 github.com/EnclaveRunner/shareddeps v0.8.0 h1:2Zt5rFYZlvWMV5Bi+C9bpkoOE3+HkQNwuPB05TZeT4Q=
 github.com/EnclaveRunner/shareddeps v0.8.0/go.mod h1:pWgmmQ+a6B30isIM2YGIxnSHFbySROoEzi6zvtEwhUc=
 github.com/RaveNoX/go-jsoncommentstrip v1.0.0/go.mod h1:78ihd09MekBnJnxpICcwzCMzGrKSKYe4AqU6PDYYpjk=
@@ -33,10 +31,8 @@ github.com/bytedance/sonic v1.14.1 h1:FBMC0zVz5XUmE4z9wF4Jey0An5FueFvOsTKKKtwIl7
 github.com/bytedance/sonic v1.14.1/go.mod h1:gi6uhQLMbTdeP0muCnrjHLeCUPyb70ujhnNlhOylAFc=
 github.com/bytedance/sonic/loader v0.3.0 h1:dskwH8edlzNMctoruo8FPTJDF3vLtDT0sXZwvZJyqeA=
 github.com/bytedance/sonic/loader v0.3.0/go.mod h1:N8A3vUdtUebEY2/VQC0MyhYeKUFosQU6FxH2JmUe6VI=
-github.com/casbin/casbin/v2 v2.128.0 h1:761dLmXLy/ZNSckAITvpUZ8VdrxARyIlwmdafHzRb7Y=
-github.com/casbin/casbin/v2 v2.128.0/go.mod h1:iAwqzcYzJtAK5QWGT2uRl9WfRxXyKFBG1AZuhk2NAQg=
-github.com/casbin/casbin/v2 v2.132.0 h1:73hGmOszGSL3hTVquwkAi98XLl3gPJ+BxB6D7G9Fxtk=
-github.com/casbin/casbin/v2 v2.132.0/go.mod h1:FmcfntdXLTcYXv/hxgNntcRPqAbwOG9xsism0yXT+18=
+github.com/casbin/casbin/v2 v2.134.0 h1:wyO3hZb487GzlGVAI2hUoHQT0ehFD+9B5P+HVG9BVTM=
+github.com/casbin/casbin/v2 v2.134.0/go.mod h1:FmcfntdXLTcYXv/hxgNntcRPqAbwOG9xsism0yXT+18=
 github.com/casbin/gorm-adapter/v3 v3.37.0 h1:ykZnI91vvzf2jTEKuxEOV7WT/euBDADSkoJTgTu6gKM=
 github.com/casbin/gorm-adapter/v3 v3.37.0/go.mod h1:kjXoK8MqA3E/CcqEF2l3SCkhJj1YiHVR6SF0LMvJoH4=
 github.com/casbin/govaluate v1.3.0/go.mod h1:G/UnbIjZk/0uMNaLwZZmFQrR72tYRZWQkO70si/iR7A=

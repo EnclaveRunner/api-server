@@ -8,21 +8,21 @@ package registry;
 service RegistryService {
     rpc QueryArtifacts(ArtifactQuery) returns (ArtifactListResponse);
     rpc PullArtifact(PullArtifactRequest) returns (stream ArtifactContent);
-    rpc UploadArtifact(UploadArtifactRequest) returns (Artifact);
+    rpc UploadArtifact(stream UploadArtifactRequest) returns (Artifact);
     rpc DeleteArtifact(ArtifactIdentifier) returns (Artifact);
     rpc GetArtifact(ArtifactIdentifier) returns (Artifact);
     rpc AddTag(AddRemoveTagRequest) returns (Artifact);
     rpc RemoveTag(AddRemoveTagRequest) returns (Artifact);
 }
 
-message FullQualifiedName {
+message FullyQualifiedName {
     string source = 1;
     string author = 2;
     string name = 3;
 }
 
 message ArtifactIdentifier {
-    FullQualifiedName fqn = 1;
+    FullyQualifiedName fqn = 1;
     oneof identifier {
         string versionHash = 2;
         string tag = 3;
@@ -30,7 +30,7 @@ message ArtifactIdentifier {
 }
 
 message Artifact {
-    FullQualifiedName fqn = 1;
+    FullyQualifiedName fqn = 1;
     string versionHash = 2;
     repeated string tags = 3;
     MetaData metadata = 4;
@@ -52,7 +52,7 @@ message ArtifactListResponse {
 }
 
 message PullArtifactRequest {
-    FullQualifiedName fqn = 1;
+    FullyQualifiedName fqn = 1;
     oneof identifier {
         string versionHash = 2;
         string tag = 3;
@@ -64,13 +64,19 @@ message ArtifactContent {
 }
 
 message UploadArtifactRequest {
-    FullQualifiedName fqn = 1;
+    oneof request {
+        UploadMetadata metadata = 1;
+        ArtifactContent content = 2;
+    }
+}
+
+message UploadMetadata {
+    FullyQualifiedName fqn = 1;
     repeated string tags = 2;
-    bytes content = 3;
 }
 
 message AddRemoveTagRequest {
-    FullQualifiedName fqn = 1;
+    FullyQualifiedName fqn = 1;
     string versionHash = 2;
     string tag = 3;
 }

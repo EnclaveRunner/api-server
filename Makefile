@@ -40,6 +40,8 @@ verify:
 	@echo "Checking Build:"
 	make build
 	make clean
+	@echo "Checking mod tidy"
+	go mod tidy
 	@echo "✅ CI Test will pass, you are ready to commit / open the PR! Thank you for your contribution :)"
 # Show help
 help:

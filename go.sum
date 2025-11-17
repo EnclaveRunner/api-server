@@ -16,8 +16,8 @@ github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/internal v0.8.0/go.mod h
 github.com/AzureAD/microsoft-authentication-library-for-go v1.0.0/go.mod h1:kgDmCTgBzIEPFElEF+FK0SdjAor06dRq2Go927dnQ6o=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.1.0 h1:HCc0+LpPfpCKs6LGGLAhwBARt9632unrVcI6i8s/8os=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.1.0/go.mod h1:wP83P5OoQ5p6ip3ScPr0BAq0BvuPAvacpEuSzyouqAI=
-github.com/EnclaveRunner/shareddeps v0.8.0 h1:2Zt5rFYZlvWMV5Bi+C9bpkoOE3+HkQNwuPB05TZeT4Q=
-github.com/EnclaveRunner/shareddeps v0.8.0/go.mod h1:pWgmmQ+a6B30isIM2YGIxnSHFbySROoEzi6zvtEwhUc=
+github.com/EnclaveRunner/shareddeps v0.8.1 h1:8oNyzD6lJZhEMHZa4UtROUtwg0/pZ+aCs2PR4ICc9Fw=
+github.com/EnclaveRunner/shareddeps v0.8.1/go.mod h1:v2ForAItEcIf8qABRFG/5MFTJg+tCHkGebjkT4dlrD0=
 github.com/RaveNoX/go-jsoncommentstrip v1.0.0/go.mod h1:78ihd09MekBnJnxpICcwzCMzGrKSKYe4AqU6PDYYpjk=
 github.com/apapsch/go-jsonmerge/v2 v2.0.0 h1:axGnT1gRIfimI7gJifB699GoE/oq+F2MU7Dml6nw9rQ=
 github.com/apapsch/go-jsonmerge/v2 v2.0.0/go.mod h1:lvDnEdqiQrp0O42VQGgmlKpxL1AP2+08jFMw88y4klk=

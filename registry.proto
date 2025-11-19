@@ -7,7 +7,7 @@ package registry;
 
 service RegistryService {
     rpc QueryArtifacts(ArtifactQuery) returns (ArtifactListResponse);
-    rpc PullArtifact(PullArtifactRequest) returns (stream ArtifactContent);
+    rpc PullArtifact(ArtifactIdentifier) returns (stream ArtifactContent);
     rpc UploadArtifact(stream UploadArtifactRequest) returns (Artifact);
     rpc DeleteArtifact(ArtifactIdentifier) returns (Artifact);
     rpc GetArtifact(ArtifactIdentifier) returns (Artifact);
@@ -49,14 +49,6 @@ message ArtifactQuery {
 
 message ArtifactListResponse {
     repeated Artifact artifacts = 1;
-}
-
-message PullArtifactRequest {
-    FullyQualifiedName fqn = 1;
-    oneof identifier {
-        string versionHash = 2;
-        string tag = 3;
-    }
 }
 
 message ArtifactContent {

@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+option go_package = "proto_gen/";
+
+import "registry.proto";
+
+package task;
+
+message Task {
+    registry.ArtifactIdentifier artifact = 1;
+    string function = 2;
+    bytes input = 3;
+}

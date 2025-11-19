@@ -8,6 +8,8 @@ tags:
     description: Operations related to user management.
   - name: RBAC
     description: Operations related to role-based access control.
+  - name: Artifacts
+    description: Operations related to artifacts management.
 paths:
   /users/user:
     get:

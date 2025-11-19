@@ -6,6 +6,9 @@ on:
     branches:
       - main
 
+env:
+  GO_VERSION: "1.25"
+
 jobs:
   lint:
     name: Lint
@@ -20,10 +23,10 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.25"
+          go-version: ${{ env.GO_VERSION }}
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@v9
         with:
           version: v2.5.0
 
@@ -40,16 +43,35 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.25"
+          go-version: ${{ env.GO_VERSION }}
 
       - name: Build
         run: go build -v ./...
+
+  mod-tidy:
+    name: Go Mod Tidy Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Run go mod tidy
+        run: |
+          go mod tidy --diff
 
   # This job will only succeed if all other jobs succeed
   all-checks:
     name: All Checks Passed
     runs-on: ubuntu-latest
-    needs: [lint, build]
+    needs: [lint, build, mod-tidy]
     permissions:
       contents: none
     if: always()
@@ -65,6 +87,10 @@ jobs:
             echo "❌ Build failed"
             exit 1
           fi
+          if [[ "${{ needs.mod-tidy.result }}" != "success" ]]; then
+            echo "❌ Go Mod Tidy Check failed"
+            exit 1
+          fi
           echo "✅ All checks passed!"
 
       - name: Comment on PR failure
@@ -76,6 +102,7 @@ jobs:
             The following checks failed:
             ${{ needs.lint.result != 'success' && '- Linting (For linting issues: Run `make lint` locally)' || '' }}
             ${{ needs.build.result != 'success' && '- Build (For build issues: Run `go build ./...` locally)' || '' }}
+            ${{ needs.mod-tidy.result != 'success' && '- Mod tidy (Run `go mod tidy` locally)' || ''}}
 
             _Please fix the issues before merging this PR._
 

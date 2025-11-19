@@ -4,6 +4,7 @@ import (
 	"api-server/api"
 	"api-server/config"
 	"api-server/orm"
+	"api-server/proto_gen"
 
 	"github.com/EnclaveRunner/shareddeps"
 	"github.com/EnclaveRunner/shareddeps/auth"
@@ -23,10 +24,13 @@ func main() {
 		{Key: "database.database", Value: "enclave_db"},
 		{Key: "admin.username", Value: "enclave"},
 		{Key: "admin.password", Value: "enclave"},
+		{Key: "artifact_registry.host", Value: "artifactregistry"},
+		//nolint:mnd // Default port of artifact registry
+		{Key: "artifact_registry.port", Value: 5000},
 	}
 
 	// load config and create server
-	shareddeps.InitRESTServer(config.Cfg, "api-server", "v0.4.1", defaults...)
+	shareddeps.InitRESTServer(config.Cfg, "api-server", "v0.5.0", defaults...)
 
 	policyAdapter := orm.InitDB()
 
@@ -44,6 +48,13 @@ func main() {
 	server := api.NewServer()
 	handler := api.NewStrictHandler(server, nil)
 	api.RegisterHandlers(shareddeps.RESTServer, handler)
+
+	shareddeps.InitGRPCClient(
+		config.Cfg.ArtifactRegistry.Host,
+		config.Cfg.ArtifactRegistry.Port,
+	)
+
+	proto_gen.Client = proto_gen.NewRegistryServiceClient(shareddeps.GRPCClient)
 
 	shareddeps.StartRESTServer()
 }

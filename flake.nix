@@ -31,8 +31,13 @@
 
             # https://github.com/golangci/golangci-lint
             golangci-lint
+            
+            git
 
-            delve
+            # Proto/Grpc compiler
+            protobuf_29
+            protoc-gen-go
+            protoc-gen-go-grpc
           ];
 
           env = {

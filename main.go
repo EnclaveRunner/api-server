@@ -30,7 +30,7 @@ func main() {
 	}
 
 	// load config and create server
-	shareddeps.InitRESTServer(config.Cfg, "api-server", "v0.5.0", defaults...)
+	shareddeps.InitRESTServer(config.Cfg, "api-server", "v0.5.1", defaults...)
 
 	policyAdapter := orm.InitDB()
 

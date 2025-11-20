@@ -62,7 +62,6 @@ func (s *Server) processBlueprint(
 	data io.Reader,
 ) (PostManifestResponseObject, error) {
 	var blueprint schema.Blueprint
-	var fullIdentifier Identifier
 
 	decoder := json.NewDecoder(data)
 	if err := decoder.Decode(&blueprint); err != nil {

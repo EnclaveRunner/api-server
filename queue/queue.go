@@ -40,8 +40,10 @@ func (q *Queue) EnqueueTask(
 	}
 
 	queueTask := asynq.NewTask(TASK_TYPE_NORMAL, payload)
+
+	_, err = q.Client.Enqueue(queueTask, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create queue task: %w", err)
+		return nil, fmt.Errorf("failed to enqueue task: %w", err)
 	}
 
 	return queueTask, nil

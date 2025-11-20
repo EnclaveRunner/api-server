@@ -32,6 +32,10 @@ type Identifier struct {
 // ErrInvalidIdentifier is returned when an identifier cannot be parsed
 var ErrInvalidIdentifier = errors.New("invalid identifier format")
 
+// MaxInputSize defines the maximum allowed size for base64-encoded input
+// (500MB)
+const MaxInputSize = 500 * 1024 * 1024
+
 // PostManifest implements StrictServerInterface.
 func (s *Server) PostManifest(
 	ctx context.Context,
@@ -94,6 +98,18 @@ func (s *Server) processBlueprint(
 		}
 	}
 
+	// Validate input size before decoding to prevent memory exhaustion attacks
+	if len(blueprint.Spec.Artifact.Input) > MaxInputSize {
+		return PostManifest400JSONResponse{
+			GenericBadRequestJSONResponse{
+				Error: fmt.Sprintf(
+					"Artifact input size exceeds maximum allowed size of %d bytes",
+					MaxInputSize,
+				),
+			},
+		}, nil
+	}
+
 	// Decode base64 input to bytes
 	inputBytes, err := base64.StdEncoding.DecodeString(
 		blueprint.Spec.Artifact.Input,
@@ -102,6 +118,18 @@ func (s *Server) processBlueprint(
 		return PostManifest400JSONResponse{
 			GenericBadRequestJSONResponse{
 				Error: "Invalid base64 encoding in artifact input: " + err.Error(),
+			},
+		}, nil
+	}
+
+	// Validate decoded size as well
+	if len(inputBytes) > MaxInputSize {
+		return PostManifest400JSONResponse{
+			GenericBadRequestJSONResponse{
+				Error: fmt.Sprintf(
+					"Decoded artifact input size exceeds maximum allowed size of %d bytes",
+					MaxInputSize,
+				),
 			},
 		}, nil
 	}
@@ -167,8 +195,7 @@ func parseSource(identifier string) (Identifier, error) {
 	id.Author = data[1]
 
 	data = strings.Split(data[2], ":")
-	//nolint:mnd // ignore magic numbers for split counts
-	if len(data) < 2 {
+	if len(data) < 2 || len(data) > 3 {
 		return id, ErrInvalidIdentifier
 	}
 
@@ -194,7 +221,14 @@ func parseSource(identifier string) (Identifier, error) {
 		return id, ErrInvalidIdentifier
 	}
 
-	if id.Source == "" || id.Author == "" || id.Name == "" || id.Tag == "" {
+	// Validate required fields and ensure either Tag or Hash is set (but not
+	// both)
+	if id.Source == "" || id.Author == "" || id.Name == "" {
+		return Identifier{}, ErrInvalidIdentifier
+	}
+
+	// Must have either Tag or Hash, but not both or neither
+	if (id.Tag == "" && id.Hash == "") || (id.Tag != "" && id.Hash != "") {
 		return Identifier{}, ErrInvalidIdentifier
 	}
 

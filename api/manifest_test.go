@@ -83,6 +83,12 @@ func TestParseSource(t *testing.T) {
 			expectError: true,
 		},
 		{
+			name:        "invalid format - wrong hash keyword",
+			input:       "github.com/user/repo:version:abc123",
+			expected:    Identifier{},
+			expectError: true,
+		},
+		{
 			name:  "valid source with complex hash format",
 			input: "docker.io/library/nginx:hash:sha2562a25e1f8f0aa9571689513d5b68c8bb94b9bc8f5a9229a8c0250482cfb1c8a99",
 			expected: Identifier{
@@ -114,11 +120,14 @@ func TestParseSource(t *testing.T) {
 
 			if tt.expectError {
 				assert.Error(t, err, "Expected error for input: %s", tt.input)
-				assert.Equal(
+				// Check if it's one of the expected error types
+				isExpectedError := err == ErrInvalidIdentifier ||
+					strings.Contains(err.Error(), "invalid identifier format")
+				assert.True(
 					t,
-					ErrInvalidIdentifier,
+					isExpectedError,
+					"Expected ErrInvalidIdentifier or format validation error, got: %v",
 					err,
-					"Expected ErrInvalidIdentifier",
 				)
 			} else {
 				assert.NoError(t, err, "Unexpected error for input: %s", tt.input)

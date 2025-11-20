@@ -173,13 +173,25 @@ func parseSource(identifier string) (Identifier, error) {
 		return id, ErrInvalidIdentifier
 	}
 
-	if len(data) == 3 &&
-		data[1] == "hash" { //nolint:gomagicnumber // ignore magic numbers for split
-		id.Name = data[0]
-		id.Hash = data[2]
-	} else {
-		id.Name = data[0]
+	id.Name = data[0]
+
+	// Handle different identifier formats
+	switch len(data) {
+	case 2: //nolint:mnd // 2 parts means name:tag format
+		// Format: name:tag
 		id.Tag = data[1]
+	case 3: //nolint:mnd // 3 parts means name:hash:versionhash format
+		// Format: name:hash:versionhash
+		if data[1] != "hash" {
+			return id, fmt.Errorf(
+				"invalid identifier format: expected 'hash' but got '%s'",
+				data[1],
+			)
+		}
+		id.Hash = data[2]
+	default:
+		// More than 3 parts is invalid
+		return id, ErrInvalidIdentifier
 	}
 
 	return id, nil

@@ -4,7 +4,7 @@ import (
 	"api-server/api"
 	"api-server/config"
 	"api-server/orm"
-	"api-server/proto_gen"
+	proto_gen "api-server/proto_gen"
 	"api-server/queue"
 
 	"github.com/EnclaveRunner/shareddeps"
@@ -18,18 +18,20 @@ func main() {
 	defaults := []shareddepsConfig.DefaultValue{
 		//nolint:mnd // Default port of postgres
 		{Key: "database.port", Value: 5432},
-		{Key: "database.host", Value: "postgres"},
+		{Key: "database.host", Value: "localhost"},
 		{Key: "database.sslmode", Value: "disable"},
 		{Key: "database.username", Value: "enclave_user"},
 		{Key: "database.password", Value: "enclave_password"},
 		{Key: "database.database", Value: "enclave_db"},
 		{Key: "admin.username", Value: "enclave"},
 		{Key: "admin.password", Value: "enclave"},
+		{Key: "admin.display_name", Value: "enclave"},
 		{Key: "artifact_registry.host", Value: "artifactregistry"},
 		//nolint:mnd // Default port of artifact registry
 		{Key: "artifact_registry.port", Value: 5000},
 
 		{Key: "redis.host", Value: "localhost"},
+		//nolint:mnd // Default port of redis
 		{Key: "redis.port", Value: 6379},
 		{Key: "redis.db", Value: 0},
 	}

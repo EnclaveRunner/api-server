@@ -37,12 +37,12 @@ func (q *Queue) EnqueueTask(
 ) (*asynq.Task, error) {
 	payload, err := proto.Marshal(task)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to marshal task to protobuf: %w", err)
 	}
 
 	queueTask := asynq.NewTask(TASK_TYPE_NORMAL, payload)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create queue task: %w", err)
 	}
 
 	return queueTask, nil

@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -29,7 +30,7 @@ type Identifier struct {
 }
 
 // ErrInvalidIdentifier is returned when an identifier cannot be parsed
-var ErrInvalidIdentifier = fmt.Errorf("invalid identifier format")
+var ErrInvalidIdentifier = errors.New("invalid identifier format")
 
 // PostManifest implements StrictServerInterface.
 func (s *Server) PostManifest(
@@ -126,7 +127,7 @@ func unmarshalManifest(data io.Reader) (BaseManifest, error) {
 	var manifest BaseManifest
 	decoder := json.NewDecoder(data)
 	if err := decoder.Decode(&manifest); err != nil {
-		return BaseManifest{}, err
+		return BaseManifest{}, fmt.Errorf("failed to decode manifest JSON: %w", err)
 	}
 
 	return manifest, nil
@@ -152,7 +153,8 @@ func parseSource(identifier string) (Identifier, error) {
 		return id, ErrInvalidIdentifier
 	}
 
-	if len(data) == 3 && data[1] == "hash" { //nolint:gomagicnumber
+	if len(data) == 3 &&
+		data[1] == "hash" { //nolint:gomagicnumber // ignore magic numbers for split
 		id.Name = data[0]
 		id.Hash = data[2]
 	} else {

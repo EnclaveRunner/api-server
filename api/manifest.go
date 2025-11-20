@@ -183,7 +183,8 @@ func parseSource(identifier string) (Identifier, error) {
 		// Format: name:hash:versionhash
 		if data[1] != "hash" {
 			return id, fmt.Errorf(
-				"invalid identifier format: expected 'hash' but got '%s'",
+				"%w: expected 'hash' but got '%s'",
+				ErrInvalidIdentifier,
 				data[1],
 			)
 		}
@@ -191,6 +192,10 @@ func parseSource(identifier string) (Identifier, error) {
 	default:
 		// More than 3 parts is invalid
 		return id, ErrInvalidIdentifier
+	}
+
+	if id.Source == "" || id.Author == "" || id.Name == "" || id.Tag == "" {
+		return Identifier{}, ErrInvalidIdentifier
 	}
 
 	return id, nil

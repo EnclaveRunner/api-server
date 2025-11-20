@@ -39,14 +39,22 @@ func (s *Server) PostManifest(
 ) (PostManifestResponseObject, error) {
 	baseManifest, err := unmarshalManifest(mreq.Body)
 	if err != nil {
-		return PostManifest400JSONResponse{GenericBadRequestJSONResponse{}}, nil
+		return PostManifest400JSONResponse{
+			GenericBadRequestJSONResponse{
+				Error: "Invalid JSON format: " + err.Error(),
+			},
+		}, nil
 	}
 
 	switch baseManifest.Kind {
 	case "Blueprint":
 		return s.processBlueprint(mreq.Body)
 	default:
-		return PostManifest400JSONResponse{GenericBadRequestJSONResponse{}}, nil
+		return PostManifest400JSONResponse{
+			GenericBadRequestJSONResponse{
+				Error: "Unsupported manifest kind: " + baseManifest.Kind,
+			},
+		}, nil
 	}
 }
 
@@ -58,12 +66,20 @@ func (s *Server) processBlueprint(
 
 	decoder := json.NewDecoder(data)
 	if err := decoder.Decode(&blueprint); err != nil {
-		return PostManifest400JSONResponse{GenericBadRequestJSONResponse{}}, nil
+		return PostManifest400JSONResponse{
+			GenericBadRequestJSONResponse{
+				Error: "Invalid Blueprint JSON format: " + err.Error(),
+			},
+		}, nil
 	}
 
 	fullIdentifier, err := parseSource(blueprint.Spec.Artifact.Source)
 	if err != nil {
-		return PostManifest400JSONResponse{GenericBadRequestJSONResponse{}}, nil
+		return PostManifest400JSONResponse{
+			GenericBadRequestJSONResponse{
+				Error: "Invalid artifact source format: " + err.Error(),
+			},
+		}, nil
 	}
 
 	var tagIdentifier *pb.ArtifactIdentifier_Tag
@@ -84,7 +100,11 @@ func (s *Server) processBlueprint(
 		blueprint.Spec.Artifact.Input,
 	)
 	if err != nil {
-		return PostManifest400JSONResponse{GenericBadRequestJSONResponse{}}, nil
+		return PostManifest400JSONResponse{
+			GenericBadRequestJSONResponse{
+				Error: "Invalid base64 encoding in artifact input: " + err.Error(),
+			},
+		}, nil
 	}
 
 	task := &pb.Task{

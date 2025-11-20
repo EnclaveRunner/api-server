@@ -142,7 +142,7 @@ func (s *Server) processBlueprint(
 }
 
 func unmarshalManifest(data io.Reader) (BaseManifest, error) {
-	// try marshalling as BaseManifest
+	// try unmarshalling as BaseManifest
 	var manifest BaseManifest
 	decoder := json.NewDecoder(data)
 	if err := decoder.Decode(&manifest); err != nil {

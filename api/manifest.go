@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-// all valid manifest are required to be able to marshal to this struct
+// all valid manifests are required to be able to unmarshal to this struct
 type BaseManifest struct {
 	APIVersion string                 `json:"apiVersion" yaml:"apiVersion"`
 	Kind       string                 `json:"kind"       yaml:"kind"`

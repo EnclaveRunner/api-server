@@ -37,7 +37,7 @@ type Artifact struct {
 	// CreatedAt The creation timestamp of the artifact.
 	CreatedAt time.Time `json:"createdAt"`
 
-	// Fqn Fully Qualified Name of an artifact.
+	// Fqn Fully qualified name of an artifact.
 	Fqn FQN `json:"fqn"`
 
 	// Pulls The number of times the artifact has been pulled.
@@ -76,7 +76,7 @@ type ErrGeneric struct {
 	Error string `json:"error"`
 }
 
-// FQN Fully Qualified Name of an artifact.
+// FQN Fully qualified name of an artifact.
 type FQN struct {
 	// Author The author of the artifact.
 	Author string `json:"author"`
@@ -170,7 +170,7 @@ type GenericTooLarge = ErrGeneric
 
 // DeleteArtifactJSONBody defines parameters for DeleteArtifact.
 type DeleteArtifactJSONBody struct {
-	// Fqn Fully Qualified Name of an artifact.
+	// Fqn Fully qualified name of an artifact.
 	Fqn FQN `json:"fqn"`
 
 	// Identifier Either the version hash or tag of the artifact.
@@ -221,7 +221,7 @@ type GetArtifactListParams struct {
 
 // DeleteArtifactTagJSONBody defines parameters for DeleteArtifactTag.
 type DeleteArtifactTagJSONBody struct {
-	// Fqn Fully Qualified Name of an artifact.
+	// Fqn Fully qualified name of an artifact.
 	Fqn FQN `json:"fqn"`
 
 	// Tag The tag to remove from the artifact.
@@ -233,7 +233,7 @@ type DeleteArtifactTagJSONBody struct {
 
 // PostArtifactTagJSONBody defines parameters for PostArtifactTag.
 type PostArtifactTagJSONBody struct {
-	// Fqn Fully Qualified Name of an artifact.
+	// Fqn Fully qualified name of an artifact.
 	Fqn FQN `json:"fqn"`
 
 	// NewTag The new tag to assign to the artifact version.
@@ -529,6 +529,9 @@ type ClientInterface interface {
 	// PostArtifactUploadWithBody request with any body
 	PostArtifactUploadWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// PostManifestWithBody request with any body
+	PostManifestWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// DeleteRbacEndpointWithBody request with any body
 	DeleteRbacEndpointWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -770,6 +773,18 @@ func (c *Client) GetArtifactUpload(ctx context.Context, params *GetArtifactUploa
 
 func (c *Client) PostArtifactUploadWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPostArtifactUploadRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostManifestWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostManifestRequestWithBody(c.Server, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1774,6 +1789,35 @@ func NewPostArtifactUploadRequestWithBody(server string, contentType string, bod
 	}
 
 	operationPath := fmt.Sprintf("/artifact/upload")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPostManifestRequestWithBody generates requests for PostManifest with any type of body
+func NewPostManifestRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/manifest")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -2953,6 +2997,9 @@ type ClientWithResponsesInterface interface {
 	// PostArtifactUploadWithBodyWithResponse request with any body
 	PostArtifactUploadWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostArtifactUploadResponse, error)
 
+	// PostManifestWithBodyWithResponse request with any body
+	PostManifestWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostManifestResponse, error)
+
 	// DeleteRbacEndpointWithBodyWithResponse request with any body
 	DeleteRbacEndpointWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteRbacEndpointResponse, error)
 
@@ -3259,6 +3306,29 @@ func (r PostArtifactUploadResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r PostArtifactUploadResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostManifestResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *GenericBadRequest
+	JSON409      *ErrGeneric
+}
+
+// Status returns HTTPResponse.Status
+func (r PostManifestResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostManifestResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -4030,6 +4100,15 @@ func (c *ClientWithResponses) PostArtifactUploadWithBodyWithResponse(ctx context
 	return ParsePostArtifactUploadResponse(rsp)
 }
 
+// PostManifestWithBodyWithResponse request with arbitrary body returning *PostManifestResponse
+func (c *ClientWithResponses) PostManifestWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostManifestResponse, error) {
+	rsp, err := c.PostManifestWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostManifestResponse(rsp)
+}
+
 // DeleteRbacEndpointWithBodyWithResponse request with arbitrary body returning *DeleteRbacEndpointResponse
 func (c *ClientWithResponses) DeleteRbacEndpointWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteRbacEndpointResponse, error) {
 	rsp, err := c.DeleteRbacEndpointWithBody(ctx, contentType, body, reqEditors...)
@@ -4739,6 +4818,39 @@ func ParsePostArtifactUploadResponse(rsp *http.Response) (*PostArtifactUploadRes
 			return nil, err
 		}
 		response.JSON413 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePostManifestResponse parses an HTTP response from a PostManifestWithResponse call
+func ParsePostManifestResponse(rsp *http.Response) (*PostManifestResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostManifestResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest GenericBadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest ErrGeneric
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
 
 	}
 

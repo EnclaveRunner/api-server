@@ -13,7 +13,6 @@ var Q Queue
 
 const (
 	TASK_TYPE_NORMAL = "job:normal"
-	LOGGING_INTERVAL = 100 // seconds
 )
 
 type Queue struct {

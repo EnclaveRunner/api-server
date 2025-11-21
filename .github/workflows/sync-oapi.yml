@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - "openapi.yml"
 
 jobs:
   sync-to-docs:

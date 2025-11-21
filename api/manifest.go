@@ -53,7 +53,7 @@ func (s *Server) PostManifest(
 	if err != nil {
 		return PostManifest400JSONResponse{
 			GenericBadRequestJSONResponse{
-				Error: "Invalid JSON format: " + err.Error(),
+				Error: "Invalid YAML format: " + err.Error(),
 			},
 		}, nil
 	}

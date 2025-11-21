@@ -18,7 +18,7 @@ func main() {
 	defaults := []shareddepsConfig.DefaultValue{
 		//nolint:mnd // Default port of postgres
 		{Key: "database.port", Value: 5432},
-		{Key: "database.host", Value: "localhost"},
+		{Key: "database.host", Value: "postgres"},
 		{Key: "database.sslmode", Value: "disable"},
 		{Key: "database.username", Value: "enclave_user"},
 		{Key: "database.password", Value: "enclave_password"},
@@ -30,7 +30,7 @@ func main() {
 		//nolint:mnd // Default port of artifact registry
 		{Key: "artifact_registry.port", Value: 5000},
 
-		{Key: "redis.host", Value: "localhost"},
+		{Key: "redis.host", Value: "redis"},
 		//nolint:mnd // Default port of redis
 		{Key: "redis.port", Value: 6379},
 		{Key: "redis.db", Value: 0},

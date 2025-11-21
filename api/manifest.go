@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/rs/zerolog/log"
 )
 
 // all valid manifests are required to be able to unmarshal to this struct
@@ -156,6 +158,8 @@ func (s *Server) processBlueprint(
 	// Enqueue the task for processing
 	taskInfo, err := queue.Q.EnqueueTask(task)
 	if err != nil {
+		log.Error().Err(err).Msg("Failed to enqueue task")
+
 		return PostManifest500Response{}, nil
 	}
 

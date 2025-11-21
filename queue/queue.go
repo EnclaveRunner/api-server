@@ -12,7 +12,7 @@ import (
 var Q Queue
 
 const (
-	TASK_TYPE_NORMAL = "job:normal"
+	TaskTypeNormal = "job:normal"
 )
 
 type Queue struct {
@@ -39,7 +39,7 @@ func (q *Queue) EnqueueTask(
 		return nil, fmt.Errorf("failed to marshal task to protobuf: %w", err)
 	}
 
-	queueTask := asynq.NewTask(TASK_TYPE_NORMAL, payload)
+	queueTask := asynq.NewTask(TaskTypeNormal, payload)
 
 	info, err := q.Client.Enqueue(queueTask, opts...)
 	if err != nil {

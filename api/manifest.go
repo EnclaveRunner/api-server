@@ -9,18 +9,21 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/goccy/go-yaml"
 	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // all valid manifests are required to be able to unmarshal to this struct
 type BaseManifest struct {
-	APIVersion string                 `json:"apiVersion" yaml:"apiVersion"`
-	Kind       string                 `json:"kind"       yaml:"kind"`
-	Metadata   map[string]interface{} `json:"metadata"   yaml:"metadata"`
-	Spec       map[string]interface{} `json:"spec"       yaml:"spec"`
+	APIVersion string         `json:"apiVersion" yaml:"apiVersion"`
+	Kind       string         `json:"kind"       yaml:"kind"`
+	Metadata   map[string]any `json:"metadata"   yaml:"metadata"`
+	Spec       map[string]any `json:"spec"       yaml:"spec"`
 }
 
 type Identifier struct {
@@ -39,16 +42,16 @@ func (s *Server) PostManifest(
 	ctx context.Context,
 	mreq PostManifestRequestObject,
 ) (PostManifestResponseObject, error) {
-	var body bytes.Buffer
-	buf, ok := mreq.Body.(*bytes.Buffer)
-	if !ok {
+	body, err := io.ReadAll(mreq.Body)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to read request body")
+
 		return PostManifest400JSONResponse{
 			GenericBadRequestJSONResponse{
-				Error: "Invalid request body type, expected bytes.Buffer",
+				Error: "Failed to read body",
 			},
 		}, nil
 	}
-	body.Write(buf.Bytes())
 	baseManifest, err := unmarshalManifest(body)
 	if err != nil {
 		return PostManifest400JSONResponse{
@@ -60,7 +63,7 @@ func (s *Server) PostManifest(
 
 	switch baseManifest.Kind {
 	case "Blueprint":
-		return s.processBlueprint(body)
+		return s.processBlueprint(ctx, body)
 	default:
 		return PostManifest400JSONResponse{
 			GenericBadRequestJSONResponse{
@@ -71,11 +74,13 @@ func (s *Server) PostManifest(
 }
 
 func (s *Server) processBlueprint(
-	data bytes.Buffer,
+	ctx context.Context,
+	data []byte,
 ) (PostManifestResponseObject, error) {
 	var blueprint schema.Blueprint
 
-	decoder := yaml.NewDecoder(&data)
+	// Copy data
+	decoder := yaml.NewDecoder(bytes.NewBuffer(data))
 	if err := decoder.Decode(&blueprint); err != nil {
 		return PostManifest400JSONResponse{
 			GenericBadRequestJSONResponse{
@@ -137,6 +142,22 @@ func (s *Server) processBlueprint(
 		task.Artifact.Identifier = versionIdentifier
 	}
 
+	// Check that artifact exists
+	_, err = pb.Client.GetArtifact(ctx, task.Artifact)
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			return PostManifest400JSONResponse{
+				GenericBadRequestJSONResponse{
+					Error: "Artifact not found",
+				},
+			}, nil
+		}
+
+		log.Error().Err(err).Msg("Failed to get artifact")
+
+		return &PostManifest500Response{}, nil
+	}
+
 	// Enqueue the task for processing
 	taskInfo, err := queue.Q.EnqueueTask(task)
 	if err != nil {
@@ -155,11 +176,11 @@ func (s *Server) processBlueprint(
 	}, nil
 }
 
-func unmarshalManifest(data bytes.Buffer) (BaseManifest, error) {
+func unmarshalManifest(data []byte) (BaseManifest, error) {
 	// try unmarshalling as BaseManifest
 	var manifest BaseManifest
 
-	decoder := yaml.NewDecoder(&data)
+	decoder := yaml.NewDecoder(bytes.NewBuffer(data))
 	if err := decoder.Decode(&manifest); err != nil {
 		return BaseManifest{}, fmt.Errorf("failed to decode manifest YAML: %w", err)
 	}

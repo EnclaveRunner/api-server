@@ -2,7 +2,6 @@
 package api
 
 import (
-	"bytes"
 	"errors"
 	"strings"
 	"testing"
@@ -158,9 +157,9 @@ spec:
 			expected: BaseManifest{
 				APIVersion: "v1",
 				Kind:       "Blueprint",
-				Metadata:   map[string]interface{}{"name": "test-blueprint"},
-				Spec: map[string]interface{}{
-					"artifact": map[string]interface{}{
+				Metadata:   map[string]any{"name": "test-blueprint"},
+				Spec: map[string]any{
+					"artifact": map[string]any{
 						"source": "github.com/user/repo:latest",
 					},
 				},
@@ -176,8 +175,8 @@ spec: {}`,
 			expected: BaseManifest{
 				APIVersion: "v1",
 				Kind:       "Task",
-				Metadata:   map[string]interface{}{},
-				Spec:       map[string]interface{}{},
+				Metadata:   map[string]any{},
+				Spec:       map[string]any{},
 			},
 			expectError: false,
 		},
@@ -219,12 +218,12 @@ status:
 			expected: BaseManifest{
 				APIVersion: "v1",
 				Kind:       "Blueprint",
-				Metadata: map[string]interface{}{
+				Metadata: map[string]any{
 					"name":      "my-blueprint",
 					"namespace": "default",
 				},
-				Spec: map[string]interface{}{
-					"artifact": map[string]interface{}{
+				Spec: map[string]any{
+					"artifact": map[string]any{
 						"source":   "github.com/user/myapp:v1.0.0",
 						"function": "process",
 						"input":    "SGVsbG8gV29ybGQ=",
@@ -237,8 +236,7 @@ status:
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			buffer := bytes.NewBufferString(tt.input)
-			result, err := unmarshalManifest(*buffer)
+			result, err := unmarshalManifest([]byte(tt.input))
 
 			if tt.expectError {
 				assert.Error(t, err, "Expected error for input: %s", tt.input)
@@ -292,7 +290,7 @@ func BenchmarkParseSource(b *testing.B) {
 
 	for _, tc := range testCases {
 		b.Run(tc, func(b *testing.B) {
-			for range b.N {
+			for b.Loop() {
 				_, _ = parseSource(tc)
 			}
 		})

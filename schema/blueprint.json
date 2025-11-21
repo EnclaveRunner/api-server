@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "$ref": "#/definitions/Blueprint",
+  "definitions": {
+    "Blueprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "apiVersion": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/definitions/Metadata"
+        },
+        "spec": {
+          "$ref": "#/definitions/Spec"
+        },
+        "status": {
+          "$ref": "#/definitions/Status"
+        }
+      },
+      "required": ["apiVersion", "kind", "metadata", "spec", "status"],
+      "title": "Blueprint"
+    },
+    "Metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": ["name"],
+      "title": "Metadata"
+    },
+    "Spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "artifact": {
+          "$ref": "#/definitions/Artifact"
+        }
+      },
+      "required": ["artifact"],
+      "title": "Spec"
+    },
+    "Artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "function": {
+          "type": "string"
+        },
+        "input": {
+          "type": "string",
+          "contentEncoding": "base64"
+        }
+      },
+      "required": ["source", "function", "input"],
+      "title": "Artifact"
+    },
+    "Status": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "healthy": {
+          "type": "boolean"
+        },
+        "created": {
+          "type": "string"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "revisions": {
+          "type": "integer"
+        }
+      },
+      "required": ["created", "events", "healthy", "revisions"],
+      "title": "Status"
+    }
+  }
+}

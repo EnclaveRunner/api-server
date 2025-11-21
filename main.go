@@ -4,7 +4,8 @@ import (
 	"api-server/api"
 	"api-server/config"
 	"api-server/orm"
-	"api-server/proto_gen"
+	proto_gen "api-server/proto_gen"
+	"api-server/queue"
 
 	"github.com/EnclaveRunner/shareddeps"
 	"github.com/EnclaveRunner/shareddeps/auth"
@@ -28,6 +29,11 @@ func main() {
 		{Key: "artifact_registry.host", Value: "artifactregistry"},
 		//nolint:mnd // Default port of artifact registry
 		{Key: "artifact_registry.port", Value: 5000},
+
+		{Key: "redis.host", Value: "redis"},
+		//nolint:mnd // Default port of redis
+		{Key: "redis.port", Value: 6379},
+		{Key: "redis.db", Value: 0},
 	}
 
 	// load config and create server
@@ -42,6 +48,9 @@ func main() {
 
 	// Initialize admin user after auth system is ready
 	orm.InitAdminUser()
+
+	// Initialize task queue
+	queue.Init()
 
 	// Migrate RBAC policies, resource groups and roles
 	MigrateRBAC()

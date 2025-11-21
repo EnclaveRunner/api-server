@@ -184,7 +184,7 @@ func (s *Server) GetArtifactUpload(
 	ctx context.Context,
 	request GetArtifactUploadRequestObject,
 ) (GetArtifactUploadResponseObject, error) {
-	pullRequest := &pb.PullArtifactRequest{
+	pullRequest := &pb.ArtifactIdentifier{
 		Fqn: &pb.FullyQualifiedName{
 			Source: request.Params.Source,
 			Author: request.Params.Author,
@@ -193,11 +193,11 @@ func (s *Server) GetArtifactUpload(
 	}
 
 	if after, ok := strings.CutPrefix(request.Params.Identifier, VersionHashPrefix); ok {
-		pullRequest.Identifier = &pb.PullArtifactRequest_VersionHash{
+		pullRequest.Identifier = &pb.ArtifactIdentifier_VersionHash{
 			VersionHash: after,
 		}
 	} else {
-		pullRequest.Identifier = &pb.PullArtifactRequest_Tag{
+		pullRequest.Identifier = &pb.ArtifactIdentifier_Tag{
 			Tag: request.Params.Identifier,
 		}
 	}

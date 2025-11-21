@@ -10,6 +10,8 @@ tags:
     description: Operations related to role-based access control.
   - name: Artifacts
     description: Operations related to artifacts management.
+  - name: Manifests
+    description: Operations related to manifests management.
 paths:
   /users/user:
     get:
@@ -1292,6 +1294,37 @@ paths:
           $ref: "#/components/responses/GenericForbidden"
         "413":
           $ref: "#/components/responses/GenericTooLarge"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+  /manifest:
+    post:
+      summary: Create Manifest
+      description: Create a new manifest from YAML manifest data.
+      tags:
+        - Manifests
+      requestBody:
+        required: true
+        content:
+            text/yaml: {}
+      responses:
+        "201":
+          description: Manifest created successfully.
+          content:
+            text/yaml: {}
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "409":
+          description: "A manifest with the given name already exists."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrGeneric"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:

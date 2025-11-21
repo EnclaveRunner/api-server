@@ -33,7 +33,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RegistryServiceClient interface {
 	QueryArtifacts(ctx context.Context, in *ArtifactQuery, opts ...grpc.CallOption) (*ArtifactListResponse, error)
-	PullArtifact(ctx context.Context, in *PullArtifactRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactContent], error)
+	PullArtifact(ctx context.Context, in *ArtifactIdentifier, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactContent], error)
 	UploadArtifact(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadArtifactRequest, Artifact], error)
 	DeleteArtifact(ctx context.Context, in *ArtifactIdentifier, opts ...grpc.CallOption) (*Artifact, error)
 	GetArtifact(ctx context.Context, in *ArtifactIdentifier, opts ...grpc.CallOption) (*Artifact, error)
@@ -59,13 +59,13 @@ func (c *registryServiceClient) QueryArtifacts(ctx context.Context, in *Artifact
 	return out, nil
 }
 
-func (c *registryServiceClient) PullArtifact(ctx context.Context, in *PullArtifactRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactContent], error) {
+func (c *registryServiceClient) PullArtifact(ctx context.Context, in *ArtifactIdentifier, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactContent], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &RegistryService_ServiceDesc.Streams[0], RegistryService_PullArtifact_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[PullArtifactRequest, ArtifactContent]{ClientStream: stream}
+	x := &grpc.GenericClientStream[ArtifactIdentifier, ArtifactContent]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func (c *registryServiceClient) RemoveTag(ctx context.Context, in *AddRemoveTagR
 // for forward compatibility.
 type RegistryServiceServer interface {
 	QueryArtifacts(context.Context, *ArtifactQuery) (*ArtifactListResponse, error)
-	PullArtifact(*PullArtifactRequest, grpc.ServerStreamingServer[ArtifactContent]) error
+	PullArtifact(*ArtifactIdentifier, grpc.ServerStreamingServer[ArtifactContent]) error
 	UploadArtifact(grpc.ClientStreamingServer[UploadArtifactRequest, Artifact]) error
 	DeleteArtifact(context.Context, *ArtifactIdentifier) (*Artifact, error)
 	GetArtifact(context.Context, *ArtifactIdentifier) (*Artifact, error)
@@ -155,7 +155,7 @@ type UnimplementedRegistryServiceServer struct{}
 func (UnimplementedRegistryServiceServer) QueryArtifacts(context.Context, *ArtifactQuery) (*ArtifactListResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method QueryArtifacts not implemented")
 }
-func (UnimplementedRegistryServiceServer) PullArtifact(*PullArtifactRequest, grpc.ServerStreamingServer[ArtifactContent]) error {
+func (UnimplementedRegistryServiceServer) PullArtifact(*ArtifactIdentifier, grpc.ServerStreamingServer[ArtifactContent]) error {
 	return status.Errorf(codes.Unimplemented, "method PullArtifact not implemented")
 }
 func (UnimplementedRegistryServiceServer) UploadArtifact(grpc.ClientStreamingServer[UploadArtifactRequest, Artifact]) error {
@@ -213,11 +213,11 @@ func _RegistryService_QueryArtifacts_Handler(srv interface{}, ctx context.Contex
 }
 
 func _RegistryService_PullArtifact_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(PullArtifactRequest)
+	m := new(ArtifactIdentifier)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(RegistryServiceServer).PullArtifact(m, &grpc.GenericServerStream[PullArtifactRequest, ArtifactContent]{ServerStream: stream})
+	return srv.(RegistryServiceServer).PullArtifact(m, &grpc.GenericServerStream[ArtifactIdentifier, ArtifactContent]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.

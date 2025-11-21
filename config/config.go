@@ -26,6 +26,14 @@ type AppConfig struct {
 		Host string `mapstructure:"host" validate:"required,hostname|ip"`
 		Port int    `mapstructure:"port" validate:"required,numeric,min=1,max=65535"`
 	} `mapstructure:"artifact_registry" validate:"required"`
+
+	Redis struct {
+		Host     string `mapstructure:"host"     validate:"required,hostname|ip"`
+		Port     int    `mapstructure:"port"     validate:"required,numeric,min=1,max=65535"`
+		DB       int    `mapstructure:"db"       validate:"numeric,min=0"`
+		Username string `mapstructure:"username"`
+		Password string `mapstructure:"password"`
+	} `mapstructure:"redis" validate:"required"`
 }
 
 var Cfg = &AppConfig{}

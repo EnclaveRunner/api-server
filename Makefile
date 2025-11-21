@@ -31,7 +31,14 @@ build:
 	go build
 
 proto:
-	protoc --go_out=. --go-grpc_out=. registry.proto
+	protoc --go_out=. --go-grpc_out=. *.proto
+
+json-schema:
+	export PATH=$$(go env GOPATH)/bin:$$PATH && \
+	go-jsonschema \
+		--package schema \
+		--output schema/blueprint.go \
+		./schema/blueprint.json
 
 # Simulate CI tests
 verify:

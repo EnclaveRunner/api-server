@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: Blueprint
-metadata:
-  name: Test
-spec:
-  artifact:
-    source: local/enclave/hello-world:v1.0.1
-    function: respond
-    input: Rmlyc3QgVGVzdAo=

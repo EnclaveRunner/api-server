@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Checkout current repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Check if openapi.yml exists
         id: check-openapi
@@ -28,7 +28,7 @@ jobs:
 
       - name: Checkout docs repository
         if: steps.check-openapi.outputs.exists == 'true'
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: EnclaveRunner/docs
           token: ${{ secrets.BOT_PAT }}
@@ -87,7 +87,7 @@ jobs:
       has-targets: ${{ steps.set-matrix.outputs.has-targets }}
     steps:
       - name: Checkout current repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Read oapi.targets and prepare matrix
         id: set-matrix
@@ -125,7 +125,7 @@ jobs:
 
     steps:
       - name: Checkout current repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           path: source-repo
           token: ${{ secrets.BOT_PAT }}
@@ -143,7 +143,7 @@ jobs:
 
       - name: Checkout target repo
         if: steps.check-openapi.outputs.exists == 'true'
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: ${{ matrix.repo }}
           token: ${{ secrets.BOT_PAT }}

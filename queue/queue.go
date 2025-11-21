@@ -33,7 +33,7 @@ func Init() {
 func (q *Queue) EnqueueTask(
 	task *pb.Task,
 	opts ...asynq.Option,
-) (*asynq.Task, error) {
+) (*asynq.TaskInfo, error) {
 	payload, err := proto.Marshal(task)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal task to protobuf: %w", err)
@@ -41,10 +41,10 @@ func (q *Queue) EnqueueTask(
 
 	queueTask := asynq.NewTask(TASK_TYPE_NORMAL, payload)
 
-	_, err = q.Client.Enqueue(queueTask, opts...)
+	info, err := q.Client.Enqueue(queueTask, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to enqueue task: %w", err)
 	}
 
-	return queueTask, nil
+	return info, nil
 }

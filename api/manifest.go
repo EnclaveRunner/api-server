@@ -154,13 +154,13 @@ func (s *Server) processBlueprint(
 	}
 
 	// Enqueue the task for processing
-	enqueuedTask, err := queue.Q.EnqueueTask(task)
+	taskInfo, err := queue.Q.EnqueueTask(task)
 	if err != nil {
 		return PostManifest500Response{}, nil
 	}
 
 	// Create response with task ID
-	taskID := enqueuedTask.ResultWriter().TaskID()
+	taskID := taskInfo.ID
 	responseBody := fmt.Sprintf("taskId: %s\n", taskID)
 
 	return PostManifest201TextyamlResponse{

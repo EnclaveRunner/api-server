@@ -4,14 +4,14 @@ import (
 	pb "api-server/proto_gen"
 	"api-server/queue"
 	"api-server/schema"
+	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"strings"
 
+	"github.com/goccy/go-yaml"
 	"github.com/rs/zerolog/log"
 )
 
@@ -34,16 +34,22 @@ type Identifier struct {
 // ErrInvalidIdentifier is returned when an identifier cannot be parsed
 var ErrInvalidIdentifier = errors.New("invalid identifier format")
 
-// MaxInputSize defines the maximum allowed size for base64-encoded input
-// (500MB)
-const MaxInputSize = 500 * 1024 * 1024
-
 // PostManifest implements StrictServerInterface.
 func (s *Server) PostManifest(
 	ctx context.Context,
 	mreq PostManifestRequestObject,
 ) (PostManifestResponseObject, error) {
-	baseManifest, err := unmarshalManifest(mreq.Body)
+	var body bytes.Buffer
+	buf, ok := mreq.Body.(*bytes.Buffer)
+	if !ok {
+		return PostManifest400JSONResponse{
+			GenericBadRequestJSONResponse{
+				Error: "Invalid request body type, expected bytes.Buffer",
+			},
+		}, nil
+	}
+	body.Write(buf.Bytes())
+	baseManifest, err := unmarshalManifest(body)
 	if err != nil {
 		return PostManifest400JSONResponse{
 			GenericBadRequestJSONResponse{
@@ -54,7 +60,7 @@ func (s *Server) PostManifest(
 
 	switch baseManifest.Kind {
 	case "Blueprint":
-		return s.processBlueprint(mreq.Body)
+		return s.processBlueprint(body)
 	default:
 		return PostManifest400JSONResponse{
 			GenericBadRequestJSONResponse{
@@ -65,15 +71,15 @@ func (s *Server) PostManifest(
 }
 
 func (s *Server) processBlueprint(
-	data io.Reader,
+	data bytes.Buffer,
 ) (PostManifestResponseObject, error) {
 	var blueprint schema.Blueprint
 
-	decoder := json.NewDecoder(data)
+	decoder := yaml.NewDecoder(&data)
 	if err := decoder.Decode(&blueprint); err != nil {
 		return PostManifest400JSONResponse{
 			GenericBadRequestJSONResponse{
-				Error: "Invalid Blueprint JSON format: " + err.Error(),
+				Error: "Invalid Blueprint YAML format: " + err.Error(),
 			},
 		}, nil
 	}
@@ -100,18 +106,6 @@ func (s *Server) processBlueprint(
 		}
 	}
 
-	// Validate input size before decoding to prevent memory exhaustion attacks
-	if len(blueprint.Spec.Artifact.Input) > MaxInputSize {
-		return PostManifest400JSONResponse{
-			GenericBadRequestJSONResponse{
-				Error: fmt.Sprintf(
-					"Artifact input size exceeds maximum allowed size of %d bytes",
-					MaxInputSize,
-				),
-			},
-		}, nil
-	}
-
 	// Decode base64 input to bytes
 	inputBytes, err := base64.StdEncoding.DecodeString(
 		blueprint.Spec.Artifact.Input,
@@ -120,18 +114,6 @@ func (s *Server) processBlueprint(
 		return PostManifest400JSONResponse{
 			GenericBadRequestJSONResponse{
 				Error: "Invalid base64 encoding in artifact input: " + err.Error(),
-			},
-		}, nil
-	}
-
-	// Validate decoded size as well
-	if len(inputBytes) > MaxInputSize {
-		return PostManifest400JSONResponse{
-			GenericBadRequestJSONResponse{
-				Error: fmt.Sprintf(
-					"Decoded artifact input size exceeds maximum allowed size of %d bytes",
-					MaxInputSize,
-				),
 			},
 		}, nil
 	}
@@ -173,12 +155,13 @@ func (s *Server) processBlueprint(
 	}, nil
 }
 
-func unmarshalManifest(data io.Reader) (BaseManifest, error) {
+func unmarshalManifest(data bytes.Buffer) (BaseManifest, error) {
 	// try unmarshalling as BaseManifest
 	var manifest BaseManifest
-	decoder := json.NewDecoder(data)
+
+	decoder := yaml.NewDecoder(&data)
 	if err := decoder.Decode(&manifest); err != nil {
-		return BaseManifest{}, fmt.Errorf("failed to decode manifest JSON: %w", err)
+		return BaseManifest{}, fmt.Errorf("failed to decode manifest YAML: %w", err)
 	}
 
 	return manifest, nil

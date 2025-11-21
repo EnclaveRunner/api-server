@@ -1,7 +1,9 @@
-//nolint
+//nolint:paralleltest // Currently not supported (should do so in the future)
 package api
 
 import (
+	"bytes"
+	"errors"
 	"strings"
 	"testing"
 
@@ -121,7 +123,7 @@ func TestParseSource(t *testing.T) {
 			if tt.expectError {
 				assert.Error(t, err, "Expected error for input: %s", tt.input)
 				// Check if it's one of the expected error types
-				isExpectedError := err == ErrInvalidIdentifier ||
+				isExpectedError := errors.Is(err, ErrInvalidIdentifier) ||
 					strings.Contains(err.Error(), "invalid identifier format")
 				assert.True(
 					t,
@@ -145,13 +147,14 @@ func TestUnmarshalManifest(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name: "valid manifest JSON",
-			input: `{
-				"apiVersion": "v1",
-				"kind": "Blueprint",
-				"metadata": {"name": "test-blueprint"},
-				"spec": {"artifact": {"source": "github.com/user/repo:latest"}}
-			}`,
+			name: "valid manifest YAML",
+			input: `apiVersion: v1
+kind: Blueprint
+metadata:
+  name: test-blueprint
+spec:
+  artifact:
+    source: github.com/user/repo:latest`,
 			expected: BaseManifest{
 				APIVersion: "v1",
 				Kind:       "Blueprint",
@@ -165,13 +168,11 @@ func TestUnmarshalManifest(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "minimal valid manifest",
-			input: `{
-				"apiVersion": "v1",
-				"kind": "Task",
-				"metadata": {},
-				"spec": {}
-			}`,
+			name: "minimal valid manifest YAML",
+			input: `apiVersion: v1
+kind: Task
+metadata: {}
+spec: {}`,
 			expected: BaseManifest{
 				APIVersion: "v1",
 				Kind:       "Task",
@@ -181,8 +182,8 @@ func TestUnmarshalManifest(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:        "invalid JSON",
-			input:       `{"apiVersion": "v1", "kind":}`,
+			name:        "invalid YAML",
+			input:       `apiVersion: v1\nkind: [invalid yaml structure`,
 			expected:    BaseManifest{},
 			expectError: true,
 		},
@@ -193,17 +194,51 @@ func TestUnmarshalManifest(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name:        "not JSON object",
-			input:       `"just a string"`,
+			name:        "not YAML object",
+			input:       `just a string without structure`,
 			expected:    BaseManifest{},
 			expectError: true,
+		},
+		{
+			name: "complex blueprint YAML",
+			input: `apiVersion: v1
+kind: Blueprint
+metadata:
+  name: my-blueprint
+  namespace: default
+spec:
+  artifact:
+    source: github.com/user/myapp:v1.0.0
+    function: process
+    input: SGVsbG8gV29ybGQ=
+status:
+  healthy: true
+  created: "2023-01-01T00:00:00Z"
+  events: []
+  revisions: 1`,
+			expected: BaseManifest{
+				APIVersion: "v1",
+				Kind:       "Blueprint",
+				Metadata: map[string]interface{}{
+					"name":      "my-blueprint",
+					"namespace": "default",
+				},
+				Spec: map[string]interface{}{
+					"artifact": map[string]interface{}{
+						"source":   "github.com/user/myapp:v1.0.0",
+						"function": "process",
+						"input":    "SGVsbG8gV29ybGQ=",
+					},
+				},
+			},
+			expectError: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			reader := strings.NewReader(tt.input)
-			result, err := unmarshalManifest(reader)
+			buffer := bytes.NewBufferString(tt.input)
+			result, err := unmarshalManifest(*buffer)
 
 			if tt.expectError {
 				assert.Error(t, err, "Expected error for input: %s", tt.input)

@@ -5,11 +5,14 @@ import (
 	"context"
 	"errors"
 	"slices"
+	"strings"
 
 	"github.com/EnclaveRunner/shareddeps/auth"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 )
+
+var internalKeyword = "_INTERNAL"
 
 // GetRbacEndpoint implements StrictServerInterface.
 func (s *Server) GetRbacEndpoint(
@@ -99,13 +102,16 @@ func (s *Server) GetRbacPolicy(
 		return nil, &EmptyInternalServerError{}
 	}
 
-	policiesParsed := make([]RBACPolicy, len(policies))
-	for i, policy := range policies {
-		policiesParsed[i] = RBACPolicy{
+	policiesParsed := make([]RBACPolicy, 0, len(policies))
+	for _, policy := range policies {
+		if !isSanitized(policy.ResourceGroup) {
+			continue
+		}
+		policiesParsed = append(policiesParsed, RBACPolicy{
 			Role:          policy.UserGroup,
 			ResourceGroup: policy.ResourceGroup,
 			Permission:    RBACPolicyPermission(policy.Permission),
-		}
+		})
 	}
 
 	return (*GetRbacPolicy200JSONResponse)(&policiesParsed), nil
@@ -210,12 +216,15 @@ func (s *Server) GetRbacListResourceGroups(
 
 	resourceGroupsParsed := []string{}
 	for _, rg := range resourceGroups {
-		if !slices.Contains(resourceGroupsParsed, rg.GroupName) {
+		if !slices.Contains(resourceGroupsParsed, rg.GroupName) &&
+			isSanitized(rg.GroupName) {
 			resourceGroupsParsed = append(resourceGroupsParsed, rg.GroupName)
 		}
 	}
 
-	return (*GetRbacListResourceGroups200JSONResponse)(&resourceGroupsParsed), nil
+	return (*GetRbacListResourceGroups200JSONResponse)(
+		&resourceGroupsParsed,
+	), nil
 }
 
 // GetRbacResourceGroup implements StrictServerInterface.
@@ -533,4 +542,8 @@ func (s *Server) DeleteRbacUser(
 	}
 
 	return DeleteRbacUser200Response{}, nil
+}
+
+func isSanitized(group string) bool {
+	return !strings.Contains(group, internalKeyword)
 }

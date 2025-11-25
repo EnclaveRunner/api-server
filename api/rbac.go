@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var internalKeyword = "_INTERNAL"
+const internalKeyword = "_INTERNAL"
 
 // GetRbacEndpoint implements StrictServerInterface.
 func (s *Server) GetRbacEndpoint(

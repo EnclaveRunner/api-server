@@ -544,6 +544,8 @@ func (s *Server) DeleteRbacUser(
 	return DeleteRbacUser200Response{}, nil
 }
 
+// isSanitized checks if a group name should be visible to API consumers.
+// Returns false for internal groups containing the "_INTERNAL" keyword.
 func isSanitized(group string) bool {
 	return !strings.Contains(group, internalKeyword)
 }

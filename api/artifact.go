@@ -34,7 +34,7 @@ func artifactToArtifact(artifact *pb.Artifact) Artifact {
 }
 
 // DeleteArtifact implements StrictServerInterface.
-func (s *Server) DeleteArtifact(
+func (server *Server) DeleteArtifact(
 	ctx context.Context,
 	request DeleteArtifactRequestObject,
 ) (DeleteArtifactResponseObject, error) {
@@ -54,7 +54,7 @@ func (s *Server) DeleteArtifact(
 		}
 	}
 
-	artifact, err := pb.Client.DeleteArtifact(ctx, artifactIdentifier)
+	artifact, err := server.registryClient.DeleteArtifact(ctx, artifactIdentifier)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			return DeleteArtifact404JSONResponse{
@@ -73,7 +73,7 @@ func (s *Server) DeleteArtifact(
 }
 
 // DeleteArtifactTag implements StrictServerInterface.
-func (s *Server) DeleteArtifactTag(
+func (server *Server) DeleteArtifactTag(
 	ctx context.Context,
 	request DeleteArtifactTagRequestObject,
 ) (DeleteArtifactTagResponseObject, error) {
@@ -87,7 +87,7 @@ func (s *Server) DeleteArtifactTag(
 		Tag:         request.Body.Tag,
 	}
 
-	_, err := pb.Client.RemoveTag(ctx, removeTagRequest)
+	_, err := server.registryClient.RemoveTag(ctx, removeTagRequest)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			return DeleteArtifactTag404JSONResponse{
@@ -107,7 +107,7 @@ func (s *Server) DeleteArtifactTag(
 }
 
 // GetArtifact implements StrictServerInterface.
-func (s *Server) GetArtifact(
+func (server *Server) GetArtifact(
 	ctx context.Context,
 	request GetArtifactRequestObject,
 ) (GetArtifactResponseObject, error) {
@@ -127,7 +127,7 @@ func (s *Server) GetArtifact(
 		}
 	}
 
-	artifact, err := pb.Client.GetArtifact(ctx, artifactIdentifier)
+	artifact, err := server.registryClient.GetArtifact(ctx, artifactIdentifier)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			return GetArtifact404JSONResponse{
@@ -146,7 +146,7 @@ func (s *Server) GetArtifact(
 }
 
 // GetArtifactList implements StrictServerInterface.
-func (s *Server) GetArtifactList(
+func (server *Server) GetArtifactList(
 	ctx context.Context,
 	request GetArtifactListRequestObject,
 ) (GetArtifactListResponseObject, error) {
@@ -164,7 +164,7 @@ func (s *Server) GetArtifactList(
 		query.Name = request.Params.Name
 	}
 
-	response, err := pb.Client.QueryArtifacts(ctx, query)
+	response, err := server.registryClient.QueryArtifacts(ctx, query)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to query artifacts")
 
@@ -180,7 +180,7 @@ func (s *Server) GetArtifactList(
 }
 
 // GetArtifactUpload implements StrictServerInterface.
-func (s *Server) GetArtifactUpload(
+func (server *Server) GetArtifactUpload(
 	ctx context.Context,
 	request GetArtifactUploadRequestObject,
 ) (GetArtifactUploadResponseObject, error) {
@@ -202,7 +202,7 @@ func (s *Server) GetArtifactUpload(
 		}
 	}
 
-	stream, err := pb.Client.PullArtifact(ctx, pullRequest)
+	stream, err := server.registryClient.PullArtifact(ctx, pullRequest)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			return GetArtifactUpload404JSONResponse{
@@ -245,7 +245,7 @@ func (s *Server) GetArtifactUpload(
 }
 
 // HeadArtifact implements StrictServerInterface.
-func (s *Server) HeadArtifact(
+func (server *Server) HeadArtifact(
 	ctx context.Context,
 	request HeadArtifactRequestObject,
 ) (HeadArtifactResponseObject, error) {
@@ -265,7 +265,7 @@ func (s *Server) HeadArtifact(
 		}
 	}
 
-	_, err := pb.Client.GetArtifact(ctx, artifactIdentifier)
+	_, err := server.registryClient.GetArtifact(ctx, artifactIdentifier)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			return HeadArtifact404Response{}, nil
@@ -280,7 +280,7 @@ func (s *Server) HeadArtifact(
 }
 
 // PostArtifactTag implements StrictServerInterface.
-func (s *Server) PostArtifactTag(
+func (server *Server) PostArtifactTag(
 	ctx context.Context,
 	request PostArtifactTagRequestObject,
 ) (PostArtifactTagResponseObject, error) {
@@ -294,7 +294,7 @@ func (s *Server) PostArtifactTag(
 		Tag:         request.Body.NewTag,
 	}
 
-	_, err := pb.Client.AddTag(ctx, addTagRequest)
+	_, err := server.registryClient.AddTag(ctx, addTagRequest)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			return PostArtifactTag404JSONResponse{
@@ -334,7 +334,7 @@ func readWithMaxLength(
 }
 
 // PostArtifactUpload implements StrictServerInterface.
-func (s *Server) PostArtifactUpload(
+func (server *Server) PostArtifactUpload(
 	ctx context.Context,
 	request PostArtifactUploadRequestObject,
 ) (PostArtifactUploadResponseObject, error) {
@@ -465,7 +465,14 @@ func (s *Server) PostArtifactUpload(
 			tags = append(tags, data)
 		case "file":
 			// Process file immediately - don't store the part reader
-			return s.uploadArtifactWithFile(ctx, source, author, name, tags, part)
+			return server.uploadArtifactWithFile(
+				ctx,
+				source,
+				author,
+				name,
+				tags,
+				part,
+			)
 		}
 	}
 
@@ -479,13 +486,13 @@ func (s *Server) PostArtifactUpload(
 	}, nil
 }
 
-func (s *Server) uploadArtifactWithFile(
+func (server *Server) uploadArtifactWithFile(
 	ctx context.Context,
 	source, author, name string,
 	tags []string,
 	fileReader io.Reader,
 ) (PostArtifactUploadResponseObject, error) {
-	stream, err := pb.Client.UploadArtifact(ctx)
+	stream, err := server.registryClient.UploadArtifact(ctx)
 
 	//nolint:errcheck // CloseSend always returns a nil error according to the
 	// documentation

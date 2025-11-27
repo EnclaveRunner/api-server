@@ -12,11 +12,11 @@ import (
 )
 
 // GetUsersList implements StrictServerInterface.
-func (s *Server) GetUsersList(
+func (server *Server) GetUsersList(
 	ctx context.Context,
 	request GetUsersListRequestObject,
 ) (GetUsersListResponseObject, error) {
-	users, err := orm.ListAllUsers(ctx)
+	users, err := server.db.ListAllUsers(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to list users")
 
@@ -36,7 +36,7 @@ func (s *Server) GetUsersList(
 }
 
 // GetUsersUser implements StrictServerInterface.
-func (s *Server) GetUsersUser(
+func (server *Server) GetUsersUser(
 	ctx context.Context,
 	request GetUsersUserRequestObject,
 ) (GetUsersUserResponseObject, error) {
@@ -50,7 +50,7 @@ func (s *Server) GetUsersUser(
 			}, nil
 		}
 
-		user, err := orm.GetUserByID(ctx, uuidParser)
+		user, err := server.db.GetUserByID(ctx, uuidParser)
 		if err != nil {
 			var errNotFound *orm.NotFoundError
 			if errors.As(err, &errNotFound) {
@@ -72,7 +72,7 @@ func (s *Server) GetUsersUser(
 			DisplayName: user.DisplayName,
 		}), nil
 	} else if request.Params.Name != nil {
-		user, err := orm.GetUserByUsername(ctx, *request.Params.Name)
+		user, err := server.db.GetUserByUsername(ctx, *request.Params.Name)
 		if err != nil {
 			var errNotFound *orm.NotFoundError
 			if errors.As(err, &errNotFound) {
@@ -103,7 +103,7 @@ func (s *Server) GetUsersUser(
 }
 
 // HeadUsersUser implements StrictServerInterface.
-func (s *Server) HeadUsersUser(
+func (server *Server) HeadUsersUser(
 	ctx context.Context,
 	request HeadUsersUserRequestObject,
 ) (HeadUsersUserResponseObject, error) {
@@ -112,7 +112,7 @@ func (s *Server) HeadUsersUser(
 		return HeadUsersUser400Response{}, nil
 	}
 
-	_, err = orm.GetUserByID(ctx, uuidParser)
+	_, err = server.db.GetUserByID(ctx, uuidParser)
 	if err != nil {
 		var errNotFound *orm.NotFoundError
 		if errors.As(err, &errNotFound) {
@@ -128,7 +128,7 @@ func (s *Server) HeadUsersUser(
 }
 
 // PostUsersUser implements StrictServerInterface.
-func (s *Server) PostUsersUser(
+func (server *Server) PostUsersUser(
 	ctx context.Context,
 	request PostUsersUserRequestObject,
 ) (PostUsersUserResponseObject, error) {
@@ -142,7 +142,7 @@ func (s *Server) PostUsersUser(
 		}, nil
 	}
 
-	user, err := orm.CreateUser(
+	user, err := server.db.CreateUser(
 		ctx,
 		request.Body.Name,
 		request.Body.Password,
@@ -169,7 +169,7 @@ func (s *Server) PostUsersUser(
 }
 
 // PatchUsersUser implements StrictServerInterface.
-func (s *Server) PatchUsersUser(
+func (server *Server) PatchUsersUser(
 	ctx context.Context,
 	request PatchUsersUserRequestObject,
 ) (PatchUsersUserResponseObject, error) {
@@ -182,7 +182,7 @@ func (s *Server) PatchUsersUser(
 		}, nil
 	}
 
-	user, err := orm.PatchUser(
+	user, err := server.db.PatchUser(
 		ctx,
 		uuidParser,
 		request.Body.NewName,
@@ -218,7 +218,7 @@ func (s *Server) PatchUsersUser(
 	}), nil
 }
 
-func (s *Server) DeleteUsersUser(
+func (server *Server) DeleteUsersUser(
 	ctx context.Context,
 	request DeleteUsersUserRequestObject,
 ) (DeleteUsersUserResponseObject, error) {
@@ -231,7 +231,7 @@ func (s *Server) DeleteUsersUser(
 		}, nil
 	}
 
-	user, err := orm.DeleteUserByID(ctx, uuidParser)
+	user, err := server.db.DeleteUserByID(ctx, uuidParser)
 	if err != nil {
 		var errNotFound *orm.NotFoundError
 		if errors.As(err, &errNotFound) {
@@ -255,11 +255,11 @@ func (s *Server) DeleteUsersUser(
 }
 
 // GetUsersMe implements StrictServerInterface.
-func (s *Server) GetUsersMe(
+func (server *Server) GetUsersMe(
 	ctx context.Context,
 	request GetUsersMeRequestObject,
 ) (GetUsersMeResponseObject, error) {
-	authenticatedUser := auth.RetrieveAuthenticatedUser(ctx)
+	authenticatedUser := auth.GetAuthenticatedUser(ctx)
 	if authenticatedUser == auth.UnauthenticatedUser {
 		log.Debug().
 			Any("userContext", authenticatedUser).
@@ -275,7 +275,7 @@ func (s *Server) GetUsersMe(
 		return nil, &EmptyInternalServerError{}
 	}
 
-	user, err := orm.GetUserByID(ctx, uuidParser)
+	user, err := server.db.GetUserByID(ctx, uuidParser)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get user by ID")
 
@@ -290,11 +290,11 @@ func (s *Server) GetUsersMe(
 }
 
 // PatchUsersMe implements StrictServerInterface.
-func (s *Server) PatchUsersMe(
+func (server *Server) PatchUsersMe(
 	ctx context.Context,
 	request PatchUsersMeRequestObject,
 ) (PatchUsersMeResponseObject, error) {
-	authenticatedUser := auth.RetrieveAuthenticatedUser(ctx)
+	authenticatedUser := auth.GetAuthenticatedUser(ctx)
 	if authenticatedUser == auth.UnauthenticatedUser {
 		return PatchUsersMe401Response{}, nil
 	}
@@ -306,7 +306,7 @@ func (s *Server) PatchUsersMe(
 		return nil, &EmptyInternalServerError{}
 	}
 
-	user, err := orm.PatchUser(
+	user, err := server.db.PatchUser(
 		ctx,
 		uuidParser,
 		request.Body.NewName,
@@ -334,11 +334,11 @@ func (s *Server) PatchUsersMe(
 }
 
 // DeleteUsersMe implements StrictServerInterface.
-func (s *Server) DeleteUsersMe(
+func (server *Server) DeleteUsersMe(
 	ctx context.Context,
 	request DeleteUsersMeRequestObject,
 ) (DeleteUsersMeResponseObject, error) {
-	authenticatedUser := auth.RetrieveAuthenticatedUser(ctx)
+	authenticatedUser := auth.GetAuthenticatedUser(ctx)
 
 	if authenticatedUser == auth.UnauthenticatedUser {
 		return DeleteUsersMe401Response{}, nil
@@ -351,7 +351,7 @@ func (s *Server) DeleteUsersMe(
 		return nil, &EmptyInternalServerError{}
 	}
 
-	user, err := orm.DeleteUserByID(ctx, uuidParser)
+	user, err := server.db.DeleteUserByID(ctx, uuidParser)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to delete user")
 

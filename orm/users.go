@@ -5,15 +5,17 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/EnclaveRunner/shareddeps/auth"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
-func GetUserByID(ctx context.Context, userID uuid.UUID) (*User, error) {
-	user, err := gorm.G[User](DB).Where(&User{ID: userID}).
+func (db *DB) GetUserByID(
+	ctx context.Context,
+	userID uuid.UUID,
+) (*User, error) {
+	user, err := gorm.G[User](db.dbGorm).Where(&User{ID: userID}).
 		First(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -26,8 +28,11 @@ func GetUserByID(ctx context.Context, userID uuid.UUID) (*User, error) {
 	return &user, nil
 }
 
-func GetUserByUsername(ctx context.Context, username string) (*User, error) {
-	user, err := gorm.G[User](DB).Where(&User{Username: username}).
+func (db *DB) GetUserByUsername(
+	ctx context.Context,
+	username string,
+) (*User, error) {
+	user, err := gorm.G[User](db.dbGorm).Where(&User{Username: username}).
 		First(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -40,8 +45,8 @@ func GetUserByUsername(ctx context.Context, username string) (*User, error) {
 	return &user, nil
 }
 
-func ListAllUsers(ctx context.Context) ([]User, error) {
-	users, err := gorm.G[User](DB).Find(ctx)
+func (db *DB) ListAllUsers(ctx context.Context) ([]User, error) {
+	users, err := gorm.G[User](db.dbGorm).Find(ctx)
 	if err != nil {
 		return nil, &DatabaseError{err}
 	}
@@ -49,7 +54,7 @@ func ListAllUsers(ctx context.Context) ([]User, error) {
 	return users, nil
 }
 
-func CreateUser(
+func (db *DB) CreateUser(
 	ctx context.Context,
 	username, password, displayName string,
 ) (*User, error) {
@@ -58,7 +63,7 @@ func CreateUser(
 		DisplayName: displayName,
 	}
 
-	err := DB.Transaction(func(tx *gorm.DB) error {
+	err := db.dbGorm.Transaction(func(tx *gorm.DB) error {
 		_, err := gorm.G[User](tx).
 			Where(&User{Username: username}).
 			First(ctx)
@@ -116,17 +121,17 @@ func CreateUser(
 	return &user, nil
 }
 
-func PatchUser(
+func (db *DB) PatchUser(
 	ctx context.Context,
 	userID uuid.UUID,
 	newUsername, newPassword, newDisplayName *string,
 ) (*User, error) {
-	user, err := GetUserByID(ctx, userID)
+	user, err := db.GetUserByID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	err = DB.Transaction(func(tx *gorm.DB) error {
+	err = db.dbGorm.Transaction(func(tx *gorm.DB) error {
 		updated := false
 
 		if newUsername != nil {
@@ -195,18 +200,21 @@ func PatchUser(
 	return user, nil
 }
 
-func DeleteUserByID(ctx context.Context, userID uuid.UUID) (*User, error) {
-	user, err := GetUserByID(ctx, userID)
+func (db *DB) DeleteUserByID(
+	ctx context.Context,
+	userID uuid.UUID,
+) (*User, error) {
+	user, err := db.GetUserByID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	err = auth.RemoveUser(user.ID.String())
+	err = db.authModule.RemoveUser(user.ID.String())
 	if err != nil {
 		return nil, &GenericError{err}
 	}
 
-	_, err = gorm.G[User](DB).Where(user).Delete(ctx)
+	_, err = gorm.G[User](db.dbGorm).Where(user).Delete(ctx)
 	if err != nil {
 		return nil, &DatabaseError{err}
 	}

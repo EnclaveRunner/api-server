@@ -22,12 +22,15 @@
 
       devShells = forEachSupportedSystem ({ pkgs }: {
         default = pkgs.mkShell {
+          hardeningDisable = [ "fortify" ];
+
           packages = with pkgs; [
             # go (version is specified by overlay)
             go
 
             # goimports, godoc, etc.
             gotools
+            delve
 
             # https://github.com/golangci/golangci-lint
             golangci-lint

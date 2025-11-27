@@ -20,6 +20,8 @@ github.com/EnclaveRunner/shareddeps v0.8.2 h1:RkIC6kxxIa6AHeKg1UmdrXvX0+YxNxi/YS
 github.com/EnclaveRunner/shareddeps v0.8.2/go.mod h1:4/UenE5ANc+svkQZ/ArmiCY2hV4pQjEDS5Jzd6/qRW8=
 github.com/EnclaveRunner/shareddeps v0.9.0 h1:A7ci+OlWC7/7mbLQ0ErYRvRXHM8kqONJYPti+p8D0I8=
 github.com/EnclaveRunner/shareddeps v0.9.0/go.mod h1:swZbMLp8jxkQGUqy/olES5e6vxN1o7DW+m6WUR/Olww=
+github.com/EnclaveRunner/shareddeps v0.9.1 h1:a8+bYTgGjbpff7IwGU/aPuePgqf5HIu3dbMOGwa3xNg=
+github.com/EnclaveRunner/shareddeps v0.9.1/go.mod h1:swZbMLp8jxkQGUqy/olES5e6vxN1o7DW+m6WUR/Olww=
 github.com/RaveNoX/go-jsoncommentstrip v1.0.0/go.mod h1:78ihd09MekBnJnxpICcwzCMzGrKSKYe4AqU6PDYYpjk=
 github.com/apapsch/go-jsonmerge/v2 v2.0.0 h1:axGnT1gRIfimI7gJifB699GoE/oq+F2MU7Dml6nw9rQ=
 github.com/apapsch/go-jsonmerge/v2 v2.0.0/go.mod h1:lvDnEdqiQrp0O42VQGgmlKpxL1AP2+08jFMw88y4klk=

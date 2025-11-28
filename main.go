@@ -62,7 +62,7 @@ func main() {
 	)
 
 	// Initialize admin user after auth system is ready
-	db.InitAdminUser(cfg, authModule)
+	db.InitAdminUser(cfg)
 
 	// Initialize task queue
 	queueClient := queue.NewQueueClient(cfg)

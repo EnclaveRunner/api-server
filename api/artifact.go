@@ -474,7 +474,9 @@ func (server *Server) PostArtifactUpload(
 				part,
 			)
 		default:
-			log.Error().Str("field_name", part.FormName()).Msg("Unexpected form field encountered")
+			log.Error().
+				Str("field_name", part.FormName()).
+				Msg("Unexpected form field encountered")
 
 			return &PostArtifactUpload400JSONResponse{
 				GenericBadRequestJSONResponse{
@@ -501,15 +503,13 @@ func (server *Server) uploadArtifactWithFile(
 	fileReader io.Reader,
 ) (PostArtifactUploadResponseObject, error) {
 	stream, err := server.registryClient.UploadArtifact(ctx)
-
-	//nolint:errcheck // CloseSend always returns a nil error according to the
-	// documentation
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create upload artifact stream")
 
 		return &PostArtifactUpload500Response{}, nil
 	}
 
+	//nolint:errcheck // CloseSend never returns an error
 	defer stream.CloseSend()
 
 	metadata := &pb.UploadMetadata{

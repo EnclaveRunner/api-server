@@ -71,7 +71,7 @@ func NewCasbinAdapter(db *gorm.DB) *gormadapter.Adapter {
 }
 
 // InitAdminUser creates the default admin user after auth system is initialized
-func (db *DB) InitAdminUser(cfg *config.AppConfig, authModule auth.AuthModule) {
+func (db *DB) InitAdminUser(cfg *config.AppConfig) {
 	// hash password
 	hash, err := bcrypt.GenerateFromPassword(
 		[]byte(cfg.Admin.Password),
@@ -98,7 +98,7 @@ func (db *DB) InitAdminUser(cfg *config.AppConfig, authModule auth.AuthModule) {
 		log.Fatal().Err(err).Msg("Failed to create admin auth record")
 	}
 
-	err = authModule.AddUserToGroup(adminUser.ID.String(), "enclave_admin")
+	err = db.authModule.AddUserToGroup(adminUser.ID.String(), "enclave_admin")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to add admin user to enclave_admin group")
 	}

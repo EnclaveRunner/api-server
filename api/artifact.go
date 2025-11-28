@@ -441,7 +441,7 @@ func (server *Server) PostArtifactUpload(
 			}
 
 			name = data
-		case "tags":
+		case "tag":
 			data, tooLong, err := readWithMaxLength(
 				part,
 				MetadataFieldMaxSize-len(strings.Join(tags, "")),
@@ -473,6 +473,14 @@ func (server *Server) PostArtifactUpload(
 				tags,
 				part,
 			)
+		default:
+			log.Error().Str("field_name", part.FormName()).Msg("Unexpected form field encountered")
+
+			return &PostArtifactUpload400JSONResponse{
+				GenericBadRequestJSONResponse{
+					Error: "Encountered an unexpected form field: " + part.FormName(),
+				},
+			}, nil
 		}
 	}
 
@@ -496,13 +504,13 @@ func (server *Server) uploadArtifactWithFile(
 
 	//nolint:errcheck // CloseSend always returns a nil error according to the
 	// documentation
-	defer stream.CloseSend()
-
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create upload artifact stream")
 
 		return &PostArtifactUpload500Response{}, nil
 	}
+
+	defer stream.CloseSend()
 
 	metadata := &pb.UploadMetadata{
 		Fqn: &pb.FullyQualifiedName{

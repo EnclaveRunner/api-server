@@ -3,7 +3,7 @@ module api-server
 go 1.25.0
 
 require (
-	github.com/EnclaveRunner/shareddeps v0.8.2
+	github.com/EnclaveRunner/shareddeps v0.9.1
 	github.com/casbin/gorm-adapter/v3 v3.37.0
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/gin-gonic/gin v1.11.0
@@ -63,7 +63,6 @@ require (
 	github.com/dprotaso/go-yit v0.0.0-20220510233725-9ba8df137936 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.10 // indirect
-	github.com/gin-contrib/authz v1.0.6 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
 	github.com/glebarez/go-sqlite v1.20.3 // indirect
 	github.com/glebarez/sqlite v1.7.0 // indirect

@@ -9,28 +9,28 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var Q Queue
-
 const (
 	TaskTypeNormal = "job:normal"
 )
 
-type Queue struct {
-	Client    *asynq.Client
-	Inspector *asynq.Inspector
+type QueueClient struct {
+	client    *asynq.Client
+	inspector *asynq.Inspector
 }
 
-func Init() {
+func NewQueueClient(cfg *config.AppConfig) QueueClient {
 	redisOpt := asynq.RedisClientOpt{
-		Addr: fmt.Sprintf("%s:%d", config.Cfg.Redis.Host, config.Cfg.Redis.Port),
-		DB:   config.Cfg.Redis.DB,
+		Addr: fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
+		DB:   cfg.Redis.DB,
 	}
 
-	Q.Client = asynq.NewClient(redisOpt)
-	Q.Inspector = asynq.NewInspector(redisOpt)
+	return QueueClient{
+		client:    asynq.NewClient(redisOpt),
+		inspector: asynq.NewInspector(redisOpt),
+	}
 }
 
-func (q *Queue) EnqueueTask(
+func (q *QueueClient) EnqueueTask(
 	task *pb.Task,
 	opts ...asynq.Option,
 ) (*asynq.TaskInfo, error) {
@@ -41,7 +41,7 @@ func (q *Queue) EnqueueTask(
 
 	queueTask := asynq.NewTask(TaskTypeNormal, payload)
 
-	info, err := q.Client.Enqueue(queueTask, opts...)
+	info, err := q.client.Enqueue(queueTask, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to enqueue task: %w", err)
 	}

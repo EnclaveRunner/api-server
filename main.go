@@ -37,40 +37,55 @@ func main() {
 	}
 
 	// load config and create server
-	shareddeps.InitRESTServer(config.Cfg, "api-server", "v0.6.1", defaults...)
+	cfg := &config.AppConfig{}
+	err := shareddepsConfig.PopulateAppConfig(
+		cfg,
+		"api-server",
+		"v0.6.1",
+		defaults...)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to load app config")
+	}
 
-	policyAdapter := orm.InitDB()
+	ginServer := shareddeps.InitRESTServer(cfg)
+
+	dbGorm := orm.InitDB(cfg)
+	policyAdapter := orm.NewCasbinAdapter(dbGorm)
+	authModule := auth.NewModule(policyAdapter)
+
+	db := orm.NewDB(authModule, dbGorm)
 
 	shareddeps.AddAuth(
-		policyAdapter,
-		shareddeps.Authentication{BasicAuthenticator: orm.BasicAuth},
+		ginServer,
+		authModule,
+		shareddeps.Authentication{BasicAuthenticator: db.BasicAuthFunc()},
 	)
 
 	// Initialize admin user after auth system is ready
-	orm.InitAdminUser()
+	db.InitAdminUser(cfg)
 
 	// Initialize task queue
-	queue.Init()
+	queueClient := queue.NewQueueClient(cfg)
 
 	// Migrate RBAC policies, resource groups and roles
-	MigrateRBAC()
+	MigrateRBAC(authModule)
 
-	server := api.NewServer()
-	handler := api.NewStrictHandler(server, nil)
-	api.RegisterHandlers(shareddeps.RESTServer, handler)
-
-	shareddeps.InitGRPCClient(
-		config.Cfg.ArtifactRegistry.Host,
-		config.Cfg.ArtifactRegistry.Port,
+	registryClient := proto_gen.NewRegistryServiceClient(
+		shareddeps.InitGRPCClient(
+			cfg.ArtifactRegistry.Host,
+			cfg.ArtifactRegistry.Port,
+		),
 	)
 
-	proto_gen.Client = proto_gen.NewRegistryServiceClient(shareddeps.GRPCClient)
+	server := api.NewServer(db, authModule, registryClient, queueClient)
+	handler := api.NewStrictHandler(server, nil)
+	api.RegisterHandlers(ginServer, handler)
 
-	shareddeps.StartRESTServer()
+	shareddeps.StartRESTServer(cfg, ginServer)
 }
 
 // Init needed and default RBAC policies, resource groups and roles
-func MigrateRBAC() {
+func MigrateRBAC(authModule auth.AuthModule) {
 	resourceGroups := []string{
 		"self_INTERNAL",
 		"user_management",
@@ -117,7 +132,7 @@ func MigrateRBAC() {
 
 	// Create resource groups
 	for _, group := range resourceGroups {
-		err := auth.CreateResourceGroup(group)
+		err := authModule.CreateResourceGroup(group)
 		if err != nil {
 			log.Fatal().Err(err).Msgf("Failed to create resource group: %s", group)
 		}
@@ -125,7 +140,7 @@ func MigrateRBAC() {
 
 	// Create user groups
 	for _, group := range userGroups {
-		err := auth.CreateUserGroup(group)
+		err := authModule.CreateUserGroup(group)
 		if err != nil {
 			log.Fatal().Err(err).Msgf("Failed to create user group: %s", group)
 		}
@@ -133,7 +148,7 @@ func MigrateRBAC() {
 
 	// Add resources to groups
 	for _, mapping := range resourceMappings {
-		err := auth.AddResourceToGroup(mapping.Resource, mapping.Group)
+		err := authModule.AddResourceToGroup(mapping.Resource, mapping.Group)
 		if err != nil {
 			log.Fatal().
 				Err(err).
@@ -143,7 +158,11 @@ func MigrateRBAC() {
 
 	// Add policies
 	for _, policy := range policies {
-		err := auth.AddPolicy(policy.UserGroup, policy.ResourceGroup, policy.Method)
+		err := authModule.AddPolicy(
+			policy.UserGroup,
+			policy.ResourceGroup,
+			policy.Method,
+		)
 		if err != nil {
 			log.Fatal().
 				Err(err).

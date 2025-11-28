@@ -35,5 +35,3 @@ type AppConfig struct {
 		Password string `mapstructure:"password"`
 	} `mapstructure:"redis" validate:"required"`
 }
-
-var Cfg = &AppConfig{}

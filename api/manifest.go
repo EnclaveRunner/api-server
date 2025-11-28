@@ -2,7 +2,6 @@ package api
 
 import (
 	pb "api-server/proto_gen"
-	"api-server/queue"
 	"api-server/schema"
 	"bytes"
 	"context"
@@ -38,7 +37,7 @@ type Identifier struct {
 var ErrInvalidIdentifier = errors.New("invalid identifier format")
 
 // PostManifest implements StrictServerInterface.
-func (s *Server) PostManifest(
+func (server *Server) PostManifest(
 	ctx context.Context,
 	mreq PostManifestRequestObject,
 ) (PostManifestResponseObject, error) {
@@ -63,7 +62,7 @@ func (s *Server) PostManifest(
 
 	switch baseManifest.Kind {
 	case "Blueprint":
-		return s.processBlueprint(ctx, body)
+		return server.processBlueprint(ctx, body)
 	default:
 		return PostManifest400JSONResponse{
 			GenericBadRequestJSONResponse{
@@ -73,7 +72,7 @@ func (s *Server) PostManifest(
 	}
 }
 
-func (s *Server) processBlueprint(
+func (server *Server) processBlueprint(
 	ctx context.Context,
 	data []byte,
 ) (PostManifestResponseObject, error) {
@@ -143,7 +142,7 @@ func (s *Server) processBlueprint(
 	}
 
 	// Check that artifact exists
-	_, err = pb.Client.GetArtifact(ctx, task.Artifact)
+	_, err = server.registryClient.GetArtifact(ctx, task.Artifact)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			return PostManifest400JSONResponse{
@@ -159,7 +158,7 @@ func (s *Server) processBlueprint(
 	}
 
 	// Enqueue the task for processing
-	taskInfo, err := queue.Q.EnqueueTask(task)
+	taskInfo, err := server.queueClient.EnqueueTask(task)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to enqueue task")
 

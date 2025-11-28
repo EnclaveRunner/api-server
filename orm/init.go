@@ -17,25 +17,28 @@ import (
 	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
+type DB struct {
+	dbGorm     *gorm.DB
+	authModule auth.AuthModule
+}
 
-func InitDB() *gormadapter.Adapter {
+// Initializes a new database connection and runs migrations
+func InitDB(cfg *config.AppConfig) *gorm.DB {
 	dsn := fmt.Sprintf(
 		"host='%s' port='%d' user='%s' password='%s' dbname='%s' sslmode='%s'",
-		config.Cfg.Database.Host,
-		config.Cfg.Database.Port,
-		config.Cfg.Database.Username,
-		config.Cfg.Database.Password,
-		config.Cfg.Database.Database,
-		config.Cfg.Database.SSLMode,
+		cfg.Database.Host,
+		cfg.Database.Port,
+		cfg.Database.Username,
+		cfg.Database.Password,
+		cfg.Database.Database,
+		cfg.Database.SSLMode,
 	)
 
-	dsn_redacted := strings.ReplaceAll(dsn, config.Cfg.Database.Password, "*****")
+	dsn_redacted := strings.ReplaceAll(dsn, cfg.Database.Password, "*****")
 	log.Debug().
 		Msgf("Connecting to postgres using the following information: %s", dsn_redacted)
 
-	var err error
-	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger:         logger.Default.LogMode(logger.Silent),
 		TranslateError: true,
 	})
@@ -43,27 +46,35 @@ func InitDB() *gormadapter.Adapter {
 		log.Fatal().Err(err).Msg("Failed to connect to the database")
 	}
 
-	adapter, err := gormadapter.NewAdapterByDBUseTableName(DB, "casbin", "rules")
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to create casbin adapter")
-	}
-
 	log.Debug().Msg("Successfully connected to the database")
 
 	// Run database migrations
-	err = DB.AutoMigrate(&User{}, &Auth_Basic{})
+	err = db.AutoMigrate(&User{}, &Auth_Basic{})
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to migrate database")
+	}
+
+	return db
+}
+
+func NewDB(authModule auth.AuthModule, db *gorm.DB) DB {
+	return DB{dbGorm: db, authModule: authModule}
+}
+
+func NewCasbinAdapter(db *gorm.DB) *gormadapter.Adapter {
+	adapter, err := gormadapter.NewAdapterByDBUseTableName(db, "casbin", "rules")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create casbin adapter")
 	}
 
 	return adapter
 }
 
 // InitAdminUser creates the default admin user after auth system is initialized
-func InitAdminUser() {
+func (db *DB) InitAdminUser(cfg *config.AppConfig) {
 	// hash password
 	hash, err := bcrypt.GenerateFromPassword(
-		[]byte(config.Cfg.Admin.Password),
+		[]byte(cfg.Admin.Password),
 		HashCost,
 	)
 	if err != nil {
@@ -71,24 +82,24 @@ func InitAdminUser() {
 	}
 
 	// generate / update default user
-	DB.Save(
+	db.dbGorm.Save(
 		&User{
-			Username:    config.Cfg.Admin.Username,
-			DisplayName: config.Cfg.Admin.DisplayName,
+			Username:    cfg.Admin.Username,
+			DisplayName: cfg.Admin.DisplayName,
 		},
 	)
 	adminUser, _ := gorm.G[User](
-		DB,
-	).Where(&User{Username: config.Cfg.Admin.Username}).
+		db.dbGorm,
+	).Where(&User{Username: cfg.Admin.Username}).
 		First(context.Background())
 
-	err = DB.Save(&Auth_Basic{UserID: adminUser.ID, Password: hash}).Error
+	err = db.dbGorm.Save(&Auth_Basic{UserID: adminUser.ID, Password: hash}).Error
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create admin auth record")
 	}
 
-	err = auth.AddUserToGroup(adminUser.ID.String(), "enclaveAdmin")
+	err = db.authModule.AddUserToGroup(adminUser.ID.String(), "enclave_admin")
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to add admin user to enclaveAdmin group")
+		log.Fatal().Err(err).Msg("Failed to add admin user to enclave_admin group")
 	}
 }

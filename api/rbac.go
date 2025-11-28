@@ -15,11 +15,11 @@ import (
 const internalKeyword = "_INTERNAL"
 
 // GetRbacEndpoint implements StrictServerInterface.
-func (s *Server) GetRbacEndpoint(
+func (server *Server) GetRbacEndpoint(
 	ctx context.Context,
 	request GetRbacEndpointRequestObject,
 ) (GetRbacEndpointResponseObject, error) {
-	groups, err := auth.GetGroupsForResource(request.Params.Endpoint)
+	groups, err := server.authModule.GetGroupsForResource(request.Params.Endpoint)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get groups for resource")
 
@@ -30,11 +30,13 @@ func (s *Server) GetRbacEndpoint(
 }
 
 // PostRbacEndpoint implements StrictServerInterface.
-func (s *Server) PostRbacEndpoint(
+func (server *Server) PostRbacEndpoint(
 	ctx context.Context,
 	request PostRbacEndpointRequestObject,
 ) (PostRbacEndpointResponseObject, error) {
-	groupExists, err := auth.ResourceGroupExists(request.Body.ResourceGroup)
+	groupExists, err := server.authModule.ResourceGroupExists(
+		request.Body.ResourceGroup,
+	)
 	if err != nil {
 		return nil, &EmptyInternalServerError{}
 	}
@@ -46,7 +48,7 @@ func (s *Server) PostRbacEndpoint(
 		}, nil
 	}
 
-	err = auth.AddResourceToGroup(
+	err = server.authModule.AddResourceToGroup(
 		request.Body.Endpoint,
 		request.Body.ResourceGroup,
 	)
@@ -58,11 +60,13 @@ func (s *Server) PostRbacEndpoint(
 }
 
 // DeleteRbacEndpoint implements StrictServerInterface.
-func (s *Server) DeleteRbacEndpoint(
+func (server *Server) DeleteRbacEndpoint(
 	ctx context.Context,
 	request DeleteRbacEndpointRequestObject,
 ) (DeleteRbacEndpointResponseObject, error) {
-	groupExists, err := auth.ResourceGroupExists(request.Body.ResourceGroup)
+	groupExists, err := server.authModule.ResourceGroupExists(
+		request.Body.ResourceGroup,
+	)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to check if resource group exists")
 
@@ -77,7 +81,7 @@ func (s *Server) DeleteRbacEndpoint(
 		}, nil
 	}
 
-	err = auth.RemoveResourceFromGroup(
+	err = server.authModule.RemoveResourceFromGroup(
 		request.Body.Endpoint,
 		request.Body.ResourceGroup,
 	)
@@ -91,11 +95,11 @@ func (s *Server) DeleteRbacEndpoint(
 }
 
 // GetRbacPolicy implements StrictServerInterface.
-func (s *Server) GetRbacPolicy(
+func (server *Server) GetRbacPolicy(
 	ctx context.Context,
 	request GetRbacPolicyRequestObject,
 ) (GetRbacPolicyResponseObject, error) {
-	policies, err := auth.ListPolicies()
+	policies, err := server.authModule.ListPolicies()
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to list policies")
 
@@ -118,7 +122,7 @@ func (s *Server) GetRbacPolicy(
 }
 
 // PostRbacPolicy implements StrictServerInterface.
-func (s *Server) PostRbacPolicy(
+func (server *Server) PostRbacPolicy(
 	ctx context.Context,
 	request PostRbacPolicyRequestObject,
 ) (PostRbacPolicyResponseObject, error) {
@@ -126,7 +130,7 @@ func (s *Server) PostRbacPolicy(
 
 	if request.Body.ResourceGroup != string(Asterisk) {
 		// Validate resourceGroup field
-		resourceGroupExists, err := auth.ResourceGroupExists(
+		resourceGroupExists, err := server.authModule.ResourceGroupExists(
 			request.Body.ResourceGroup,
 		)
 		if err != nil {
@@ -148,7 +152,7 @@ func (s *Server) PostRbacPolicy(
 
 	if request.Body.Role != string(Asterisk) {
 		// Validate role field
-		roleExists, err := auth.UserGroupExists(request.Body.Role)
+		roleExists, err := server.authModule.UserGroupExists(request.Body.Role)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to check if role exists")
 
@@ -169,7 +173,7 @@ func (s *Server) PostRbacPolicy(
 		}, nil
 	}
 
-	err := auth.AddPolicy(
+	err := server.authModule.AddPolicy(
 		request.Body.Role,
 		request.Body.ResourceGroup,
 		string(request.Body.Permission),
@@ -184,11 +188,11 @@ func (s *Server) PostRbacPolicy(
 }
 
 // DeleteRbacPolicy implements StrictServerInterface.
-func (s *Server) DeleteRbacPolicy(
+func (server *Server) DeleteRbacPolicy(
 	ctx context.Context,
 	request DeleteRbacPolicyRequestObject,
 ) (DeleteRbacPolicyResponseObject, error) {
-	err := auth.RemovePolicy(
+	err := server.authModule.RemovePolicy(
 		request.Body.Role,
 		request.Body.ResourceGroup,
 		string(request.Body.Permission),
@@ -203,11 +207,11 @@ func (s *Server) DeleteRbacPolicy(
 }
 
 // GetRbacListResourceGroups implements StrictServerInterface.
-func (s *Server) GetRbacListResourceGroups(
+func (server *Server) GetRbacListResourceGroups(
 	ctx context.Context,
 	request GetRbacListResourceGroupsRequestObject,
 ) (GetRbacListResourceGroupsResponseObject, error) {
-	resourceGroups, err := auth.GetResourceGroups()
+	resourceGroups, err := server.authModule.GetResourceGroups()
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get resource groups")
 
@@ -228,11 +232,13 @@ func (s *Server) GetRbacListResourceGroups(
 }
 
 // GetRbacResourceGroup implements StrictServerInterface.
-func (s *Server) GetRbacResourceGroup(
+func (server *Server) GetRbacResourceGroup(
 	ctx context.Context,
 	request GetRbacResourceGroupRequestObject,
 ) (GetRbacResourceGroupResponseObject, error) {
-	resources, err := auth.GetResourceGroup(request.Params.ResourceGroup)
+	resources, err := server.authModule.GetResourceGroup(
+		request.Params.ResourceGroup,
+	)
 	if err != nil {
 		var errNotFound *auth.NotFoundError
 		if errors.As(err, &errNotFound) {
@@ -250,11 +256,13 @@ func (s *Server) GetRbacResourceGroup(
 }
 
 // HeadRbacResourceGroup implements StrictServerInterface.
-func (s *Server) HeadRbacResourceGroup(
+func (server *Server) HeadRbacResourceGroup(
 	ctx context.Context,
 	request HeadRbacResourceGroupRequestObject,
 ) (HeadRbacResourceGroupResponseObject, error) {
-	exists, err := auth.ResourceGroupExists(request.Body.ResourceGroup)
+	exists, err := server.authModule.ResourceGroupExists(
+		request.Body.ResourceGroup,
+	)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get resource group")
 
@@ -269,11 +277,11 @@ func (s *Server) HeadRbacResourceGroup(
 }
 
 // PostRbacResourceGroup implements StrictServerInterface.
-func (s *Server) PostRbacResourceGroup(
+func (server *Server) PostRbacResourceGroup(
 	ctx context.Context,
 	request PostRbacResourceGroupRequestObject,
 ) (PostRbacResourceGroupResponseObject, error) {
-	err := auth.CreateResourceGroup(request.Body.ResourceGroup)
+	err := server.authModule.CreateResourceGroup(request.Body.ResourceGroup)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create resource group")
 
@@ -284,11 +292,11 @@ func (s *Server) PostRbacResourceGroup(
 }
 
 // DeleteRbacResourceGroup implements StrictServerInterface.
-func (s *Server) DeleteRbacResourceGroup(
+func (server *Server) DeleteRbacResourceGroup(
 	ctx context.Context,
 	request DeleteRbacResourceGroupRequestObject,
 ) (DeleteRbacResourceGroupResponseObject, error) {
-	err := auth.RemoveResourceGroup(request.Body.ResourceGroup)
+	err := server.authModule.RemoveResourceGroup(request.Body.ResourceGroup)
 	if err != nil {
 		var errNotFound *auth.NotFoundError
 		if errors.As(err, &errNotFound) {
@@ -304,11 +312,11 @@ func (s *Server) DeleteRbacResourceGroup(
 }
 
 // GetRbacListRoles implements StrictServerInterface.
-func (s *Server) GetRbacListRoles(
+func (server *Server) GetRbacListRoles(
 	ctx context.Context,
 	request GetRbacListRolesRequestObject,
 ) (GetRbacListRolesResponseObject, error) {
-	groups, err := auth.GetUserGroups()
+	groups, err := server.authModule.GetUserGroups()
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get user groups")
 
@@ -326,11 +334,11 @@ func (s *Server) GetRbacListRoles(
 }
 
 // GetRbacRole implements StrictServerInterface.
-func (s *Server) GetRbacRole(
+func (server *Server) GetRbacRole(
 	ctx context.Context,
 	request GetRbacRoleRequestObject,
 ) (GetRbacRoleResponseObject, error) {
-	users, err := auth.GetUserGroup(request.Params.Role)
+	users, err := server.authModule.GetUserGroup(request.Params.Role)
 	if err != nil {
 		var errNotFound *auth.NotFoundError
 		if errors.As(err, &errNotFound) {
@@ -348,11 +356,11 @@ func (s *Server) GetRbacRole(
 }
 
 // HeadRbacRole implements StrictServerInterface.
-func (s *Server) HeadRbacRole(
+func (server *Server) HeadRbacRole(
 	ctx context.Context,
 	request HeadRbacRoleRequestObject,
 ) (HeadRbacRoleResponseObject, error) {
-	roleExists, err := auth.UserGroupExists(request.Body.Role)
+	roleExists, err := server.authModule.UserGroupExists(request.Body.Role)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to check if role exists")
 
@@ -367,11 +375,11 @@ func (s *Server) HeadRbacRole(
 }
 
 // PostRbacRole implements StrictServerInterface.
-func (s *Server) PostRbacRole(
+func (server *Server) PostRbacRole(
 	ctx context.Context,
 	request PostRbacRoleRequestObject,
 ) (PostRbacRoleResponseObject, error) {
-	err := auth.CreateUserGroup(request.Body.Role)
+	err := server.authModule.CreateUserGroup(request.Body.Role)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create role")
 
@@ -382,11 +390,11 @@ func (s *Server) PostRbacRole(
 }
 
 // DeleteRbacRole implements StrictServerInterface.
-func (s *Server) DeleteRbacRole(
+func (server *Server) DeleteRbacRole(
 	ctx context.Context,
 	request DeleteRbacRoleRequestObject,
 ) (DeleteRbacRoleResponseObject, error) {
-	err := auth.RemoveUserGroup(request.Body.Role)
+	err := server.authModule.RemoveUserGroup(request.Body.Role)
 	if err != nil {
 		var errNotFound *auth.NotFoundError
 		if errors.As(err, &errNotFound) {
@@ -411,7 +419,7 @@ func (s *Server) DeleteRbacRole(
 }
 
 // GetRbacUser implements StrictServerInterface.
-func (s *Server) GetRbacUser(
+func (server *Server) GetRbacUser(
 	ctx context.Context,
 	request GetRbacUserRequestObject,
 ) (GetRbacUserResponseObject, error) {
@@ -424,7 +432,7 @@ func (s *Server) GetRbacUser(
 		}, nil
 	}
 
-	_, err = orm.GetUserByID(ctx, uuidParsed)
+	_, err = server.db.GetUserByID(ctx, uuidParsed)
 	if err != nil {
 		var errNotFound *orm.NotFoundError
 		if errors.As(err, &errNotFound) {
@@ -438,7 +446,7 @@ func (s *Server) GetRbacUser(
 		return nil, &EmptyInternalServerError{}
 	}
 
-	users, err := auth.GetGroupsForUser(request.Params.UserId)
+	users, err := server.authModule.GetGroupsForUser(request.Params.UserId)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get roles for user")
 
@@ -449,7 +457,7 @@ func (s *Server) GetRbacUser(
 }
 
 // PostRbacUser implements StrictServerInterface.
-func (s *Server) PostRbacUser(
+func (server *Server) PostRbacUser(
 	ctx context.Context,
 	request PostRbacUserRequestObject,
 ) (PostRbacUserResponseObject, error) {
@@ -462,7 +470,7 @@ func (s *Server) PostRbacUser(
 		}, nil
 	}
 
-	_, err = orm.GetUserByID(ctx, uuidParsed)
+	_, err = server.db.GetUserByID(ctx, uuidParsed)
 	if err != nil {
 		var errNotFound *orm.NotFoundError
 		if errors.As(err, &errNotFound) {
@@ -478,7 +486,7 @@ func (s *Server) PostRbacUser(
 		return nil, &EmptyInternalServerError{}
 	}
 
-	err = auth.AddUserToGroup(request.Body.UserId, request.Body.Role)
+	err = server.authModule.AddUserToGroup(request.Body.UserId, request.Body.Role)
 	if err != nil {
 		var errNotFound *auth.NotFoundError
 		if errors.As(err, &errNotFound) {
@@ -498,7 +506,7 @@ func (s *Server) PostRbacUser(
 }
 
 // DeleteRbacUser implements StrictServerInterface.
-func (s *Server) DeleteRbacUser(
+func (server *Server) DeleteRbacUser(
 	ctx context.Context,
 	request DeleteRbacUserRequestObject,
 ) (DeleteRbacUserResponseObject, error) {
@@ -511,7 +519,7 @@ func (s *Server) DeleteRbacUser(
 		}, nil
 	}
 
-	_, err = orm.GetUserByID(ctx, uuidParsed)
+	_, err = server.db.GetUserByID(ctx, uuidParsed)
 	if err != nil {
 		var errNotFound *orm.NotFoundError
 		if errors.As(err, &errNotFound) {
@@ -527,7 +535,10 @@ func (s *Server) DeleteRbacUser(
 		return nil, &EmptyInternalServerError{}
 	}
 
-	err = auth.RemoveUserFromGroup(request.Body.UserId, request.Body.Role)
+	err = server.authModule.RemoveUserFromGroup(
+		request.Body.UserId,
+		request.Body.Role,
+	)
 	if err != nil {
 		var errNotFound *auth.NotFoundError
 		if errors.As(err, &errNotFound) {

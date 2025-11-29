@@ -28,7 +28,7 @@ func main() {
 		{Key: "admin.display_name", Value: "System Admin"},
 		{Key: "artifact_registry.host", Value: "artifactregistry"},
 		//nolint:mnd // Default port of artifact registry
-		{Key: "artifact_registry.port", Value: 5000},
+		{Key: "artifact_registry.port", Value: 9876},
 
 		{Key: "redis.host", Value: "redis"},
 		//nolint:mnd // Default port of redis

@@ -272,8 +272,8 @@ type PostArtifactUploadMultipartBody struct {
 	// Source The source of the artifact.
 	Source string `json:"source"`
 
-	// Tags Tags to assign to the artifact.
-	Tags *[]string `json:"tags,omitempty"`
+	// Tag Tags to assign to the artifact.
+	Tag *[]string `json:"tag,omitempty"`
 }
 
 // DeleteRbacEndpointJSONBody defines parameters for DeleteRbacEndpoint.

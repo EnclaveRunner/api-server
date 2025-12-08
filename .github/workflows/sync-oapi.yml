@@ -59,7 +59,7 @@ jobs:
 
           # Configure git
           git config user.name "Enclave Bot"
-          git config user.email "enclave-automation@marvin-fuchs.de"
+          git config user.email "automation@enclave-runner.de"
 
           # Get the current repository name for commit message
           REPO_NAME=$(echo ${{ github.repository }} | cut -d'/' -f2)
@@ -165,8 +165,8 @@ jobs:
           path: target-repo
           commit-message: "chore: update OpenAPI specification"
           branch: update-openapi-spec
-          committer: "Enclave Bot <enclave-automation@marvin-fuchs.de>"
-          author: "Enclave Bot <enclave-automation@marvin-fuchs.de>"
+          committer: "Enclave Bot <automation@enclave-runner.de>"
+          author: "Enclave Bot <automation@enclave-runner.de>"
           title: "chore: Update OpenAPI specification"
           body: |
             # Auto-Sync of OpenAPI Specification 📋

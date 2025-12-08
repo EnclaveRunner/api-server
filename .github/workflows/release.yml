@@ -48,7 +48,7 @@ jobs:
 
           # Commit all changes together
           git config user.name "Enclave Bot"
-          git config user.email "enclave-automation@marvin-fuchs.de"
+          git config user.email "automation@enclave-runner.de"
           git add .
           git commit -m "chore: bump version to $VERSION"
           git push origin main
@@ -59,7 +59,7 @@ jobs:
         if: steps.version.outputs.hasNextVersion == 'true'
         run: |
           git config user.name "Enclave Bot"
-          git config user.email "enclave-automation@marvin-fuchs.de"
+          git config user.email "automation@enclave-runner.de"
           git tag ${{ steps.version.outputs.version }}
           git push origin ${{ steps.version.outputs.version }}
 

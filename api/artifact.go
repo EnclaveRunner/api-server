@@ -554,8 +554,15 @@ func (s *Server) uploadArtifactWithFile(
 
 	artifact, err := stream.CloseAndRecv()
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to finalize artifact upload")
+		// Check if it's a gRPC AlreadyExists error
+		if st, ok := status.FromError(err); ok && st.Code() == codes.AlreadyExists {
+			log.Warn().Err(err).Msg("Artifact already exists")
+			return PostArtifactUpload409JSONResponse{
+				Error: "An artifact already exists with this fully qualified name and version hash",
+			}, nil
+		}
 
+		log.Error().Err(err).Msg("Failed to finalize artifact upload")
 		return &PostArtifactUpload500Response{}, nil
 	}
 

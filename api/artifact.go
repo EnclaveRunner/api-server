@@ -570,7 +570,7 @@ func (server *Server) uploadArtifactWithFile(
 	artifact, err := stream.CloseAndRecv()
 	if err != nil {
 		// Check if it's a gRPC AlreadyExists error
-		if st, ok := status.FromError(err); ok && st.Code() == codes.AlreadyExists {
+		if status.Code(err) == codes.AlreadyExists {
 			log.Warn().Err(err).Msg("Artifact already exists")
 
 			return PostArtifactUpload409JSONResponse{

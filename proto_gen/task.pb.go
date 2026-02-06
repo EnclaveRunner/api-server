@@ -25,7 +25,7 @@ type Task struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Artifact      *ArtifactIdentifier    `protobuf:"bytes,1,opt,name=artifact,proto3" json:"artifact,omitempty"`
 	Function      string                 `protobuf:"bytes,2,opt,name=function,proto3" json:"function,omitempty"`
-	Params        map[string]string      `protobuf:"bytes,3,rep,name=params,proto3" json:"params,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Params        map[string][]byte      `protobuf:"bytes,3,rep,name=params,proto3" json:"params,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -74,7 +74,7 @@ func (x *Task) GetFunction() string {
 	return ""
 }
 
-func (x *Task) GetParams() map[string]string {
+func (x *Task) GetParams() map[string][]byte {
 	if x != nil {
 		return x.Params
 	}
@@ -93,7 +93,7 @@ const file_task_proto_rawDesc = "" +
 	"\x06params\x18\x03 \x03(\v2\x16.task.Task.ParamsEntryR\x06params\x1a9\n" +
 	"\vParamsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\fZ\n" +
+	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01B\fZ\n" +
 	"proto_gen/b\x06proto3"
 
 var (

@@ -110,17 +110,27 @@ func (server *Server) processBlueprint(
 		}
 	}
 
-	paramMap := make(map[string]string)
+	paramMap := make(map[string][]byte)
 	for _, param := range blueprint.Spec.Params {
-		decodedBytes, err := base64.StdEncoding.DecodeString(param.Value)
-		if err != nil {
+		// check for duplicate keys to prevent overwriting params
+		if _, exists := paramMap[param.Key]; exists {
 			return PostManifest400JSONResponse{
 				GenericBadRequestJSONResponse{
-					Error: "Invalid base64 encoding in artifact input: " + err.Error(),
+					Error: fmt.Sprintf(
+						"Duplicate artifact input parameter key: %q",
+						param.Key,
+					),
 				},
 			}, nil
 		}
-		paramMap[param.Key] = string(decodedBytes)
+		paramMap[param.Key], err = base64.StdEncoding.DecodeString(param.Value)
+		if err != nil {
+			return PostManifest400JSONResponse{
+				GenericBadRequestJSONResponse{
+					Error: "Invalid base64 encoding in parameter value: " + err.Error(),
+				},
+			}, nil
+		}
 	}
 
 	task := &pb.Task{

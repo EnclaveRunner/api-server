@@ -9,5 +9,5 @@ package task;
 message Task {
     registry.ArtifactIdentifier artifact = 1;
     string function = 2;
-    map<string, string> params = 3;
+    map<string, bytes> params = 3;
 }

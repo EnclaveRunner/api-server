@@ -22,7 +22,7 @@
           "$ref": "#/definitions/Status"
         }
       },
-      "required": ["apiVersion", "kind", "metadata", "spec", "status"],
+      "required": ["apiVersion", "kind", "metadata", "spec"],
       "title": "Blueprint"
     },
     "Metadata": {
@@ -40,30 +40,43 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "artifact": {
-          "$ref": "#/definitions/Artifact"
-        }
-      },
-      "required": ["artifact"],
-      "title": "Spec"
-    },
-    "Artifact": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
         "source": {
           "type": "string"
         },
         "function": {
-          "type": "string"
-        },
-        "input": {
           "type": "string",
-          "contentEncoding": "base64"
+          "default": "main"
+        },
+        "params": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Param"
+          }
+        },
+        "callback": {
+          "type": "string",
+          "format": "uri"
+        },
+        "retention": {
+          "type": "string"
         }
       },
-      "required": ["source", "function", "input"],
-      "title": "Artifact"
+      "required": ["source"],
+      "title": "Spec"
+    },
+    "Param": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": ["key", "value"],
+      "title": "Param"
     },
     "Status": {
       "type": "object",

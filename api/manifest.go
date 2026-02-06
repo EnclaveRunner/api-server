@@ -88,7 +88,7 @@ func (server *Server) processBlueprint(
 		}, nil
 	}
 
-	fullIdentifier, err := parseSource(blueprint.Spec.Artifact.Source)
+	fullIdentifier, err := parseSource(blueprint.Spec.Source)
 	if err != nil {
 		return PostManifest400JSONResponse{
 			GenericBadRequestJSONResponse{
@@ -110,16 +110,17 @@ func (server *Server) processBlueprint(
 		}
 	}
 
-	// Decode base64 input to bytes
-	inputBytes, err := base64.StdEncoding.DecodeString(
-		blueprint.Spec.Artifact.Input,
-	)
-	if err != nil {
-		return PostManifest400JSONResponse{
-			GenericBadRequestJSONResponse{
-				Error: "Invalid base64 encoding in artifact input: " + err.Error(),
-			},
-		}, nil
+	paramMap := make(map[string]string)
+	for _, param := range blueprint.Spec.Params {
+		decodedBytes, err := base64.StdEncoding.DecodeString(param.Value)
+		if err != nil {
+			return PostManifest400JSONResponse{
+				GenericBadRequestJSONResponse{
+					Error: "Invalid base64 encoding in artifact input: " + err.Error(),
+				},
+			}, nil
+		}
+		paramMap[param.Key] = string(decodedBytes)
 	}
 
 	task := &pb.Task{
@@ -130,8 +131,8 @@ func (server *Server) processBlueprint(
 				Name:   fullIdentifier.Name,
 			},
 		},
-		Function: blueprint.Spec.Artifact.Function,
-		Input:    inputBytes,
+		Function: blueprint.Spec.Function,
+		Params:   paramMap,
 	}
 
 	// Set the correct identifier type

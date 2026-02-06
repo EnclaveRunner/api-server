@@ -5,41 +5,6 @@ package schema
 import "encoding/json"
 import "fmt"
 
-type Artifact struct {
-	// Function corresponds to the JSON schema field "function".
-	Function string `json:"function" yaml:"function" mapstructure:"function"`
-
-	// Input corresponds to the JSON schema field "input".
-	Input string `json:"input" yaml:"input" mapstructure:"input"`
-
-	// Source corresponds to the JSON schema field "source".
-	Source string `json:"source" yaml:"source" mapstructure:"source"`
-}
-
-// UnmarshalJSON implements json.Unmarshaler.
-func (j *Artifact) UnmarshalJSON(value []byte) error {
-	var raw map[string]interface{}
-	if err := json.Unmarshal(value, &raw); err != nil {
-		return err
-	}
-	if _, ok := raw["function"]; raw != nil && !ok {
-		return fmt.Errorf("field function in Artifact: required")
-	}
-	if _, ok := raw["input"]; raw != nil && !ok {
-		return fmt.Errorf("field input in Artifact: required")
-	}
-	if _, ok := raw["source"]; raw != nil && !ok {
-		return fmt.Errorf("field source in Artifact: required")
-	}
-	type Plain Artifact
-	var plain Plain
-	if err := json.Unmarshal(value, &plain); err != nil {
-		return err
-	}
-	*j = Artifact(plain)
-	return nil
-}
-
 type Blueprint struct {
 	// ApiVersion corresponds to the JSON schema field "apiVersion".
 	ApiVersion string `json:"apiVersion" yaml:"apiVersion" mapstructure:"apiVersion"`
@@ -54,7 +19,7 @@ type Blueprint struct {
 	Spec Spec `json:"spec" yaml:"spec" mapstructure:"spec"`
 
 	// Status corresponds to the JSON schema field "status".
-	Status Status `json:"status" yaml:"status" mapstructure:"status"`
+	Status *Status `json:"status,omitempty" yaml:"status,omitempty" mapstructure:"status,omitempty"`
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
@@ -74,9 +39,6 @@ func (j *Blueprint) UnmarshalJSON(value []byte) error {
 	}
 	if _, ok := raw["spec"]; raw != nil && !ok {
 		return fmt.Errorf("field spec in Blueprint: required")
-	}
-	if _, ok := raw["status"]; raw != nil && !ok {
-		return fmt.Errorf("field status in Blueprint: required")
 	}
 	type Plain Blueprint
 	var plain Plain
@@ -110,9 +72,50 @@ func (j *Metadata) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
+type Param struct {
+	// Key corresponds to the JSON schema field "key".
+	Key string `json:"key" yaml:"key" mapstructure:"key"`
+
+	// Value corresponds to the JSON schema field "value".
+	Value string `json:"value" yaml:"value" mapstructure:"value"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *Param) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["key"]; raw != nil && !ok {
+		return fmt.Errorf("field key in Param: required")
+	}
+	if _, ok := raw["value"]; raw != nil && !ok {
+		return fmt.Errorf("field value in Param: required")
+	}
+	type Plain Param
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = Param(plain)
+	return nil
+}
+
 type Spec struct {
-	// Artifact corresponds to the JSON schema field "artifact".
-	Artifact Artifact `json:"artifact" yaml:"artifact" mapstructure:"artifact"`
+	// Callback corresponds to the JSON schema field "callback".
+	Callback *string `json:"callback,omitempty" yaml:"callback,omitempty" mapstructure:"callback,omitempty"`
+
+	// Function corresponds to the JSON schema field "function".
+	Function string `json:"function,omitempty" yaml:"function,omitempty" mapstructure:"function,omitempty"`
+
+	// Params corresponds to the JSON schema field "params".
+	Params []Param `json:"params,omitempty" yaml:"params,omitempty" mapstructure:"params,omitempty"`
+
+	// Retention corresponds to the JSON schema field "retention".
+	Retention *string `json:"retention,omitempty" yaml:"retention,omitempty" mapstructure:"retention,omitempty"`
+
+	// Source corresponds to the JSON schema field "source".
+	Source string `json:"source" yaml:"source" mapstructure:"source"`
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
@@ -121,13 +124,16 @@ func (j *Spec) UnmarshalJSON(value []byte) error {
 	if err := json.Unmarshal(value, &raw); err != nil {
 		return err
 	}
-	if _, ok := raw["artifact"]; raw != nil && !ok {
-		return fmt.Errorf("field artifact in Spec: required")
+	if _, ok := raw["source"]; raw != nil && !ok {
+		return fmt.Errorf("field source in Spec: required")
 	}
 	type Plain Spec
 	var plain Plain
 	if err := json.Unmarshal(value, &plain); err != nil {
 		return err
+	}
+	if v, ok := raw["function"]; !ok || v == nil {
+		plain.Function = "main"
 	}
 	*j = Spec(plain)
 	return nil

@@ -25,7 +25,7 @@ type Task struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Artifact      *ArtifactIdentifier    `protobuf:"bytes,1,opt,name=artifact,proto3" json:"artifact,omitempty"`
 	Function      string                 `protobuf:"bytes,2,opt,name=function,proto3" json:"function,omitempty"`
-	Input         []byte                 `protobuf:"bytes,3,opt,name=input,proto3" json:"input,omitempty"`
+	Params        map[string]string      `protobuf:"bytes,3,rep,name=params,proto3" json:"params,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -74,9 +74,9 @@ func (x *Task) GetFunction() string {
 	return ""
 }
 
-func (x *Task) GetInput() []byte {
+func (x *Task) GetParams() map[string]string {
 	if x != nil {
-		return x.Input
+		return x.Params
 	}
 	return nil
 }
@@ -86,11 +86,14 @@ var File_task_proto protoreflect.FileDescriptor
 const file_task_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"task.proto\x12\x04task\x1a\x0eregistry.proto\"r\n" +
+	"task.proto\x12\x04task\x1a\x0eregistry.proto\"\xc7\x01\n" +
 	"\x04Task\x128\n" +
 	"\bartifact\x18\x01 \x01(\v2\x1c.registry.ArtifactIdentifierR\bartifact\x12\x1a\n" +
-	"\bfunction\x18\x02 \x01(\tR\bfunction\x12\x14\n" +
-	"\x05input\x18\x03 \x01(\fR\x05inputB\fZ\n" +
+	"\bfunction\x18\x02 \x01(\tR\bfunction\x12.\n" +
+	"\x06params\x18\x03 \x03(\v2\x16.task.Task.ParamsEntryR\x06params\x1a9\n" +
+	"\vParamsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\fZ\n" +
 	"proto_gen/b\x06proto3"
 
 var (
@@ -105,18 +108,20 @@ func file_task_proto_rawDescGZIP() []byte {
 	return file_task_proto_rawDescData
 }
 
-var file_task_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_task_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_task_proto_goTypes = []any{
 	(*Task)(nil),               // 0: task.Task
-	(*ArtifactIdentifier)(nil), // 1: registry.ArtifactIdentifier
+	nil,                        // 1: task.Task.ParamsEntry
+	(*ArtifactIdentifier)(nil), // 2: registry.ArtifactIdentifier
 }
 var file_task_proto_depIdxs = []int32{
-	1, // 0: task.Task.artifact:type_name -> registry.ArtifactIdentifier
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	2, // 0: task.Task.artifact:type_name -> registry.ArtifactIdentifier
+	1, // 1: task.Task.params:type_name -> task.Task.ParamsEntry
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_task_proto_init() }
@@ -131,7 +136,7 @@ func file_task_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_task_proto_rawDesc), len(file_task_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

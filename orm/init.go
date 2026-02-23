@@ -61,6 +61,15 @@ func NewDB(authModule auth.AuthModule, db *gorm.DB) DB {
 	return DB{dbGorm: db, authModule: authModule}
 }
 
+// Transaction wraps the GORM transaction functionality
+func (db *DB) Transaction(fn func(tx *gorm.DB) error) error {
+	if err := db.dbGorm.Transaction(fn); err != nil {
+		return fmt.Errorf("database transaction failed: %w", err)
+	}
+
+	return nil
+}
+
 func NewCasbinAdapter(db *gorm.DB) *gormadapter.Adapter {
 	adapter, err := gormadapter.NewAdapterByDBUseTableName(db, "casbin", "rules")
 	if err != nil {

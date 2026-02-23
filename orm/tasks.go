@@ -57,32 +57,40 @@ func (db *DB) RegisterTask(
 		ResultPayload: nil,
 	}
 
-	// Save the task to database
-	if err := db.dbGorm.Create(task).Error; err != nil {
-		log.Error().Err(err).Msg("Failed to register task")
+	// Execute task registration and logging in a transaction
+	err = db.dbGorm.Transaction(func(tx *gorm.DB) error {
+		// Save the task to database
+		if err := tx.Create(task).Error; err != nil {
+			log.Error().Err(err).Msg("Failed to register task")
 
-		return nil, err
-	}
+			return err
+		}
 
-	// Add log entry for task submission
-	taskLog := &TaskLog{
-		TaskID: task.TaskID,
-		Status: LogStatusInfo,
-		Issuer: LogIssuerSystem,
-		Payload: []byte(
-			"Task registered with max_retries=" + strconv.Itoa(
-				maxRetries,
-			) + " and retention=" + retention,
-		),
-	}
+		// Add log entry for task submission
+		taskLog := &TaskLog{
+			TaskID: task.TaskID,
+			Status: LogStatusInfo,
+			Issuer: LogIssuerSystem,
+			Payload: []byte(
+				"Task registered with max_retries=" + strconv.Itoa(
+					maxRetries,
+				) + " and retention=" + retention,
+			),
+		}
 
-	if err := db.dbGorm.Create(taskLog).Error; err != nil {
-		log.Error().
-			Err(err).
-			Str("task_id", task.TaskID.String()).
-			Msg("Failed to create task log entry")
+		if err := tx.Create(taskLog).Error; err != nil {
+			log.Error().
+				Err(err).
+				Str("task_id", task.TaskID.String()).
+				Msg("Failed to create task log entry")
 
-		return task, err // Return task even if logging fails
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to register task in transaction: %w", err)
 	}
 
 	log.Info().
@@ -114,32 +122,40 @@ func (db *DB) EnqueueTask(taskID uuid.UUID) error {
 		return fmt.Errorf("failed to find task for enqueue operation: %w", err)
 	}
 
-	// Update the task's last_action field
-	task.LastAction = TaskActionEnqueued
-	if err := db.dbGorm.Save(&task).Error; err != nil {
-		log.Error().
-			Err(err).
-			Str("task_id", taskID.String()).
-			Msg("Failed to update task last_action")
+	// Execute task update and logging in a transaction
+	err = db.dbGorm.Transaction(func(tx *gorm.DB) error {
+		// Update the task's last_action field
+		task.LastAction = TaskActionEnqueued
+		if err := tx.Save(&task).Error; err != nil {
+			log.Error().
+				Err(err).
+				Str("task_id", taskID.String()).
+				Msg("Failed to update task last_action")
 
-		return err
-	}
+			return err
+		}
 
-	// Add log entry for task enqueue
-	taskLog := &TaskLog{
-		TaskID:  taskID,
-		Status:  LogStatusInfo,
-		Issuer:  LogIssuerSystem,
-		Payload: nil,
-	}
+		// Add log entry for task enqueue
+		taskLog := &TaskLog{
+			TaskID:  taskID,
+			Status:  LogStatusInfo,
+			Issuer:  LogIssuerSystem,
+			Payload: nil,
+		}
 
-	if err := db.dbGorm.Create(taskLog).Error; err != nil {
-		log.Error().
-			Err(err).
-			Str("task_id", taskID.String()).
-			Msg("Failed to create enqueue log entry")
+		if err := tx.Create(taskLog).Error; err != nil {
+			log.Error().
+				Err(err).
+				Str("task_id", taskID.String()).
+				Msg("Failed to create enqueue log entry")
 
-		return err
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("failed to enqueue task in transaction: %w", err)
 	}
 
 	log.Info().Str("task_id", taskID.String()).Msg("Task enqueued successfully")

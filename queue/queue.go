@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
 	"google.golang.org/protobuf/proto"
+	"gorm.io/gorm"
 )
 
 const (
@@ -44,15 +45,28 @@ func (q *QueueClient) EnqueueTask(
 		return nil, fmt.Errorf("failed to marshal task to protobuf: %w", err)
 	}
 
-	queueTask := asynq.NewTask(TaskTypeNormal, payload)
+	var info *asynq.TaskInfo
 
-	info, err := q.client.Enqueue(queueTask, opts...)
+	err = q.db.Transaction(func(tx *gorm.DB) error {
+		queueTask := asynq.NewTask(TaskTypeNormal, payload)
+
+		taskInfo, err := q.client.Enqueue(queueTask, opts...)
+		if err != nil {
+			return fmt.Errorf("failed to enqueue task: %w", err)
+		}
+		info = taskInfo
+
+		if err := q.db.EnqueueTask(taskID); err != nil {
+			return fmt.Errorf("failed to update task in database: %w", err)
+		}
+
+		return nil
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to enqueue task: %w", err)
-	}
-
-	if err := q.db.EnqueueTask(taskID); err != nil {
-		return nil, fmt.Errorf("failed to update task in database: %w", err)
+		return nil, fmt.Errorf(
+			"failed to enqueue task with database update: %w",
+			err,
+		)
 	}
 
 	return info, nil

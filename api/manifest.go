@@ -17,6 +17,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const (
+	defaultMaxRetries = 3
+	defaultRetention  = "24h"
+)
+
 // all valid manifests are required to be able to unmarshal to this struct
 type BaseManifest struct {
 	APIVersion string         `json:"apiVersion" yaml:"apiVersion"`
@@ -157,16 +162,29 @@ func (server *Server) processBlueprint(
 		return &PostManifest500Response{}, nil
 	}
 
+	// Register the task in database first
+	registeredTask, err := server.db.RegisterTask(
+		defaultMaxRetries,
+		defaultRetention,
+	)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to register task in database")
+
+		return PostManifest500Response{}, nil
+	}
+
+	task.TaskId = registeredTask.TaskID.String()
+
 	// Enqueue the task for processing
-	taskInfo, err := server.queueClient.EnqueueTask(task)
+	_, err = server.queueClient.EnqueueTask(registeredTask.TaskID, task)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to enqueue task")
 
 		return PostManifest500Response{}, nil
 	}
 
-	// Create response with task ID
-	taskID := taskInfo.ID
+	// Create response with task ID from database
+	taskID := registeredTask.TaskID.String()
 	responseBody := fmt.Sprintf("taskId: %s\n", taskID)
 
 	return PostManifest201TextyamlResponse{

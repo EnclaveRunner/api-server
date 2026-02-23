@@ -49,7 +49,7 @@ func InitDB(cfg *config.AppConfig) *gorm.DB {
 	log.Debug().Msg("Successfully connected to the database")
 
 	// Run database migrations
-	err = db.AutoMigrate(&User{}, &Auth_Basic{})
+	err = db.AutoMigrate(&User{}, &Auth_Basic{}, &VirtualTask{}, &TaskLog{})
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to migrate database")
 	}

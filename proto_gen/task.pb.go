@@ -23,9 +23,10 @@ const (
 
 type Task struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Artifact      *ArtifactIdentifier    `protobuf:"bytes,1,opt,name=artifact,proto3" json:"artifact,omitempty"`
-	Function      string                 `protobuf:"bytes,2,opt,name=function,proto3" json:"function,omitempty"`
-	Input         []byte                 `protobuf:"bytes,3,opt,name=input,proto3" json:"input,omitempty"`
+	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Artifact      *ArtifactIdentifier    `protobuf:"bytes,2,opt,name=artifact,proto3" json:"artifact,omitempty"`
+	Function      string                 `protobuf:"bytes,3,opt,name=function,proto3" json:"function,omitempty"`
+	Input         []byte                 `protobuf:"bytes,4,opt,name=input,proto3" json:"input,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -60,6 +61,13 @@ func (*Task) Descriptor() ([]byte, []int) {
 	return file_task_proto_rawDescGZIP(), []int{0}
 }
 
+func (x *Task) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
 func (x *Task) GetArtifact() *ArtifactIdentifier {
 	if x != nil {
 		return x.Artifact
@@ -86,11 +94,12 @@ var File_task_proto protoreflect.FileDescriptor
 const file_task_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"task.proto\x12\x04task\x1a\x0eregistry.proto\"r\n" +
-	"\x04Task\x128\n" +
-	"\bartifact\x18\x01 \x01(\v2\x1c.registry.ArtifactIdentifierR\bartifact\x12\x1a\n" +
-	"\bfunction\x18\x02 \x01(\tR\bfunction\x12\x14\n" +
-	"\x05input\x18\x03 \x01(\fR\x05inputB\fZ\n" +
+	"task.proto\x12\x04task\x1a\x0eregistry.proto\"\x8b\x01\n" +
+	"\x04Task\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x128\n" +
+	"\bartifact\x18\x02 \x01(\v2\x1c.registry.ArtifactIdentifierR\bartifact\x12\x1a\n" +
+	"\bfunction\x18\x03 \x01(\tR\bfunction\x12\x14\n" +
+	"\x05input\x18\x04 \x01(\fR\x05inputB\fZ\n" +
 	"proto_gen/b\x06proto3"
 
 var (

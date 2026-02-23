@@ -2,11 +2,14 @@ package queue
 
 import (
 	"api-server/config"
+	"api-server/orm"
 	pb "api-server/proto_gen"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
 	"google.golang.org/protobuf/proto"
+	"gorm.io/gorm"
 )
 
 const (
@@ -16,9 +19,10 @@ const (
 type QueueClient struct {
 	client    *asynq.Client
 	inspector *asynq.Inspector
+	db        *orm.DB
 }
 
-func NewQueueClient(cfg *config.AppConfig) QueueClient {
+func NewQueueClient(cfg *config.AppConfig, db *orm.DB) QueueClient {
 	redisOpt := asynq.RedisClientOpt{
 		Addr: fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
 		DB:   cfg.Redis.DB,
@@ -27,10 +31,12 @@ func NewQueueClient(cfg *config.AppConfig) QueueClient {
 	return QueueClient{
 		client:    asynq.NewClient(redisOpt),
 		inspector: asynq.NewInspector(redisOpt),
+		db:        db,
 	}
 }
 
 func (q *QueueClient) EnqueueTask(
+	taskID uuid.UUID,
 	task *pb.Task,
 	opts ...asynq.Option,
 ) (*asynq.TaskInfo, error) {
@@ -39,11 +45,28 @@ func (q *QueueClient) EnqueueTask(
 		return nil, fmt.Errorf("failed to marshal task to protobuf: %w", err)
 	}
 
-	queueTask := asynq.NewTask(TaskTypeNormal, payload)
+	var info *asynq.TaskInfo
 
-	info, err := q.client.Enqueue(queueTask, opts...)
+	err = q.db.Transaction(func(tx *gorm.DB) error {
+		queueTask := asynq.NewTask(TaskTypeNormal, payload)
+
+		taskInfo, err := q.client.Enqueue(queueTask, opts...)
+		if err != nil {
+			return fmt.Errorf("failed to enqueue task: %w", err)
+		}
+		info = taskInfo
+
+		if err := q.db.EnqueueTask(taskID); err != nil {
+			return fmt.Errorf("failed to update task in database: %w", err)
+		}
+
+		return nil
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to enqueue task: %w", err)
+		return nil, fmt.Errorf(
+			"failed to enqueue task with database update: %w",
+			err,
+		)
 	}
 
 	return info, nil

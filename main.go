@@ -65,7 +65,7 @@ func main() {
 	db.InitAdminUser(cfg)
 
 	// Initialize task queue
-	queueClient := queue.NewQueueClient(cfg)
+	queueClient := queue.NewQueueClient(cfg, &db)
 
 	// Migrate RBAC policies, resource groups and roles
 	MigrateRBAC(authModule)

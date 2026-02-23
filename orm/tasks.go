@@ -162,3 +162,33 @@ func (db *DB) EnqueueTask(taskID uuid.UUID) error {
 
 	return nil
 }
+
+// GetAllTasks retrieves all virtual tasks from the database.
+func (db *DB) GetAllTasks(ctx context.Context) ([]VirtualTask, error) {
+	tasks, err := gorm.G[VirtualTask](db.dbGorm).
+		Find(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch tasks: %w", err)
+	}
+
+	return tasks, nil
+}
+
+// GetTaskByID retrieves a single virtual task by its ID.
+func (db *DB) GetTaskByID(
+	ctx context.Context,
+	taskID uuid.UUID,
+) (*VirtualTask, error) {
+	task, err := gorm.G[VirtualTask](db.dbGorm).
+		Where(&VirtualTask{TaskID: taskID}).
+		First(ctx)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, gorm.ErrRecordNotFound
+		}
+
+		return nil, fmt.Errorf("failed to fetch task: %w", err)
+	}
+
+	return &task, nil
+}

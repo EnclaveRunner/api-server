@@ -49,7 +49,7 @@ func InitDB(cfg *config.AppConfig) *gorm.DB {
 	log.Debug().Msg("Successfully connected to the database")
 
 	// Run database migrations
-	err = db.AutoMigrate(&User{}, &Auth_Basic{})
+	err = db.AutoMigrate(&User{}, &Auth_Basic{}, &VirtualTask{}, &TaskLog{})
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to migrate database")
 	}
@@ -59,6 +59,15 @@ func InitDB(cfg *config.AppConfig) *gorm.DB {
 
 func NewDB(authModule auth.AuthModule, db *gorm.DB) DB {
 	return DB{dbGorm: db, authModule: authModule}
+}
+
+// Transaction wraps the GORM transaction functionality
+func (db *DB) Transaction(fn func(tx *gorm.DB) error) error {
+	if err := db.dbGorm.Transaction(fn); err != nil {
+		return fmt.Errorf("database transaction failed: %w", err)
+	}
+
+	return nil
 }
 
 func NewCasbinAdapter(db *gorm.DB) *gormadapter.Adapter {

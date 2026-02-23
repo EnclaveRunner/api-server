@@ -7,7 +7,8 @@ import "registry.proto";
 package task;
 
 message Task {
-    registry.ArtifactIdentifier artifact = 1;
-    string function = 2;
-    bytes input = 3;
+    string task_id = 1;
+    registry.ArtifactIdentifier artifact = 2;
+    string function = 3;
+    bytes input = 4;
 }

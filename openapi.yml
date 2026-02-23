@@ -12,6 +12,8 @@ tags:
     description: Operations related to artifacts management.
   - name: Manifests
     description: Operations related to manifests management.
+  - name: Tasks
+    description: Operations related to task management.
 paths:
   /users/user:
     get:
@@ -1329,8 +1331,122 @@ paths:
           $ref: "#/components/responses/GenericInternalServerError"
       security:
         - BasicAuth: []
+  /tasks/list:
+    get:
+      summary: Get Task List
+      description: Retrieve a list of all task states.
+      tags:
+        - Tasks
+      responses:
+        "200":
+          description: Successful response with task list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaskState"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+  /tasks/task:
+    get:
+      summary: Get Single Task
+      description: Retrieve information about a specific task by ID.
+      tags:
+        - Tasks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskRequest"
+      responses:
+        "200":
+          description: Successful response with task information.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskState"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
 components:
   schemas:
+    TaskState:
+      type: object
+      required:
+        - id
+        - created_on
+        - last_action
+        - runner_host
+        - retries
+        - max_retries
+        - retention
+        - status
+        - result_payload
+      properties:
+        id:
+          type: string
+          description: The unique identifier for the task.
+          example: "98aw7cfz"
+        created_on:
+          type: string
+          description: The timestamp when the task was created.
+          example: "2026-02-23-22:24"
+        last_action:
+          type: string
+          description: The last action performed on the task.
+          example: "SUBMITTED"
+        runner_host:
+          type: string
+          description: The host running the task.
+          example: ""
+        retries:
+          type: integer
+          description: The current number of retries.
+          example: 0
+        max_retries:
+          type: integer
+          description: The maximum number of retries allowed.
+          example: 3
+        retention:
+          type: string
+          description: The retention period for the task.
+          example: "1d2h"
+        status:
+          type: string
+          description: The current status of the task.
+          example: "ONGOING"
+        result_payload:
+          type: string
+          description: The result payload of the task.
+          example: ""
+    TaskRequest:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          description: The unique identifier for the task to retrieve.
+          example: "98aw7cfz"
     ErrGeneric:
       type: object
       required:

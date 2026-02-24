@@ -162,7 +162,6 @@ func (db *DB) EnqueueTask(taskID uuid.UUID) error {
 
 	return nil
 }
-<<<<<<< feat/114
 
 // GetAllTasks retrieves all virtual tasks from the database.
 func (db *DB) GetAllTasks(ctx context.Context) ([]VirtualTask, error) {
@@ -193,5 +192,3 @@ func (db *DB) GetTaskByID(
 
 	return &task, nil
 }
-=======
->>>>>>> main

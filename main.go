@@ -41,7 +41,7 @@ func main() {
 	err := shareddepsConfig.PopulateAppConfig(
 		cfg,
 		"api-server",
-		"v0.6.6",
+		"v0.7.0",
 		defaults...)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to load app config")

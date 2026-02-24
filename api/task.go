@@ -52,11 +52,11 @@ func (s *Server) GetTasksTask(
 	ctx context.Context,
 	request GetTasksTaskRequestObject,
 ) (GetTasksTaskResponseObject, error) {
-	if request.Body == nil {
+	if request.Params.Id == "" {
 		return GetTasksTask400JSONResponse{}, ErrRequestBodyRequired
 	}
 
-	taskID, err := uuid.Parse(request.Body.Id)
+	taskID, err := uuid.Parse(request.Params.Id)
 	if err != nil {
 		return GetTasksTask400JSONResponse{}, ErrInvalidTaskIDFormat
 	}

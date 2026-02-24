@@ -136,6 +136,36 @@ type RBACRole struct {
 	Role string `json:"role"`
 }
 
+// TaskState defines model for TaskState.
+type TaskState struct {
+	// CreatedOn The timestamp when the task was created.
+	CreatedOn string `json:"created_on"`
+
+	// Id The unique identifier for the task.
+	Id string `json:"id"`
+
+	// LastAction The last action performed on the task.
+	LastAction string `json:"last_action"`
+
+	// MaxRetries The maximum number of retries allowed.
+	MaxRetries int `json:"max_retries"`
+
+	// ResultPayload The result payload of the task.
+	ResultPayload string `json:"result_payload"`
+
+	// Retention The retention period for the task.
+	Retention string `json:"retention"`
+
+	// Retries The current number of retries.
+	Retries int `json:"retries"`
+
+	// RunnerHost The host running the task.
+	RunnerHost string `json:"runner_host"`
+
+	// Status The current status of the task.
+	Status string `json:"status"`
+}
+
 // UserRequest defines model for UserRequest.
 type UserRequest struct {
 	// Id The uuid of the user to retrieve.
@@ -352,6 +382,12 @@ type PostRbacUserJSONBody struct {
 
 	// UserId The uuid of the user.
 	UserId string `json:"userId"`
+}
+
+// GetTasksTaskParams defines parameters for GetTasksTask.
+type GetTasksTaskParams struct {
+	// Id The unique identifier for the task to retrieve.
+	Id string `form:"id" json:"id"`
 }
 
 // GetUsersUserParams defines parameters for GetUsersUser.
@@ -612,6 +648,12 @@ type ClientInterface interface {
 	PostRbacUserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	PostRbacUser(ctx context.Context, body PostRbacUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetTasksList request
+	GetTasksList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetTasksTask request
+	GetTasksTask(ctx context.Context, params *GetTasksTaskParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetUsersList request
 	GetUsersList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1157,6 +1199,30 @@ func (c *Client) PostRbacUserWithBody(ctx context.Context, contentType string, b
 
 func (c *Client) PostRbacUser(ctx context.Context, body PostRbacUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPostRbacUserRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetTasksList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTasksListRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetTasksTask(ctx context.Context, params *GetTasksTaskParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTasksTaskRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -2578,6 +2644,78 @@ func NewPostRbacUserRequestWithBody(server string, contentType string, body io.R
 	return req, nil
 }
 
+// NewGetTasksListRequest generates requests for GetTasksList
+func NewGetTasksListRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tasks/list")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetTasksTaskRequest generates requests for GetTasksTask
+func NewGetTasksTaskRequest(server string, params *GetTasksTaskParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tasks/task")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "id", runtime.ParamLocationQuery, params.Id); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetUsersListRequest generates requests for GetUsersList
 func NewGetUsersListRequest(server string) (*http.Request, error) {
 	var err error
@@ -3080,6 +3218,12 @@ type ClientWithResponsesInterface interface {
 	PostRbacUserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostRbacUserResponse, error)
 
 	PostRbacUserWithResponse(ctx context.Context, body PostRbacUserJSONRequestBody, reqEditors ...RequestEditorFn) (*PostRbacUserResponse, error)
+
+	// GetTasksListWithResponse request
+	GetTasksListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetTasksListResponse, error)
+
+	// GetTasksTaskWithResponse request
+	GetTasksTaskWithResponse(ctx context.Context, params *GetTasksTaskParams, reqEditors ...RequestEditorFn) (*GetTasksTaskResponse, error)
 
 	// GetUsersListWithResponse request
 	GetUsersListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetUsersListResponse, error)
@@ -3787,6 +3931,53 @@ func (r PostRbacUserResponse) StatusCode() int {
 	return 0
 }
 
+type GetTasksListResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]TaskState
+	JSON400      *GenericBadRequest
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTasksListResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTasksListResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetTasksTaskResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *TaskState
+	JSON400      *GenericBadRequest
+	JSON404      *GenericNotFound
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTasksTaskResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTasksTaskResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type GetUsersListResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -4374,6 +4565,24 @@ func (c *ClientWithResponses) PostRbacUserWithResponse(ctx context.Context, body
 		return nil, err
 	}
 	return ParsePostRbacUserResponse(rsp)
+}
+
+// GetTasksListWithResponse request returning *GetTasksListResponse
+func (c *ClientWithResponses) GetTasksListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetTasksListResponse, error) {
+	rsp, err := c.GetTasksList(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTasksListResponse(rsp)
+}
+
+// GetTasksTaskWithResponse request returning *GetTasksTaskResponse
+func (c *ClientWithResponses) GetTasksTaskWithResponse(ctx context.Context, params *GetTasksTaskParams, reqEditors ...RequestEditorFn) (*GetTasksTaskResponse, error) {
+	rsp, err := c.GetTasksTask(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTasksTaskResponse(rsp)
 }
 
 // GetUsersListWithResponse request returning *GetUsersListResponse
@@ -5583,6 +5792,79 @@ func ParsePostRbacUserResponse(rsp *http.Response) (*PostRbacUserResponse, error
 			return nil, err
 		}
 		response.JSON413 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetTasksListResponse parses an HTTP response from a GetTasksListWithResponse call
+func ParseGetTasksListResponse(rsp *http.Response) (*GetTasksListResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTasksListResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []TaskState
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest GenericBadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetTasksTaskResponse parses an HTTP response from a GetTasksTaskWithResponse call
+func ParseGetTasksTaskResponse(rsp *http.Response) (*GetTasksTaskResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTasksTaskResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TaskState
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest GenericBadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest GenericNotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	}
 

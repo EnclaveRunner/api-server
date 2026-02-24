@@ -136,12 +136,6 @@ type RBACRole struct {
 	Role string `json:"role"`
 }
 
-// TaskRequest defines model for TaskRequest.
-type TaskRequest struct {
-	// Id The unique identifier for the task to retrieve.
-	Id string `json:"id"`
-}
-
 // TaskState defines model for TaskState.
 type TaskState struct {
 	// CreatedOn The timestamp when the task was created.
@@ -390,6 +384,12 @@ type PostRbacUserJSONBody struct {
 	UserId string `json:"userId"`
 }
 
+// GetTasksTaskParams defines parameters for GetTasksTask.
+type GetTasksTaskParams struct {
+	// Id The unique identifier for the task to retrieve.
+	Id string `form:"id" json:"id"`
+}
+
 // GetUsersUserParams defines parameters for GetUsersUser.
 type GetUsersUserParams struct {
 	// UserId The uuid of the user to retrieve.
@@ -446,9 +446,6 @@ type DeleteRbacUserJSONRequestBody DeleteRbacUserJSONBody
 
 // PostRbacUserJSONRequestBody defines body for PostRbacUser for application/json ContentType.
 type PostRbacUserJSONRequestBody PostRbacUserJSONBody
-
-// GetTasksTaskJSONRequestBody defines body for GetTasksTask for application/json ContentType.
-type GetTasksTaskJSONRequestBody = TaskRequest
 
 // PatchUsersMeJSONRequestBody defines body for PatchUsersMe for application/json ContentType.
 type PatchUsersMeJSONRequestBody = PatchMe
@@ -655,10 +652,8 @@ type ClientInterface interface {
 	// GetTasksList request
 	GetTasksList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetTasksTaskWithBody request with any body
-	GetTasksTaskWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	GetTasksTask(ctx context.Context, body GetTasksTaskJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetTasksTask request
+	GetTasksTask(ctx context.Context, params *GetTasksTaskParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetUsersList request
 	GetUsersList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1226,20 +1221,8 @@ func (c *Client) GetTasksList(ctx context.Context, reqEditors ...RequestEditorFn
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetTasksTaskWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetTasksTaskRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetTasksTask(ctx context.Context, body GetTasksTaskJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetTasksTaskRequest(c.Server, body)
+func (c *Client) GetTasksTask(ctx context.Context, params *GetTasksTaskParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTasksTaskRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -2688,19 +2671,8 @@ func NewGetTasksListRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
-// NewGetTasksTaskRequest calls the generic GetTasksTask builder with application/json body
-func NewGetTasksTaskRequest(server string, body GetTasksTaskJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewGetTasksTaskRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewGetTasksTaskRequestWithBody generates requests for GetTasksTask with any type of body
-func NewGetTasksTaskRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewGetTasksTaskRequest generates requests for GetTasksTask
+func NewGetTasksTaskRequest(server string, params *GetTasksTaskParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -2718,12 +2690,28 @@ func NewGetTasksTaskRequestWithBody(server string, contentType string, body io.R
 		return nil, err
 	}
 
-	req, err := http.NewRequest("GET", queryURL.String(), body)
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "id", runtime.ParamLocationQuery, params.Id); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
-
-	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -3234,10 +3222,8 @@ type ClientWithResponsesInterface interface {
 	// GetTasksListWithResponse request
 	GetTasksListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetTasksListResponse, error)
 
-	// GetTasksTaskWithBodyWithResponse request with any body
-	GetTasksTaskWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetTasksTaskResponse, error)
-
-	GetTasksTaskWithResponse(ctx context.Context, body GetTasksTaskJSONRequestBody, reqEditors ...RequestEditorFn) (*GetTasksTaskResponse, error)
+	// GetTasksTaskWithResponse request
+	GetTasksTaskWithResponse(ctx context.Context, params *GetTasksTaskParams, reqEditors ...RequestEditorFn) (*GetTasksTaskResponse, error)
 
 	// GetUsersListWithResponse request
 	GetUsersListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetUsersListResponse, error)
@@ -4590,17 +4576,9 @@ func (c *ClientWithResponses) GetTasksListWithResponse(ctx context.Context, reqE
 	return ParseGetTasksListResponse(rsp)
 }
 
-// GetTasksTaskWithBodyWithResponse request with arbitrary body returning *GetTasksTaskResponse
-func (c *ClientWithResponses) GetTasksTaskWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetTasksTaskResponse, error) {
-	rsp, err := c.GetTasksTaskWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetTasksTaskResponse(rsp)
-}
-
-func (c *ClientWithResponses) GetTasksTaskWithResponse(ctx context.Context, body GetTasksTaskJSONRequestBody, reqEditors ...RequestEditorFn) (*GetTasksTaskResponse, error) {
-	rsp, err := c.GetTasksTask(ctx, body, reqEditors...)
+// GetTasksTaskWithResponse request returning *GetTasksTaskResponse
+func (c *ClientWithResponses) GetTasksTaskWithResponse(ctx context.Context, params *GetTasksTaskParams, reqEditors ...RequestEditorFn) (*GetTasksTaskResponse, error) {
+	rsp, err := c.GetTasksTask(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}

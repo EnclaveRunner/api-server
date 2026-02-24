@@ -1362,12 +1362,13 @@ paths:
       description: Retrieve information about a specific task by ID.
       tags:
         - Tasks
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/TaskRequest"
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The unique identifier for the task to retrieve.
       responses:
         "200":
           description: Successful response with task information.
@@ -1438,15 +1439,6 @@ components:
           type: string
           description: The result payload of the task.
           example: ""
-    TaskRequest:
-      type: object
-      required:
-        - id
-      properties:
-        id:
-          type: string
-          description: The unique identifier for the task to retrieve.
-          example: "98aw7cfz"
     ErrGeneric:
       type: object
       required:

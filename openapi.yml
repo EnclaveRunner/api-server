@@ -921,22 +921,16 @@ paths:
   /artifact:
     head:
       summary: Check Artifact Existence
-      description: Check if a specific artifact exists based on its fully qualified name (FQN).
+      description: Check if a specific artifact exists based on its package name.
       tags:
         - Artifacts
       parameters:
-        - name: source
+        - name: namespace
           in: query
           required: true
           schema:
             type: string
-          description: The source of the artifact.
-        - name: author
-          in: query
-          required: true
-          schema:
-            type: string
-          description: The author of the artifact.
+          description: The namespace of the artifact.
         - name: name
           in: query
           required: true
@@ -968,22 +962,16 @@ paths:
         - BasicAuth: []
     get:
       summary: Retrieve Artifact Metadata
-      description: Retrieve metadata for a specific artifact based on its fully qualified name (FQN).
+      description: Retrieve metadata for a specific artifact based on its package name.
       tags:
         - Artifacts
       parameters:
-        - name: source
+        - name: namespace
           in: query
           required: true
           schema:
             type: string
-          description: The source of the artifact.
-        - name: author
-          in: query
-          required: true
-          schema:
-            type: string
-          description: The author of the artifact.
+          description: The namespace of the artifact.
         - name: name
           in: query
           required: true
@@ -1019,7 +1007,7 @@ paths:
         - BasicAuth: []
     delete:
       summary: Delete Artifact
-      description: Delete a specific artifact based on its fully qualified name (FQN).
+      description: Delete a specific artifact based on its package name.
       tags:
         - Artifacts
       requestBody:
@@ -1029,11 +1017,11 @@ paths:
             schema:
               type: object
               required:
-                - fqn
+                - package
                 - identifier
               properties:
-                fqn:
-                  $ref: "#/components/schemas/FQN"
+                package:
+                  $ref: "#/components/schemas/PackageName"
                 identifier:
                   type: string
                   description: Either the version hash or tag of the artifact.
@@ -1071,12 +1059,12 @@ paths:
             schema:
               type: object
               required:
-                - fqn
+                - package
                 - versionHash
                 - newTag
               properties:
-                fqn:
-                  $ref: "#/components/schemas/FQN"
+                package:
+                  $ref: "#/components/schemas/PackageName"
                 versionHash:
                   type: string
                   description: The version hash of the artifact to tag.
@@ -1112,12 +1100,12 @@ paths:
             schema:
               type: object
               required:
-                - fqn
+                - package
                 - versionHash
                 - tag
               properties:
-                fqn:
-                  $ref: "#/components/schemas/FQN"
+                package:
+                  $ref: "#/components/schemas/PackageName"
                 versionHash:
                   type: string
                   description: The version hash of the artifact to untag.
@@ -1144,22 +1132,16 @@ paths:
   /artifact/upload:
     get:
       summary: Download Artifact
-      description: Download the artifact file based on its fully qualified name (FQN) and identifier.
+      description: Download the artifact file based on its package name and identifier.
       tags:
         - Artifacts
       parameters:
-        - name: source
+        - name: namespace
           in: query
           required: true
           schema:
             type: string
-          description: The source of the artifact.
-        - name: author
-          in: query
-          required: true
-          schema:
-            type: string
-          description: The author of the artifact.
+          description: The namespace of the artifact.
         - name: name
           in: query
           required: true
@@ -1206,17 +1188,13 @@ paths:
             schema:
               type: object
               required:
-                - source
-                - author
+                - namespace
                 - name
                 - file
               properties:
-                source:
+                namespace:
                   type: string
-                  description: The source of the artifact.
-                author:
-                  type: string
-                  description: The author of the artifact.
+                  description: The namespace of the artifact.
                 name:
                   type: string
                   description: The name of the artifact.
@@ -1261,24 +1239,18 @@ paths:
       tags:
         - Artifacts
       parameters:
-        - name: source
+        - name: namespace
           in: query
           required: false
           schema:
             type: string
-          description: The source of the artifact.
+          description: The namespace of the artifact.
         - name: name
           in: query
           required: false
           schema:
             type: string
           description: The name of the artifact.
-        - name: author
-          in: query
-          required: false
-          schema:
-            type: string
-          description: The author of the artifact.
       responses:
         "200":
           description: Successful response with a list of artifact metadata.
@@ -1566,20 +1538,16 @@ components:
             - HEAD
             - "*"
           description: The allowed permission (e.g., "GET", "POST", "*").
-    FQN:
+    PackageName:
       type: object
-      description: Fully qualified name of an artifact.
+      description: Package name of an artifact.
       required:
-        - source
-        - author
+        - namespace
         - name
       properties:
-        source:
+        namespace:
           type: string
-          description: The source of the artifact.
-        author:
-          type: string
-          description: The author of the artifact.
+          description: The namespace of the artifact.
         name:
           type: string
           description: The name of the artifact.
@@ -1587,14 +1555,14 @@ components:
       type: object
       description: Metadata of an artifact.
       required:
-        - fqn
+        - package
         - versionHash
         - createdAt
         - pulls
         - tags
       properties:
-        fqn:
-          $ref: "#/components/schemas/FQN"
+        package:
+          $ref: "#/components/schemas/PackageName"
         versionHash:
           type: string
           description: The version hash of the artifact.

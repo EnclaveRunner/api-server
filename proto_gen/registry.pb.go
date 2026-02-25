@@ -22,29 +22,28 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type FullyQualifiedName struct {
+type PackageName struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Source        string                 `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
-	Author        string                 `protobuf:"bytes,2,opt,name=author,proto3" json:"author,omitempty"`
-	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Namespace     string                 `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *FullyQualifiedName) Reset() {
-	*x = FullyQualifiedName{}
+func (x *PackageName) Reset() {
+	*x = PackageName{}
 	mi := &file_registry_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *FullyQualifiedName) String() string {
+func (x *PackageName) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*FullyQualifiedName) ProtoMessage() {}
+func (*PackageName) ProtoMessage() {}
 
-func (x *FullyQualifiedName) ProtoReflect() protoreflect.Message {
+func (x *PackageName) ProtoReflect() protoreflect.Message {
 	mi := &file_registry_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -56,26 +55,19 @@ func (x *FullyQualifiedName) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use FullyQualifiedName.ProtoReflect.Descriptor instead.
-func (*FullyQualifiedName) Descriptor() ([]byte, []int) {
+// Deprecated: Use PackageName.ProtoReflect.Descriptor instead.
+func (*PackageName) Descriptor() ([]byte, []int) {
 	return file_registry_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *FullyQualifiedName) GetSource() string {
+func (x *PackageName) GetNamespace() string {
 	if x != nil {
-		return x.Source
+		return x.Namespace
 	}
 	return ""
 }
 
-func (x *FullyQualifiedName) GetAuthor() string {
-	if x != nil {
-		return x.Author
-	}
-	return ""
-}
-
-func (x *FullyQualifiedName) GetName() string {
+func (x *PackageName) GetName() string {
 	if x != nil {
 		return x.Name
 	}
@@ -83,8 +75,8 @@ func (x *FullyQualifiedName) GetName() string {
 }
 
 type ArtifactIdentifier struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Fqn   *FullyQualifiedName    `protobuf:"bytes,1,opt,name=fqn,proto3" json:"fqn,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Package *PackageName           `protobuf:"bytes,1,opt,name=package,proto3" json:"package,omitempty"`
 	// Types that are valid to be assigned to Identifier:
 	//
 	//	*ArtifactIdentifier_VersionHash
@@ -124,9 +116,9 @@ func (*ArtifactIdentifier) Descriptor() ([]byte, []int) {
 	return file_registry_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *ArtifactIdentifier) GetFqn() *FullyQualifiedName {
+func (x *ArtifactIdentifier) GetPackage() *PackageName {
 	if x != nil {
-		return x.Fqn
+		return x.Package
 	}
 	return nil
 }
@@ -161,7 +153,7 @@ type isArtifactIdentifier_Identifier interface {
 }
 
 type ArtifactIdentifier_VersionHash struct {
-	VersionHash string `protobuf:"bytes,2,opt,name=versionHash,proto3,oneof"`
+	VersionHash string `protobuf:"bytes,2,opt,name=version_hash,json=versionHash,proto3,oneof"`
 }
 
 type ArtifactIdentifier_Tag struct {
@@ -174,8 +166,8 @@ func (*ArtifactIdentifier_Tag) isArtifactIdentifier_Identifier() {}
 
 type Artifact struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Fqn           *FullyQualifiedName    `protobuf:"bytes,1,opt,name=fqn,proto3" json:"fqn,omitempty"`
-	VersionHash   string                 `protobuf:"bytes,2,opt,name=versionHash,proto3" json:"versionHash,omitempty"`
+	Package       *PackageName           `protobuf:"bytes,1,opt,name=package,proto3" json:"package,omitempty"`
+	VersionHash   string                 `protobuf:"bytes,2,opt,name=version_hash,json=versionHash,proto3" json:"version_hash,omitempty"`
 	Tags          []string               `protobuf:"bytes,3,rep,name=tags,proto3" json:"tags,omitempty"`
 	Metadata      *MetaData              `protobuf:"bytes,4,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -212,9 +204,9 @@ func (*Artifact) Descriptor() ([]byte, []int) {
 	return file_registry_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *Artifact) GetFqn() *FullyQualifiedName {
+func (x *Artifact) GetPackage() *PackageName {
 	if x != nil {
-		return x.Fqn
+		return x.Package
 	}
 	return nil
 }
@@ -294,9 +286,8 @@ func (x *MetaData) GetPulls() int64 {
 
 type ArtifactQuery struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Source        *string                `protobuf:"bytes,1,opt,name=source,proto3,oneof" json:"source,omitempty"`
-	Author        *string                `protobuf:"bytes,2,opt,name=author,proto3,oneof" json:"author,omitempty"`
-	Name          *string                `protobuf:"bytes,3,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Namespace     *string                `protobuf:"bytes,1,opt,name=namespace,proto3,oneof" json:"namespace,omitempty"`
+	Name          *string                `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -331,16 +322,9 @@ func (*ArtifactQuery) Descriptor() ([]byte, []int) {
 	return file_registry_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *ArtifactQuery) GetSource() string {
-	if x != nil && x.Source != nil {
-		return *x.Source
-	}
-	return ""
-}
-
-func (x *ArtifactQuery) GetAuthor() string {
-	if x != nil && x.Author != nil {
-		return *x.Author
+func (x *ArtifactQuery) GetNamespace() string {
+	if x != nil && x.Namespace != nil {
+		return *x.Namespace
 	}
 	return ""
 }
@@ -524,7 +508,7 @@ func (*UploadArtifactRequest_Content) isUploadArtifactRequest_Request() {}
 
 type UploadMetadata struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Fqn           *FullyQualifiedName    `protobuf:"bytes,1,opt,name=fqn,proto3" json:"fqn,omitempty"`
+	Fqn           *PackageName           `protobuf:"bytes,1,opt,name=fqn,proto3" json:"fqn,omitempty"`
 	Tags          []string               `protobuf:"bytes,2,rep,name=tags,proto3" json:"tags,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -560,7 +544,7 @@ func (*UploadMetadata) Descriptor() ([]byte, []int) {
 	return file_registry_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *UploadMetadata) GetFqn() *FullyQualifiedName {
+func (x *UploadMetadata) GetFqn() *PackageName {
 	if x != nil {
 		return x.Fqn
 	}
@@ -576,8 +560,8 @@ func (x *UploadMetadata) GetTags() []string {
 
 type AddRemoveTagRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Fqn           *FullyQualifiedName    `protobuf:"bytes,1,opt,name=fqn,proto3" json:"fqn,omitempty"`
-	VersionHash   string                 `protobuf:"bytes,2,opt,name=versionHash,proto3" json:"versionHash,omitempty"`
+	Package       *PackageName           `protobuf:"bytes,1,opt,name=package,proto3" json:"package,omitempty"`
+	VersionHash   string                 `protobuf:"bytes,2,opt,name=version_hash,json=versionHash,proto3" json:"version_hash,omitempty"`
 	Tag           string                 `protobuf:"bytes,3,opt,name=tag,proto3" json:"tag,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -613,9 +597,9 @@ func (*AddRemoveTagRequest) Descriptor() ([]byte, []int) {
 	return file_registry_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *AddRemoveTagRequest) GetFqn() *FullyQualifiedName {
+func (x *AddRemoveTagRequest) GetPackage() *PackageName {
 	if x != nil {
-		return x.Fqn
+		return x.Package
 	}
 	return nil
 }
@@ -638,31 +622,29 @@ var File_registry_proto protoreflect.FileDescriptor
 
 const file_registry_proto_rawDesc = "" +
 	"\n" +
-	"\x0eregistry.proto\x12\bregistry\x1a\x1fgoogle/protobuf/timestamp.proto\"X\n" +
-	"\x12FullyQualifiedName\x12\x16\n" +
-	"\x06source\x18\x01 \x01(\tR\x06source\x12\x16\n" +
-	"\x06author\x18\x02 \x01(\tR\x06author\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\"\x8a\x01\n" +
-	"\x12ArtifactIdentifier\x12.\n" +
-	"\x03fqn\x18\x01 \x01(\v2\x1c.registry.FullyQualifiedNameR\x03fqn\x12\"\n" +
-	"\vversionHash\x18\x02 \x01(\tH\x00R\vversionHash\x12\x12\n" +
+	"\x0eregistry.proto\x12\bregistry\x1a\x1fgoogle/protobuf/timestamp.proto\"?\n" +
+	"\vPackageName\x12\x1c\n" +
+	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"\x8c\x01\n" +
+	"\x12ArtifactIdentifier\x12/\n" +
+	"\apackage\x18\x01 \x01(\v2\x15.registry.PackageNameR\apackage\x12#\n" +
+	"\fversion_hash\x18\x02 \x01(\tH\x00R\vversionHash\x12\x12\n" +
 	"\x03tag\x18\x03 \x01(\tH\x00R\x03tagB\f\n" +
 	"\n" +
-	"identifier\"\xa0\x01\n" +
-	"\bArtifact\x12.\n" +
-	"\x03fqn\x18\x01 \x01(\v2\x1c.registry.FullyQualifiedNameR\x03fqn\x12 \n" +
-	"\vversionHash\x18\x02 \x01(\tR\vversionHash\x12\x12\n" +
+	"identifier\"\xa2\x01\n" +
+	"\bArtifact\x12/\n" +
+	"\apackage\x18\x01 \x01(\v2\x15.registry.PackageNameR\apackage\x12!\n" +
+	"\fversion_hash\x18\x02 \x01(\tR\vversionHash\x12\x12\n" +
 	"\x04tags\x18\x03 \x03(\tR\x04tags\x12.\n" +
 	"\bmetadata\x18\x04 \x01(\v2\x12.registry.MetaDataR\bmetadata\"V\n" +
 	"\bMetaData\x124\n" +
 	"\acreated\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\acreated\x12\x14\n" +
-	"\x05pulls\x18\x02 \x01(\x03R\x05pulls\"\x81\x01\n" +
-	"\rArtifactQuery\x12\x1b\n" +
-	"\x06source\x18\x01 \x01(\tH\x00R\x06source\x88\x01\x01\x12\x1b\n" +
-	"\x06author\x18\x02 \x01(\tH\x01R\x06author\x88\x01\x01\x12\x17\n" +
-	"\x04name\x18\x03 \x01(\tH\x02R\x04name\x88\x01\x01B\t\n" +
-	"\a_sourceB\t\n" +
-	"\a_authorB\a\n" +
+	"\x05pulls\x18\x02 \x01(\x03R\x05pulls\"b\n" +
+	"\rArtifactQuery\x12!\n" +
+	"\tnamespace\x18\x01 \x01(\tH\x00R\tnamespace\x88\x01\x01\x12\x17\n" +
+	"\x04name\x18\x02 \x01(\tH\x01R\x04name\x88\x01\x01B\f\n" +
+	"\n" +
+	"_namespaceB\a\n" +
 	"\x05_name\"H\n" +
 	"\x14ArtifactListResponse\x120\n" +
 	"\tartifacts\x18\x01 \x03(\v2\x12.registry.ArtifactR\tartifacts\"%\n" +
@@ -671,13 +653,13 @@ const file_registry_proto_rawDesc = "" +
 	"\x15UploadArtifactRequest\x126\n" +
 	"\bmetadata\x18\x01 \x01(\v2\x18.registry.UploadMetadataH\x00R\bmetadata\x125\n" +
 	"\acontent\x18\x02 \x01(\v2\x19.registry.ArtifactContentH\x00R\acontentB\t\n" +
-	"\arequest\"T\n" +
-	"\x0eUploadMetadata\x12.\n" +
-	"\x03fqn\x18\x01 \x01(\v2\x1c.registry.FullyQualifiedNameR\x03fqn\x12\x12\n" +
-	"\x04tags\x18\x02 \x03(\tR\x04tags\"y\n" +
-	"\x13AddRemoveTagRequest\x12.\n" +
-	"\x03fqn\x18\x01 \x01(\v2\x1c.registry.FullyQualifiedNameR\x03fqn\x12 \n" +
-	"\vversionHash\x18\x02 \x01(\tR\vversionHash\x12\x10\n" +
+	"\arequest\"M\n" +
+	"\x0eUploadMetadata\x12'\n" +
+	"\x03fqn\x18\x01 \x01(\v2\x15.registry.PackageNameR\x03fqn\x12\x12\n" +
+	"\x04tags\x18\x02 \x03(\tR\x04tags\"{\n" +
+	"\x13AddRemoveTagRequest\x12/\n" +
+	"\apackage\x18\x01 \x01(\v2\x15.registry.PackageNameR\apackage\x12!\n" +
+	"\fversion_hash\x18\x02 \x01(\tR\vversionHash\x12\x10\n" +
 	"\x03tag\x18\x03 \x01(\tR\x03tag2\xf2\x03\n" +
 	"\x0fRegistryService\x12I\n" +
 	"\x0eQueryArtifacts\x12\x17.registry.ArtifactQuery\x1a\x1e.registry.ArtifactListResponse\x12I\n" +
@@ -703,7 +685,7 @@ func file_registry_proto_rawDescGZIP() []byte {
 
 var file_registry_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_registry_proto_goTypes = []any{
-	(*FullyQualifiedName)(nil),    // 0: registry.FullyQualifiedName
+	(*PackageName)(nil),           // 0: registry.PackageName
 	(*ArtifactIdentifier)(nil),    // 1: registry.ArtifactIdentifier
 	(*Artifact)(nil),              // 2: registry.Artifact
 	(*MetaData)(nil),              // 3: registry.MetaData
@@ -716,15 +698,15 @@ var file_registry_proto_goTypes = []any{
 	(*timestamppb.Timestamp)(nil), // 10: google.protobuf.Timestamp
 }
 var file_registry_proto_depIdxs = []int32{
-	0,  // 0: registry.ArtifactIdentifier.fqn:type_name -> registry.FullyQualifiedName
-	0,  // 1: registry.Artifact.fqn:type_name -> registry.FullyQualifiedName
+	0,  // 0: registry.ArtifactIdentifier.package:type_name -> registry.PackageName
+	0,  // 1: registry.Artifact.package:type_name -> registry.PackageName
 	3,  // 2: registry.Artifact.metadata:type_name -> registry.MetaData
 	10, // 3: registry.MetaData.created:type_name -> google.protobuf.Timestamp
 	2,  // 4: registry.ArtifactListResponse.artifacts:type_name -> registry.Artifact
 	8,  // 5: registry.UploadArtifactRequest.metadata:type_name -> registry.UploadMetadata
 	6,  // 6: registry.UploadArtifactRequest.content:type_name -> registry.ArtifactContent
-	0,  // 7: registry.UploadMetadata.fqn:type_name -> registry.FullyQualifiedName
-	0,  // 8: registry.AddRemoveTagRequest.fqn:type_name -> registry.FullyQualifiedName
+	0,  // 7: registry.UploadMetadata.fqn:type_name -> registry.PackageName
+	0,  // 8: registry.AddRemoveTagRequest.package:type_name -> registry.PackageName
 	4,  // 9: registry.RegistryService.QueryArtifacts:input_type -> registry.ArtifactQuery
 	1,  // 10: registry.RegistryService.PullArtifact:input_type -> registry.ArtifactIdentifier
 	7,  // 11: registry.RegistryService.UploadArtifact:input_type -> registry.UploadArtifactRequest

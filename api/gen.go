@@ -44,8 +44,8 @@ type Artifact struct {
 	// CreatedAt The creation timestamp of the artifact.
 	CreatedAt time.Time `json:"createdAt"`
 
-	// Fqn Fully qualified name of an artifact.
-	Fqn FQN `json:"fqn"`
+	// Package Package name of an artifact.
+	Package PackageName `json:"package"`
 
 	// Pulls The number of times the artifact has been pulled.
 	Pulls int `json:"pulls"`
@@ -83,16 +83,13 @@ type ErrGeneric struct {
 	Error string `json:"error"`
 }
 
-// FQN Fully qualified name of an artifact.
-type FQN struct {
-	// Author The author of the artifact.
-	Author string `json:"author"`
-
+// PackageName Package name of an artifact.
+type PackageName struct {
 	// Name The name of the artifact.
 	Name string `json:"name"`
 
-	// Source The source of the artifact.
-	Source string `json:"source"`
+	// Namespace The namespace of the artifact.
+	Namespace string `json:"namespace"`
 }
 
 // PatchMe defines model for PatchMe.
@@ -207,20 +204,17 @@ type GenericTooLarge = ErrGeneric
 
 // DeleteArtifactJSONBody defines parameters for DeleteArtifact.
 type DeleteArtifactJSONBody struct {
-	// Fqn Fully qualified name of an artifact.
-	Fqn FQN `json:"fqn"`
-
 	// Identifier Either the version hash or tag of the artifact.
 	Identifier string `json:"identifier"`
+
+	// Package Package name of an artifact.
+	Package PackageName `json:"package"`
 }
 
 // GetArtifactParams defines parameters for GetArtifact.
 type GetArtifactParams struct {
-	// Source The source of the artifact.
-	Source string `form:"source" json:"source"`
-
-	// Author The author of the artifact.
-	Author string `form:"author" json:"author"`
+	// Namespace The namespace of the artifact.
+	Namespace string `form:"namespace" json:"namespace"`
 
 	// Name The name of the artifact.
 	Name string `form:"name" json:"name"`
@@ -231,11 +225,8 @@ type GetArtifactParams struct {
 
 // HeadArtifactParams defines parameters for HeadArtifact.
 type HeadArtifactParams struct {
-	// Source The source of the artifact.
-	Source string `form:"source" json:"source"`
-
-	// Author The author of the artifact.
-	Author string `form:"author" json:"author"`
+	// Namespace The namespace of the artifact.
+	Namespace string `form:"namespace" json:"namespace"`
 
 	// Name The name of the artifact.
 	Name string `form:"name" json:"name"`
@@ -246,20 +237,17 @@ type HeadArtifactParams struct {
 
 // GetArtifactListParams defines parameters for GetArtifactList.
 type GetArtifactListParams struct {
-	// Source The source of the artifact.
-	Source *string `form:"source,omitempty" json:"source,omitempty"`
+	// Namespace The namespace of the artifact.
+	Namespace *string `form:"namespace,omitempty" json:"namespace,omitempty"`
 
 	// Name The name of the artifact.
 	Name *string `form:"name,omitempty" json:"name,omitempty"`
-
-	// Author The author of the artifact.
-	Author *string `form:"author,omitempty" json:"author,omitempty"`
 }
 
 // DeleteArtifactTagJSONBody defines parameters for DeleteArtifactTag.
 type DeleteArtifactTagJSONBody struct {
-	// Fqn Fully qualified name of an artifact.
-	Fqn FQN `json:"fqn"`
+	// Package Package name of an artifact.
+	Package PackageName `json:"package"`
 
 	// Tag The tag to remove from the artifact.
 	Tag string `json:"tag"`
@@ -270,11 +258,11 @@ type DeleteArtifactTagJSONBody struct {
 
 // PostArtifactTagJSONBody defines parameters for PostArtifactTag.
 type PostArtifactTagJSONBody struct {
-	// Fqn Fully qualified name of an artifact.
-	Fqn FQN `json:"fqn"`
-
 	// NewTag The new tag to assign to the artifact version.
 	NewTag string `json:"newTag"`
+
+	// Package Package name of an artifact.
+	Package PackageName `json:"package"`
 
 	// VersionHash The version hash of the artifact to tag.
 	VersionHash string `json:"versionHash"`
@@ -282,11 +270,8 @@ type PostArtifactTagJSONBody struct {
 
 // GetArtifactUploadParams defines parameters for GetArtifactUpload.
 type GetArtifactUploadParams struct {
-	// Source The source of the artifact.
-	Source string `form:"source" json:"source"`
-
-	// Author The author of the artifact.
-	Author string `form:"author" json:"author"`
+	// Namespace The namespace of the artifact.
+	Namespace string `form:"namespace" json:"namespace"`
 
 	// Name The name of the artifact.
 	Name string `form:"name" json:"name"`
@@ -297,17 +282,14 @@ type GetArtifactUploadParams struct {
 
 // PostArtifactUploadMultipartBody defines parameters for PostArtifactUpload.
 type PostArtifactUploadMultipartBody struct {
-	// Author The author of the artifact.
-	Author string `json:"author"`
-
 	// File The artifact file to upload.
 	File openapi_types.File `json:"file"`
 
 	// Name The name of the artifact.
 	Name string `json:"name"`
 
-	// Source The source of the artifact.
-	Source string `json:"source"`
+	// Namespace The namespace of the artifact.
+	Namespace string `json:"namespace"`
 
 	// Tag Tags to assign to the artifact.
 	Tag *[]string `json:"tag,omitempty"`
@@ -624,33 +606,18 @@ func (siw *ServerInterfaceWrapper) GetArtifact(c *gin.Context) {
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetArtifactParams
 
-	// ------------- Required query parameter "source" -------------
+	// ------------- Required query parameter "namespace" -------------
 
-	if paramValue := c.Query("source"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandler(c, fmt.Errorf("Query argument source is required, but not found"), http.StatusBadRequest)
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "source", c.Request.URL.Query(), &params.Source)
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter source: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	// ------------- Required query parameter "author" -------------
-
-	if paramValue := c.Query("author"); paramValue != "" {
+	if paramValue := c.Query("namespace"); paramValue != "" {
 
 	} else {
-		siw.ErrorHandler(c, fmt.Errorf("Query argument author is required, but not found"), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Query argument namespace is required, but not found"), http.StatusBadRequest)
 		return
 	}
 
-	err = runtime.BindQueryParameter("form", true, true, "author", c.Request.URL.Query(), &params.Author)
+	err = runtime.BindQueryParameter("form", true, true, "namespace", c.Request.URL.Query(), &params.Namespace)
 	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter author: %w", err), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter namespace: %w", err), http.StatusBadRequest)
 		return
 	}
 
@@ -704,33 +671,18 @@ func (siw *ServerInterfaceWrapper) HeadArtifact(c *gin.Context) {
 	// Parameter object where we will unmarshal all parameters from the context
 	var params HeadArtifactParams
 
-	// ------------- Required query parameter "source" -------------
+	// ------------- Required query parameter "namespace" -------------
 
-	if paramValue := c.Query("source"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandler(c, fmt.Errorf("Query argument source is required, but not found"), http.StatusBadRequest)
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "source", c.Request.URL.Query(), &params.Source)
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter source: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	// ------------- Required query parameter "author" -------------
-
-	if paramValue := c.Query("author"); paramValue != "" {
+	if paramValue := c.Query("namespace"); paramValue != "" {
 
 	} else {
-		siw.ErrorHandler(c, fmt.Errorf("Query argument author is required, but not found"), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Query argument namespace is required, but not found"), http.StatusBadRequest)
 		return
 	}
 
-	err = runtime.BindQueryParameter("form", true, true, "author", c.Request.URL.Query(), &params.Author)
+	err = runtime.BindQueryParameter("form", true, true, "namespace", c.Request.URL.Query(), &params.Namespace)
 	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter author: %w", err), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter namespace: %w", err), http.StatusBadRequest)
 		return
 	}
 
@@ -784,11 +736,11 @@ func (siw *ServerInterfaceWrapper) GetArtifactList(c *gin.Context) {
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetArtifactListParams
 
-	// ------------- Optional query parameter "source" -------------
+	// ------------- Optional query parameter "namespace" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "source", c.Request.URL.Query(), &params.Source)
+	err = runtime.BindQueryParameter("form", true, false, "namespace", c.Request.URL.Query(), &params.Namespace)
 	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter source: %w", err), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter namespace: %w", err), http.StatusBadRequest)
 		return
 	}
 
@@ -797,14 +749,6 @@ func (siw *ServerInterfaceWrapper) GetArtifactList(c *gin.Context) {
 	err = runtime.BindQueryParameter("form", true, false, "name", c.Request.URL.Query(), &params.Name)
 	if err != nil {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter name: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	// ------------- Optional query parameter "author" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "author", c.Request.URL.Query(), &params.Author)
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter author: %w", err), http.StatusBadRequest)
 		return
 	}
 
@@ -858,33 +802,18 @@ func (siw *ServerInterfaceWrapper) GetArtifactUpload(c *gin.Context) {
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetArtifactUploadParams
 
-	// ------------- Required query parameter "source" -------------
+	// ------------- Required query parameter "namespace" -------------
 
-	if paramValue := c.Query("source"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandler(c, fmt.Errorf("Query argument source is required, but not found"), http.StatusBadRequest)
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "source", c.Request.URL.Query(), &params.Source)
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter source: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	// ------------- Required query parameter "author" -------------
-
-	if paramValue := c.Query("author"); paramValue != "" {
+	if paramValue := c.Query("namespace"); paramValue != "" {
 
 	} else {
-		siw.ErrorHandler(c, fmt.Errorf("Query argument author is required, but not found"), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Query argument namespace is required, but not found"), http.StatusBadRequest)
 		return
 	}
 
-	err = runtime.BindQueryParameter("form", true, true, "author", c.Request.URL.Query(), &params.Author)
+	err = runtime.BindQueryParameter("form", true, true, "namespace", c.Request.URL.Query(), &params.Namespace)
 	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter author: %w", err), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter namespace: %w", err), http.StatusBadRequest)
 		return
 	}
 
@@ -5299,73 +5228,73 @@ func (sh *strictHandler) PostUsersUser(ctx *gin.Context) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"N0Ufvj78fwAAAP//hco0+RCZAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

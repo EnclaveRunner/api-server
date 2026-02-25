@@ -15,23 +15,22 @@ service RegistryService {
     rpc RemoveTag(AddRemoveTagRequest) returns (Artifact);
 }
 
-message FullyQualifiedName {
-    string source = 1;
-    string author = 2;
-    string name = 3;
+message PackageName {
+    string namespace = 1;
+    string name = 2;
 }
 
 message ArtifactIdentifier {
-    FullyQualifiedName fqn = 1;
+    PackageName package = 1;
     oneof identifier {
-        string versionHash = 2;
+        string version_hash = 2;
         string tag = 3;
     }
 }
 
 message Artifact {
-    FullyQualifiedName fqn = 1;
-    string versionHash = 2;
+    PackageName package = 1;
+    string version_hash = 2;
     repeated string tags = 3;
     MetaData metadata = 4;
 }
@@ -42,9 +41,8 @@ message MetaData {
 }
 
 message ArtifactQuery {
-    optional string source = 1;
-    optional string author = 2;
-    optional string name = 3;
+    optional string namespace = 1;
+    optional string name = 2;
 }
 
 message ArtifactListResponse {
@@ -63,12 +61,12 @@ message UploadArtifactRequest {
 }
 
 message UploadMetadata {
-    FullyQualifiedName fqn = 1;
+    PackageName fqn = 1;
     repeated string tags = 2;
 }
 
 message AddRemoveTagRequest {
-    FullyQualifiedName fqn = 1;
-    string versionHash = 2;
+    PackageName package = 1;
+    string version_hash = 2;
     string tag = 3;
 }

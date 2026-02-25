@@ -5,7 +5,6 @@ import (
 	"api-server/schema"
 	"bytes"
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -28,14 +27,6 @@ type BaseManifest struct {
 	Kind       string         `json:"kind"       yaml:"kind"`
 	Metadata   map[string]any `json:"metadata"   yaml:"metadata"`
 	Spec       map[string]any `json:"spec"       yaml:"spec"`
-}
-
-type Identifier struct {
-	Source string `json:"source" yaml:"source"`
-	Author string `json:"author" yaml:"author"`
-	Name   string `json:"name"   yaml:"name"`
-	Hash   string `json:"hash"   yaml:"hash"`
-	Tag    string `json:"tag"    yaml:"tag"`
 }
 
 // ErrInvalidIdentifier is returned when an identifier cannot be parsed
@@ -93,7 +84,7 @@ func (server *Server) processBlueprint(
 		}, nil
 	}
 
-	fullIdentifier, err := parseSource(blueprint.Spec.Artifact.Source)
+	fullIdentifier, err := parseSource(blueprint.Spec.Source)
 	if err != nil {
 		return PostManifest400JSONResponse{
 			GenericBadRequestJSONResponse{
@@ -102,52 +93,34 @@ func (server *Server) processBlueprint(
 		}, nil
 	}
 
-	var tagIdentifier *pb.ArtifactIdentifier_Tag
-	var versionIdentifier *pb.ArtifactIdentifier_VersionHash
-
-	if fullIdentifier.Hash == "" {
-		tagIdentifier = &pb.ArtifactIdentifier_Tag{
-			Tag: fullIdentifier.Tag,
-		}
-	} else {
-		versionIdentifier = &pb.ArtifactIdentifier_VersionHash{
-			VersionHash: fullIdentifier.Hash,
-		}
+	// Convert params to proto Parameters
+	params := make([]*pb.Parameter, len(blueprint.Spec.Params))
+	for i, p := range blueprint.Spec.Params {
+		params[i] = &pb.Parameter{Value: &pb.Parameter_Dbl{Dbl: p}}
 	}
 
-	// Decode base64 input to bytes
-	inputBytes, err := base64.StdEncoding.DecodeString(
-		blueprint.Spec.Artifact.Input,
-	)
-	if err != nil {
-		return PostManifest400JSONResponse{
-			GenericBadRequestJSONResponse{
-				Error: "Invalid base64 encoding in artifact input: " + err.Error(),
-			},
-		}, nil
+	// Convert env to proto EnvironmentVariables
+	envVars := make([]*pb.EnvironmentVariable, len(blueprint.Spec.Env))
+	for i, e := range blueprint.Spec.Env {
+		key, value := "", ""
+		if e.Key != nil {
+			key = *e.Key
+		}
+		if e.Value != nil {
+			value = *e.Value
+		}
+		envVars[i] = &pb.EnvironmentVariable{Key: key, Value: value}
 	}
 
 	task := &pb.Task{
-		Artifact: &pb.ArtifactIdentifier{
-			Fqn: &pb.FullyQualifiedName{
-				Source: fullIdentifier.Source,
-				Author: fullIdentifier.Author,
-				Name:   fullIdentifier.Name,
-			},
-		},
-		Function: blueprint.Spec.Artifact.Function,
-		Input:    inputBytes,
-	}
-
-	// Set the correct identifier type
-	if tagIdentifier != nil {
-		task.Artifact.Identifier = tagIdentifier
-	} else {
-		task.Artifact.Identifier = versionIdentifier
+		Function:             fullIdentifier,
+		Parameters:           params,
+		Arguments:            blueprint.Spec.Args,
+		EnvironmentVariables: envVars,
 	}
 
 	// Check that artifact exists
-	_, err = server.registryClient.GetArtifact(ctx, task.Artifact)
+	_, err = server.registryClient.GetArtifact(ctx, fullIdentifier.Artifact)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			return PostManifest400JSONResponse{
@@ -205,57 +178,66 @@ func unmarshalManifest(data []byte) (BaseManifest, error) {
 	return manifest, nil
 }
 
-// parses <source>/<author>/<name>:<hash:versionhash|tag> into Identifier struct
-func parseSource(identifier string) (Identifier, error) {
-	var id Identifier
-	var data []string
-
-	data = strings.Split(identifier, "/")
-	//nolint:mnd // ignore magic numbers for split counts
-	if len(data) != 3 {
-		return id, ErrInvalidIdentifier
+// parses namespace:package/interface/function@hash<hash>|version into
+// Identifier struct
+func parseSource(identifier string) (*pb.FunctionIdentifier, error) {
+	functionIdentifier := &pb.FunctionIdentifier{
+		Artifact: &pb.ArtifactIdentifier{
+			Package: &pb.PackageName{},
+		},
 	}
 
-	id.Source = data[0]
-	id.Author = data[1]
-
-	data = strings.Split(data[2], ":")
-	if len(data) < 2 || len(data) > 3 {
-		return id, ErrInvalidIdentifier
+	//nolint:mnd // Two parts: <namespace>:<rest>
+	split := strings.SplitN(identifier, ":", 2)
+	//nolint:mnd // Two parts: <namespace>:<rest>
+	if len(split) != 2 {
+		return functionIdentifier, fmt.Errorf(
+			"%w: Missing namespace",
+			ErrInvalidIdentifier,
+		)
 	}
 
-	id.Name = data[0]
+	functionIdentifier.Artifact.Package.Namespace = split[0]
+	identifier = split[1]
 
-	// Handle different identifier formats
-	switch len(data) {
-	case 2: //nolint:mnd // 2 parts means name:tag format
-		// Format: name:tag
-		id.Tag = data[1]
-	case 3: //nolint:mnd // 3 parts means name:hash:versionhash format
-		// Format: name:hash:versionhash
-		if data[1] != "hash" {
-			return id, fmt.Errorf(
-				"%w: expected 'hash' but got '%s'",
-				ErrInvalidIdentifier,
-				data[1],
-			)
+	//nolint:mnd // 3 parts: <name>/<interface>/<rest>
+	split = strings.SplitN(identifier, "/", 3)
+	//nolint:mnd // 3 parts: <name>/<interface>/<rest>
+	if len(split) != 3 {
+		return functionIdentifier, fmt.Errorf(
+			"%w: Identifier incomplete. name/interface/function needed",
+			ErrInvalidIdentifier,
+		)
+	}
+
+	functionIdentifier.Artifact.Package.Name = split[0]
+	functionIdentifier.Interface = split[1]
+	identifier = split[2]
+
+	//nolint:mnd // 2 parts: <function>@<rest>
+	split = strings.SplitN(identifier, "@", 2)
+	//nolint:mnd // 2 parts: <function>@<rest>
+	if len(split) != 2 {
+		return functionIdentifier, fmt.Errorf(
+			"%w: Missing version",
+			ErrInvalidIdentifier,
+		)
+	}
+
+	functionIdentifier.Name = split[0]
+	identifier = split[1]
+
+	if strings.HasPrefix(identifier, "hash:") {
+		// Hash version
+		functionIdentifier.Artifact.Identifier = &pb.ArtifactIdentifier_VersionHash{
+			VersionHash: strings.TrimPrefix(identifier, "hash:"),
 		}
-		id.Hash = data[2]
-	default:
-		// More than 3 parts is invalid
-		return id, ErrInvalidIdentifier
+	} else {
+		// tag version
+		functionIdentifier.Artifact.Identifier = &pb.ArtifactIdentifier_Tag{
+			Tag: identifier,
+		}
 	}
 
-	// Validate required fields and ensure either Tag or Hash is set (but not
-	// both)
-	if id.Source == "" || id.Author == "" || id.Name == "" {
-		return Identifier{}, ErrInvalidIdentifier
-	}
-
-	// Must have either Tag or Hash, but not both or neither
-	if (id.Tag == "" && id.Hash == "") || (id.Tag != "" && id.Hash != "") {
-		return Identifier{}, ErrInvalidIdentifier
-	}
-
-	return id, nil
+	return functionIdentifier, nil
 }

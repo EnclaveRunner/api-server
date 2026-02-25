@@ -6,67 +6,67 @@ import "google/protobuf/timestamp.proto";
 package registry;
 
 service RegistryService {
-    rpc QueryArtifacts(ArtifactQuery) returns (ArtifactListResponse);
-    rpc PullArtifact(ArtifactIdentifier) returns (stream ArtifactContent);
-    rpc UploadArtifact(stream UploadArtifactRequest) returns (Artifact);
-    rpc DeleteArtifact(ArtifactIdentifier) returns (Artifact);
-    rpc GetArtifact(ArtifactIdentifier) returns (Artifact);
-    rpc AddTag(AddRemoveTagRequest) returns (Artifact);
-    rpc RemoveTag(AddRemoveTagRequest) returns (Artifact);
+  rpc QueryArtifacts(ArtifactQuery) returns (ArtifactListResponse);
+  rpc PullArtifact(ArtifactIdentifier) returns (stream ArtifactContent);
+  rpc UploadArtifact(stream UploadArtifactRequest) returns (Artifact);
+  rpc DeleteArtifact(ArtifactIdentifier) returns (Artifact);
+  rpc GetArtifact(ArtifactIdentifier) returns (Artifact);
+  rpc AddTag(AddRemoveTagRequest) returns (Artifact);
+  rpc RemoveTag(AddRemoveTagRequest) returns (Artifact);
 }
 
 message PackageName {
-    string namespace = 1;
-    string name = 2;
+  string namespace = 1;
+  string name      = 2;
 }
 
 message ArtifactIdentifier {
-    PackageName package = 1;
-    oneof identifier {
-        string version_hash = 2;
-        string tag = 3;
-    }
+  PackageName package = 1;
+  oneof identifier {
+    string version_hash = 2;
+    string tag          = 3;
+  }
 }
 
 message Artifact {
-    PackageName package = 1;
-    string version_hash = 2;
-    repeated string tags = 3;
-    MetaData metadata = 4;
+  PackageName     package      = 1;
+  string          version_hash = 2;
+  repeated string tags         = 3;
+  MetaData        metadata     = 4;
 }
 
 message MetaData {
-    google.protobuf.Timestamp created = 1;
-    int64 pulls = 2;
+  google.protobuf.Timestamp created = 1;
+  int64                     pulls   = 2;
 }
 
 message ArtifactQuery {
-    optional string namespace = 1;
-    optional string name = 2;
+  optional string namespace = 1;
+  optional string name      = 2;
 }
 
 message ArtifactListResponse {
-    repeated Artifact artifacts = 1;
+  repeated Artifact artifacts = 1;
 }
 
 message ArtifactContent {
-    bytes data = 1;
+  bytes data = 1;
 }
 
 message UploadArtifactRequest {
-    oneof request {
-        UploadMetadata metadata = 1;
-        ArtifactContent content = 2;
-    }
+  oneof request {
+    UploadMetadata  metadata = 1;
+    ArtifactContent content  = 2;
+  }
 }
 
 message UploadMetadata {
-    PackageName fqn = 1;
-    repeated string tags = 2;
+  PackageName     fqn  = 1;
+  repeated string tags = 2;
 }
 
 message AddRemoveTagRequest {
-    PackageName package = 1;
-    string version_hash = 2;
-    string tag = 3;
+  PackageName package      = 1;
+  string      version_hash = 2;
+  string      tag          = 3;
 }

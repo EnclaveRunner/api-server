@@ -37,8 +37,8 @@ type Artifact struct {
 	// CreatedAt The creation timestamp of the artifact.
 	CreatedAt time.Time `json:"createdAt"`
 
-	// Fqn Fully qualified name of an artifact.
-	Fqn FQN `json:"fqn"`
+	// Package Package name of an artifact.
+	Package PackageName `json:"package"`
 
 	// Pulls The number of times the artifact has been pulled.
 	Pulls int `json:"pulls"`
@@ -76,16 +76,13 @@ type ErrGeneric struct {
 	Error string `json:"error"`
 }
 
-// FQN Fully qualified name of an artifact.
-type FQN struct {
-	// Author The author of the artifact.
-	Author string `json:"author"`
-
+// PackageName Package name of an artifact.
+type PackageName struct {
 	// Name The name of the artifact.
 	Name string `json:"name"`
 
-	// Source The source of the artifact.
-	Source string `json:"source"`
+	// Namespace The namespace of the artifact.
+	Namespace string `json:"namespace"`
 }
 
 // PatchMe defines model for PatchMe.
@@ -200,20 +197,17 @@ type GenericTooLarge = ErrGeneric
 
 // DeleteArtifactJSONBody defines parameters for DeleteArtifact.
 type DeleteArtifactJSONBody struct {
-	// Fqn Fully qualified name of an artifact.
-	Fqn FQN `json:"fqn"`
-
 	// Identifier Either the version hash or tag of the artifact.
 	Identifier string `json:"identifier"`
+
+	// Package Package name of an artifact.
+	Package PackageName `json:"package"`
 }
 
 // GetArtifactParams defines parameters for GetArtifact.
 type GetArtifactParams struct {
-	// Source The source of the artifact.
-	Source string `form:"source" json:"source"`
-
-	// Author The author of the artifact.
-	Author string `form:"author" json:"author"`
+	// Namespace The namespace of the artifact.
+	Namespace string `form:"namespace" json:"namespace"`
 
 	// Name The name of the artifact.
 	Name string `form:"name" json:"name"`
@@ -224,11 +218,8 @@ type GetArtifactParams struct {
 
 // HeadArtifactParams defines parameters for HeadArtifact.
 type HeadArtifactParams struct {
-	// Source The source of the artifact.
-	Source string `form:"source" json:"source"`
-
-	// Author The author of the artifact.
-	Author string `form:"author" json:"author"`
+	// Namespace The namespace of the artifact.
+	Namespace string `form:"namespace" json:"namespace"`
 
 	// Name The name of the artifact.
 	Name string `form:"name" json:"name"`
@@ -239,20 +230,17 @@ type HeadArtifactParams struct {
 
 // GetArtifactListParams defines parameters for GetArtifactList.
 type GetArtifactListParams struct {
-	// Source The source of the artifact.
-	Source *string `form:"source,omitempty" json:"source,omitempty"`
+	// Namespace The namespace of the artifact.
+	Namespace *string `form:"namespace,omitempty" json:"namespace,omitempty"`
 
 	// Name The name of the artifact.
 	Name *string `form:"name,omitempty" json:"name,omitempty"`
-
-	// Author The author of the artifact.
-	Author *string `form:"author,omitempty" json:"author,omitempty"`
 }
 
 // DeleteArtifactTagJSONBody defines parameters for DeleteArtifactTag.
 type DeleteArtifactTagJSONBody struct {
-	// Fqn Fully qualified name of an artifact.
-	Fqn FQN `json:"fqn"`
+	// Package Package name of an artifact.
+	Package PackageName `json:"package"`
 
 	// Tag The tag to remove from the artifact.
 	Tag string `json:"tag"`
@@ -263,11 +251,11 @@ type DeleteArtifactTagJSONBody struct {
 
 // PostArtifactTagJSONBody defines parameters for PostArtifactTag.
 type PostArtifactTagJSONBody struct {
-	// Fqn Fully qualified name of an artifact.
-	Fqn FQN `json:"fqn"`
-
 	// NewTag The new tag to assign to the artifact version.
 	NewTag string `json:"newTag"`
+
+	// Package Package name of an artifact.
+	Package PackageName `json:"package"`
 
 	// VersionHash The version hash of the artifact to tag.
 	VersionHash string `json:"versionHash"`
@@ -275,11 +263,8 @@ type PostArtifactTagJSONBody struct {
 
 // GetArtifactUploadParams defines parameters for GetArtifactUpload.
 type GetArtifactUploadParams struct {
-	// Source The source of the artifact.
-	Source string `form:"source" json:"source"`
-
-	// Author The author of the artifact.
-	Author string `form:"author" json:"author"`
+	// Namespace The namespace of the artifact.
+	Namespace string `form:"namespace" json:"namespace"`
 
 	// Name The name of the artifact.
 	Name string `form:"name" json:"name"`
@@ -290,17 +275,14 @@ type GetArtifactUploadParams struct {
 
 // PostArtifactUploadMultipartBody defines parameters for PostArtifactUpload.
 type PostArtifactUploadMultipartBody struct {
-	// Author The author of the artifact.
-	Author string `json:"author"`
-
 	// File The artifact file to upload.
 	File openapi_types.File `json:"file"`
 
 	// Name The name of the artifact.
 	Name string `json:"name"`
 
-	// Source The source of the artifact.
-	Source string `json:"source"`
+	// Namespace The namespace of the artifact.
+	Namespace string `json:"namespace"`
 
 	// Tag Tags to assign to the artifact.
 	Tag *[]string `json:"tag,omitempty"`
@@ -1463,19 +1445,7 @@ func NewGetArtifactRequest(server string, params *GetArtifactParams) (*http.Requ
 	if params != nil {
 		queryValues := queryURL.Query()
 
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "source", runtime.ParamLocationQuery, params.Source); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "author", runtime.ParamLocationQuery, params.Author); err != nil {
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "namespace", runtime.ParamLocationQuery, params.Namespace); err != nil {
 			return nil, err
 		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 			return nil, err
@@ -1544,19 +1514,7 @@ func NewHeadArtifactRequest(server string, params *HeadArtifactParams) (*http.Re
 	if params != nil {
 		queryValues := queryURL.Query()
 
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "source", runtime.ParamLocationQuery, params.Source); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "author", runtime.ParamLocationQuery, params.Author); err != nil {
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "namespace", runtime.ParamLocationQuery, params.Namespace); err != nil {
 			return nil, err
 		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 			return nil, err
@@ -1625,9 +1583,9 @@ func NewGetArtifactListRequest(server string, params *GetArtifactListParams) (*h
 	if params != nil {
 		queryValues := queryURL.Query()
 
-		if params.Source != nil {
+		if params.Namespace != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "source", runtime.ParamLocationQuery, *params.Source); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "namespace", runtime.ParamLocationQuery, *params.Namespace); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -1644,22 +1602,6 @@ func NewGetArtifactListRequest(server string, params *GetArtifactListParams) (*h
 		if params.Name != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.Author != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "author", runtime.ParamLocationQuery, *params.Author); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -1786,19 +1728,7 @@ func NewGetArtifactUploadRequest(server string, params *GetArtifactUploadParams)
 	if params != nil {
 		queryValues := queryURL.Query()
 
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "source", runtime.ParamLocationQuery, params.Source); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "author", runtime.ParamLocationQuery, params.Author); err != nil {
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "namespace", runtime.ParamLocationQuery, params.Namespace); err != nil {
 			return nil, err
 		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 			return nil, err

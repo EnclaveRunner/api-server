@@ -21,10 +21,9 @@ const (
 
 func artifactToArtifact(artifact *pb.Artifact) Artifact {
 	return Artifact{
-		Fqn: FQN{
-			Source: artifact.Fqn.Source,
-			Author: artifact.Fqn.Author,
-			Name:   artifact.Fqn.Name,
+		Package: PackageName{
+			Namespace: artifact.Package.Namespace,
+			Name:      artifact.Package.Name,
 		},
 		VersionHash: artifact.VersionHash,
 		Tags:        artifact.Tags,
@@ -38,10 +37,9 @@ func (server *Server) DeleteArtifact(
 	ctx context.Context,
 	request DeleteArtifactRequestObject,
 ) (DeleteArtifactResponseObject, error) {
-	artifactIdentifier := &pb.ArtifactIdentifier{Fqn: &pb.FullyQualifiedName{
-		Source: request.Body.Fqn.Source,
-		Author: request.Body.Fqn.Author,
-		Name:   request.Body.Fqn.Name,
+	artifactIdentifier := &pb.ArtifactIdentifier{Package: &pb.PackageName{
+		Namespace: request.Body.Package.Namespace,
+		Name:      request.Body.Package.Name,
 	}}
 
 	if after, ok := strings.CutPrefix(request.Body.Identifier, VersionHashPrefix); ok {
@@ -78,10 +76,9 @@ func (server *Server) DeleteArtifactTag(
 	request DeleteArtifactTagRequestObject,
 ) (DeleteArtifactTagResponseObject, error) {
 	removeTagRequest := &pb.AddRemoveTagRequest{
-		Fqn: &pb.FullyQualifiedName{
-			Source: request.Body.Fqn.Source,
-			Author: request.Body.Fqn.Author,
-			Name:   request.Body.Fqn.Name,
+		Package: &pb.PackageName{
+			Namespace: request.Body.Package.Namespace,
+			Name:      request.Body.Package.Name,
 		},
 		VersionHash: request.Body.VersionHash,
 		Tag:         request.Body.Tag,
@@ -111,10 +108,9 @@ func (server *Server) GetArtifact(
 	ctx context.Context,
 	request GetArtifactRequestObject,
 ) (GetArtifactResponseObject, error) {
-	artifactIdentifier := &pb.ArtifactIdentifier{Fqn: &pb.FullyQualifiedName{
-		Source: request.Params.Source,
-		Author: request.Params.Author,
-		Name:   request.Params.Name,
+	artifactIdentifier := &pb.ArtifactIdentifier{Package: &pb.PackageName{
+		Namespace: request.Params.Namespace,
+		Name:      request.Params.Name,
 	}}
 
 	if after, ok := strings.CutPrefix(request.Params.Identifier, VersionHashPrefix); ok {
@@ -152,12 +148,8 @@ func (server *Server) GetArtifactList(
 ) (GetArtifactListResponseObject, error) {
 	query := &pb.ArtifactQuery{}
 
-	if request.Params.Source != nil {
-		query.Source = request.Params.Source
-	}
-
-	if request.Params.Author != nil {
-		query.Author = request.Params.Author
+	if request.Params.Namespace != nil {
+		query.Namespace = request.Params.Namespace
 	}
 
 	if request.Params.Name != nil {
@@ -185,10 +177,9 @@ func (server *Server) GetArtifactUpload(
 	request GetArtifactUploadRequestObject,
 ) (GetArtifactUploadResponseObject, error) {
 	pullRequest := &pb.ArtifactIdentifier{
-		Fqn: &pb.FullyQualifiedName{
-			Source: request.Params.Source,
-			Author: request.Params.Author,
-			Name:   request.Params.Name,
+		Package: &pb.PackageName{
+			Namespace: request.Params.Namespace,
+			Name:      request.Params.Name,
 		},
 	}
 
@@ -249,10 +240,9 @@ func (server *Server) HeadArtifact(
 	ctx context.Context,
 	request HeadArtifactRequestObject,
 ) (HeadArtifactResponseObject, error) {
-	artifactIdentifier := &pb.ArtifactIdentifier{Fqn: &pb.FullyQualifiedName{
-		Source: request.Params.Source,
-		Author: request.Params.Author,
-		Name:   request.Params.Name,
+	artifactIdentifier := &pb.ArtifactIdentifier{Package: &pb.PackageName{
+		Namespace: request.Params.Namespace,
+		Name:      request.Params.Name,
 	}}
 
 	if after, ok := strings.CutPrefix(request.Params.Identifier, VersionHashPrefix); ok {
@@ -285,10 +275,9 @@ func (server *Server) PostArtifactTag(
 	request PostArtifactTagRequestObject,
 ) (PostArtifactTagResponseObject, error) {
 	addTagRequest := &pb.AddRemoveTagRequest{
-		Fqn: &pb.FullyQualifiedName{
-			Source: request.Body.Fqn.Source,
-			Author: request.Body.Fqn.Author,
-			Name:   request.Body.Fqn.Name,
+		Package: &pb.PackageName{
+			Namespace: request.Body.Package.Namespace,
+			Name:      request.Body.Package.Name,
 		},
 		VersionHash: request.Body.VersionHash,
 		Tag:         request.Body.NewTag,
@@ -339,7 +328,7 @@ func (server *Server) PostArtifactUpload(
 	request PostArtifactUploadRequestObject,
 ) (PostArtifactUploadResponseObject, error) {
 	// First pass: collect all metadata fields
-	var source, author, name string
+	var namespace, name string
 	var tags []string
 
 	for {
@@ -354,64 +343,35 @@ func (server *Server) PostArtifactUpload(
 		}
 
 		switch part.FormName() {
-		case "source":
-			if source != "" {
-				log.Error().Msg("Multiple source fields provided")
+		case "namespace":
+			if namespace != "" {
+				log.Error().Msg("Multiple namespace fields provided")
 
 				return PostArtifactUpload400JSONResponse{
 					GenericBadRequestJSONResponse{
-						Error: "Multiple source fields provided",
+						Error: "Multiple namespace fields provided",
 					},
 				}, nil
 			}
 
 			data, tooLong, err := readWithMaxLength(part, MetadataFieldMaxSize)
 			if err != nil {
-				log.Error().Err(err).Msg("Failed to read source field")
+				log.Error().Err(err).Msg("Failed to read namespace field")
 
 				return &PostArtifactUpload500Response{}, nil
 			}
 
 			if tooLong {
-				log.Error().Msg("Source field too long")
+				log.Error().Msg("Namespace field too long")
 
 				return PostArtifactUpload413JSONResponse{
 					GenericTooLargeJSONResponse{
-						Error: "Source field is too long",
+						Error: "Namespace field is too long",
 					},
 				}, nil
 			}
 
-			source = data
-		case "author":
-			if author != "" {
-				log.Error().Msg("Multiple author fields provided")
-
-				return PostArtifactUpload400JSONResponse{
-					GenericBadRequestJSONResponse{
-						Error: "Multiple author fields provided",
-					},
-				}, nil
-			}
-
-			data, tooLong, err := readWithMaxLength(part, MetadataFieldMaxSize)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to read author field")
-
-				return &PostArtifactUpload500Response{}, nil
-			}
-
-			if tooLong {
-				log.Error().Msg("Author field too long")
-
-				return PostArtifactUpload413JSONResponse{
-					GenericTooLargeJSONResponse{
-						Error: "Author field is too long",
-					},
-				}, nil
-			}
-
-			author = data
+			namespace = data
 		case "name":
 			if name != "" {
 				log.Error().Msg("Multiple name fields provided")
@@ -467,8 +427,7 @@ func (server *Server) PostArtifactUpload(
 			// Process file immediately - don't store the part reader
 			return server.uploadArtifactWithFile(
 				ctx,
-				source,
-				author,
+				namespace,
 				name,
 				tags,
 				part,
@@ -498,7 +457,7 @@ func (server *Server) PostArtifactUpload(
 
 func (server *Server) uploadArtifactWithFile(
 	ctx context.Context,
-	source, author, name string,
+	namespace, name string,
 	tags []string,
 	fileReader io.Reader,
 ) (PostArtifactUploadResponseObject, error) {
@@ -513,10 +472,9 @@ func (server *Server) uploadArtifactWithFile(
 	defer stream.CloseSend()
 
 	metadata := &pb.UploadMetadata{
-		Fqn: &pb.FullyQualifiedName{
-			Source: source,
-			Author: author,
-			Name:   name,
+		Fqn: &pb.PackageName{
+			Namespace: namespace,
+			Name:      name,
 		},
 		Tags: tags,
 	}

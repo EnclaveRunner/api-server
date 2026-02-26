@@ -3,115 +3,104 @@ package api
 
 import (
 	"errors"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+// expectedFuncIdentifier holds the fields we want to assert after parsing a
+// source string.
+type expectedFuncIdentifier struct {
+	namespace   string
+	name        string
+	iface       string
+	funcName    string
+	tag         string
+	versionHash string
+}
+
 func TestParseSource(t *testing.T) {
 	tests := []struct {
 		name        string
 		input       string
-		expected    Identifier
+		expected    expectedFuncIdentifier
 		expectError bool
 	}{
 		{
 			name:  "valid source with tag",
-			input: "github.com/user/myartifact:latest",
-			expected: Identifier{
-				Source: "github.com",
-				Author: "user",
-				Name:   "myartifact",
-				Tag:    "latest",
-				Hash:   "",
+			input: "myns:myapp/myiface/myfunc@latest",
+			expected: expectedFuncIdentifier{
+				namespace: "myns",
+				name:      "myapp",
+				iface:     "myiface",
+				funcName:  "myfunc",
+				tag:       "latest",
 			},
-			expectError: false,
 		},
 		{
 			name:  "valid source with version hash",
-			input: "github.com/user/myartifact:hash:abc123def456",
-			expected: Identifier{
-				Source: "github.com",
-				Author: "user",
-				Name:   "myartifact",
-				Tag:    "",
-				Hash:   "abc123def456",
+			input: "myns:myapp/myiface/myfunc@hash:abc123def456",
+			expected: expectedFuncIdentifier{
+				namespace:   "myns",
+				name:        "myapp",
+				iface:       "myiface",
+				funcName:    "myfunc",
+				versionHash: "abc123def456",
 			},
-			expectError: false,
 		},
 		{
 			name:  "valid source with numeric tag",
-			input: "registry.local/company/service:v1.2.3",
-			expected: Identifier{
-				Source: "registry.local",
-				Author: "company",
-				Name:   "service",
-				Tag:    "v1.2.3",
-				Hash:   "",
+			input: "local:myservice/compute/run@v1.2.3",
+			expected: expectedFuncIdentifier{
+				namespace: "local",
+				name:      "myservice",
+				iface:     "compute",
+				funcName:  "run",
+				tag:       "v1.2.3",
 			},
-			expectError: false,
 		},
 		{
-			name:        "invalid format - missing parts",
-			input:       "github.com/user",
-			expected:    Identifier{},
+			name:        "invalid format - missing namespace colon",
+			input:       "myapp/myiface/myfunc@latest",
 			expectError: true,
 		},
 		{
-			name:        "invalid format - too many slashes",
-			input:       "github.com/user/repo/extra:tag",
-			expected:    Identifier{},
+			name:        "invalid format - missing interface and function",
+			input:       "myns:myapp@latest",
 			expectError: true,
 		},
 		{
-			name:        "invalid format - missing colon",
-			input:       "github.com/user/repo",
-			expected:    Identifier{},
+			name:        "invalid format - missing version separator",
+			input:       "myns:myapp/myiface/myfunc",
 			expectError: true,
 		},
 		{
 			name:        "invalid format - empty string",
 			input:       "",
-			expected:    Identifier{},
 			expectError: true,
 		},
 		{
-			name:        "invalid format - only slashes",
-			input:       "///",
-			expected:    Identifier{},
-			expectError: true,
-		},
-		{
-			name:        "invalid format - wrong hash keyword",
-			input:       "github.com/user/repo:version:abc123",
-			expected:    Identifier{},
-			expectError: true,
-		},
-		{
-			name:  "valid source with complex hash format",
-			input: "docker.io/library/nginx:hash:sha2562a25e1f8f0aa9571689513d5b68c8bb94b9bc8f5a9229a8c0250482cfb1c8a99",
-			expected: Identifier{
-				Source: "docker.io",
-				Author: "library",
-				Name:   "nginx",
-				Tag:    "",
-				Hash:   "sha2562a25e1f8f0aa9571689513d5b68c8bb94b9bc8f5a9229a8c0250482cfb1c8a99",
+			name:  "valid source with complex hash",
+			input: "enclave:nginx/http/serve@hash:sha256abc123",
+			expected: expectedFuncIdentifier{
+				namespace:   "enclave",
+				name:        "nginx",
+				iface:       "http",
+				funcName:    "serve",
+				versionHash: "sha256abc123",
 			},
-			expectError: false,
 		},
 		{
 			name:  "edge case - single character components",
-			input: "a/b/c:d",
-			expected: Identifier{
-				Source: "a",
-				Author: "b",
-				Name:   "c",
-				Tag:    "d",
-				Hash:   "",
+			input: "a:b/c/d@e",
+			expected: expectedFuncIdentifier{
+				namespace: "a",
+				name:      "b",
+				iface:     "c",
+				funcName:  "d",
+				tag:       "e",
 			},
-			expectError: false,
 		},
 	}
 
@@ -121,18 +110,26 @@ func TestParseSource(t *testing.T) {
 
 			if tt.expectError {
 				assert.Error(t, err, "Expected error for input: %s", tt.input)
-				// Check if it's one of the expected error types
-				isExpectedError := errors.Is(err, ErrInvalidIdentifier) ||
-					strings.Contains(err.Error(), "invalid identifier format")
 				assert.True(
 					t,
-					isExpectedError,
-					"Expected ErrInvalidIdentifier or format validation error, got: %v",
+					errors.Is(err, ErrInvalidIdentifier),
+					"Expected ErrInvalidIdentifier, got: %v",
 					err,
 				)
 			} else {
-				assert.NoError(t, err, "Unexpected error for input: %s", tt.input)
-				assert.Equal(t, tt.expected, result, "Result mismatch for input: %s", tt.input)
+				require.NoError(t, err, "Unexpected error for input: %s", tt.input)
+				require.NotNil(t, result)
+				require.NotNil(t, result.Artifact)
+				require.NotNil(t, result.Artifact.Package)
+				assert.Equal(t, tt.expected.namespace, result.Artifact.Package.Namespace, "namespace mismatch")
+				assert.Equal(t, tt.expected.name, result.Artifact.Package.Name, "name mismatch")
+				assert.Equal(t, tt.expected.iface, result.Interface, "interface mismatch")
+				assert.Equal(t, tt.expected.funcName, result.Name, "function name mismatch")
+				if tt.expected.versionHash != "" {
+					assert.Equal(t, tt.expected.versionHash, result.Artifact.GetVersionHash(), "version hash mismatch")
+				} else {
+					assert.Equal(t, tt.expected.tag, result.Artifact.GetTag(), "tag mismatch")
+				}
 			}
 		})
 	}
@@ -251,24 +248,6 @@ status:
 	}
 }
 
-func TestIdentifierStruct(t *testing.T) {
-	t.Run("Identifier struct fields", func(t *testing.T) {
-		id := Identifier{
-			Source: "github.com",
-			Author: "testuser",
-			Name:   "testartifact",
-			Hash:   "abc123",
-			Tag:    "v1.0.0",
-		}
-
-		assert.Equal(t, "github.com", id.Source)
-		assert.Equal(t, "testuser", id.Author)
-		assert.Equal(t, "testartifact", id.Name)
-		assert.Equal(t, "abc123", id.Hash)
-		assert.Equal(t, "v1.0.0", id.Tag)
-	})
-}
-
 func TestErrInvalidIdentifier(t *testing.T) {
 	t.Run("ErrInvalidIdentifier is properly defined", func(t *testing.T) {
 		assert.NotNil(t, ErrInvalidIdentifier)
@@ -283,9 +262,9 @@ func TestErrInvalidIdentifier(t *testing.T) {
 // Benchmark tests for parseSource function
 func BenchmarkParseSource(b *testing.B) {
 	testCases := []string{
-		"github.com/user/repo:latest",
-		"docker.io/library/nginx:hash:sha256abc123",
-		"registry.local/company/service:v1.2.3",
+		"myns:myapp/myiface/myfunc@latest",
+		"myns:nginx/http/serve@hash:sha256abc123",
+		"myns:myservice/compute/run@v1.2.3",
 	}
 
 	for _, tc := range testCases {

@@ -21,19 +21,246 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type Task struct {
+type FunctionIdentifier struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	Artifact      *ArtifactIdentifier    `protobuf:"bytes,2,opt,name=artifact,proto3" json:"artifact,omitempty"`
-	Function      string                 `protobuf:"bytes,3,opt,name=function,proto3" json:"function,omitempty"`
-	Input         []byte                 `protobuf:"bytes,4,opt,name=input,proto3" json:"input,omitempty"`
+	Artifact      *ArtifactIdentifier    `protobuf:"bytes,1,opt,name=artifact,proto3" json:"artifact,omitempty"`
+	Interface     string                 `protobuf:"bytes,2,opt,name=interface,proto3" json:"interface,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
+func (x *FunctionIdentifier) Reset() {
+	*x = FunctionIdentifier{}
+	mi := &file_task_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FunctionIdentifier) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FunctionIdentifier) ProtoMessage() {}
+
+func (x *FunctionIdentifier) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FunctionIdentifier.ProtoReflect.Descriptor instead.
+func (*FunctionIdentifier) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *FunctionIdentifier) GetArtifact() *ArtifactIdentifier {
+	if x != nil {
+		return x.Artifact
+	}
+	return nil
+}
+
+func (x *FunctionIdentifier) GetInterface() string {
+	if x != nil {
+		return x.Interface
+	}
+	return ""
+}
+
+func (x *FunctionIdentifier) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type Parameter struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Value:
+	//
+	//	*Parameter_I32
+	//	*Parameter_I64
+	//	*Parameter_Flt
+	//	*Parameter_Dbl
+	Value         isParameter_Value `protobuf_oneof:"value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Parameter) Reset() {
+	*x = Parameter{}
+	mi := &file_task_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Parameter) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Parameter) ProtoMessage() {}
+
+func (x *Parameter) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Parameter.ProtoReflect.Descriptor instead.
+func (*Parameter) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *Parameter) GetValue() isParameter_Value {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
+func (x *Parameter) GetI32() int32 {
+	if x != nil {
+		if x, ok := x.Value.(*Parameter_I32); ok {
+			return x.I32
+		}
+	}
+	return 0
+}
+
+func (x *Parameter) GetI64() int64 {
+	if x != nil {
+		if x, ok := x.Value.(*Parameter_I64); ok {
+			return x.I64
+		}
+	}
+	return 0
+}
+
+func (x *Parameter) GetFlt() float32 {
+	if x != nil {
+		if x, ok := x.Value.(*Parameter_Flt); ok {
+			return x.Flt
+		}
+	}
+	return 0
+}
+
+func (x *Parameter) GetDbl() float64 {
+	if x != nil {
+		if x, ok := x.Value.(*Parameter_Dbl); ok {
+			return x.Dbl
+		}
+	}
+	return 0
+}
+
+type isParameter_Value interface {
+	isParameter_Value()
+}
+
+type Parameter_I32 struct {
+	I32 int32 `protobuf:"varint,1,opt,name=i32,proto3,oneof"`
+}
+
+type Parameter_I64 struct {
+	I64 int64 `protobuf:"varint,2,opt,name=i64,proto3,oneof"`
+}
+
+type Parameter_Flt struct {
+	Flt float32 `protobuf:"fixed32,3,opt,name=flt,proto3,oneof"`
+}
+
+type Parameter_Dbl struct {
+	Dbl float64 `protobuf:"fixed64,4,opt,name=dbl,proto3,oneof"`
+}
+
+func (*Parameter_I32) isParameter_Value() {}
+
+func (*Parameter_I64) isParameter_Value() {}
+
+func (*Parameter_Flt) isParameter_Value() {}
+
+func (*Parameter_Dbl) isParameter_Value() {}
+
+type EnvironmentVariable struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         string                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EnvironmentVariable) Reset() {
+	*x = EnvironmentVariable{}
+	mi := &file_task_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EnvironmentVariable) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnvironmentVariable) ProtoMessage() {}
+
+func (x *EnvironmentVariable) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnvironmentVariable.ProtoReflect.Descriptor instead.
+func (*EnvironmentVariable) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *EnvironmentVariable) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *EnvironmentVariable) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
+type Task struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	TaskId               string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Function             *FunctionIdentifier    `protobuf:"bytes,2,opt,name=function,proto3" json:"function,omitempty"`
+	Parameters           []*Parameter           `protobuf:"bytes,3,rep,name=parameters,proto3" json:"parameters,omitempty"`
+	Arguments            []string               `protobuf:"bytes,4,rep,name=arguments,proto3" json:"arguments,omitempty"`
+	EnvironmentVariables []*EnvironmentVariable `protobuf:"bytes,5,rep,name=environment_variables,json=environmentVariables,proto3" json:"environment_variables,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
 func (x *Task) Reset() {
 	*x = Task{}
-	mi := &file_task_proto_msgTypes[0]
+	mi := &file_task_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -45,7 +272,7 @@ func (x *Task) String() string {
 func (*Task) ProtoMessage() {}
 
 func (x *Task) ProtoReflect() protoreflect.Message {
-	mi := &file_task_proto_msgTypes[0]
+	mi := &file_task_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -58,7 +285,7 @@ func (x *Task) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Task.ProtoReflect.Descriptor instead.
 func (*Task) Descriptor() ([]byte, []int) {
-	return file_task_proto_rawDescGZIP(), []int{0}
+	return file_task_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Task) GetTaskId() string {
@@ -68,23 +295,30 @@ func (x *Task) GetTaskId() string {
 	return ""
 }
 
-func (x *Task) GetArtifact() *ArtifactIdentifier {
+func (x *Task) GetFunction() *FunctionIdentifier {
 	if x != nil {
-		return x.Artifact
+		return x.Function
 	}
 	return nil
 }
 
-func (x *Task) GetFunction() string {
+func (x *Task) GetParameters() []*Parameter {
 	if x != nil {
-		return x.Function
+		return x.Parameters
 	}
-	return ""
+	return nil
 }
 
-func (x *Task) GetInput() []byte {
+func (x *Task) GetArguments() []string {
 	if x != nil {
-		return x.Input
+		return x.Arguments
+	}
+	return nil
+}
+
+func (x *Task) GetEnvironmentVariables() []*EnvironmentVariable {
+	if x != nil {
+		return x.EnvironmentVariables
 	}
 	return nil
 }
@@ -94,12 +328,28 @@ var File_task_proto protoreflect.FileDescriptor
 const file_task_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"task.proto\x12\x04task\x1a\x0eregistry.proto\"\x8b\x01\n" +
+	"task.proto\x12\x04task\x1a\x0eregistry.proto\"\x80\x01\n" +
+	"\x12FunctionIdentifier\x128\n" +
+	"\bartifact\x18\x01 \x01(\v2\x1c.registry.ArtifactIdentifierR\bartifact\x12\x1c\n" +
+	"\tinterface\x18\x02 \x01(\tR\tinterface\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\"d\n" +
+	"\tParameter\x12\x12\n" +
+	"\x03i32\x18\x01 \x01(\x05H\x00R\x03i32\x12\x12\n" +
+	"\x03i64\x18\x02 \x01(\x03H\x00R\x03i64\x12\x12\n" +
+	"\x03flt\x18\x03 \x01(\x02H\x00R\x03flt\x12\x12\n" +
+	"\x03dbl\x18\x04 \x01(\x01H\x00R\x03dblB\a\n" +
+	"\x05value\"=\n" +
+	"\x13EnvironmentVariable\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\"\xf4\x01\n" +
 	"\x04Task\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\x128\n" +
-	"\bartifact\x18\x02 \x01(\v2\x1c.registry.ArtifactIdentifierR\bartifact\x12\x1a\n" +
-	"\bfunction\x18\x03 \x01(\tR\bfunction\x12\x14\n" +
-	"\x05input\x18\x04 \x01(\fR\x05inputB\fZ\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x124\n" +
+	"\bfunction\x18\x02 \x01(\v2\x18.task.FunctionIdentifierR\bfunction\x12/\n" +
+	"\n" +
+	"parameters\x18\x03 \x03(\v2\x0f.task.ParameterR\n" +
+	"parameters\x12\x1c\n" +
+	"\targuments\x18\x04 \x03(\tR\targuments\x12N\n" +
+	"\x15environment_variables\x18\x05 \x03(\v2\x19.task.EnvironmentVariableR\x14environmentVariablesB\fZ\n" +
 	"proto_gen/b\x06proto3"
 
 var (
@@ -114,18 +364,24 @@ func file_task_proto_rawDescGZIP() []byte {
 	return file_task_proto_rawDescData
 }
 
-var file_task_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_task_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_task_proto_goTypes = []any{
-	(*Task)(nil),               // 0: task.Task
-	(*ArtifactIdentifier)(nil), // 1: registry.ArtifactIdentifier
+	(*FunctionIdentifier)(nil),  // 0: task.FunctionIdentifier
+	(*Parameter)(nil),           // 1: task.Parameter
+	(*EnvironmentVariable)(nil), // 2: task.EnvironmentVariable
+	(*Task)(nil),                // 3: task.Task
+	(*ArtifactIdentifier)(nil),  // 4: registry.ArtifactIdentifier
 }
 var file_task_proto_depIdxs = []int32{
-	1, // 0: task.Task.artifact:type_name -> registry.ArtifactIdentifier
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	4, // 0: task.FunctionIdentifier.artifact:type_name -> registry.ArtifactIdentifier
+	0, // 1: task.Task.function:type_name -> task.FunctionIdentifier
+	1, // 2: task.Task.parameters:type_name -> task.Parameter
+	2, // 3: task.Task.environment_variables:type_name -> task.EnvironmentVariable
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_task_proto_init() }
@@ -134,13 +390,19 @@ func file_task_proto_init() {
 		return
 	}
 	file_registry_proto_init()
+	file_task_proto_msgTypes[1].OneofWrappers = []any{
+		(*Parameter_I32)(nil),
+		(*Parameter_I64)(nil),
+		(*Parameter_Flt)(nil),
+		(*Parameter_Dbl)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_task_proto_rawDesc), len(file_task_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

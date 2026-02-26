@@ -9,8 +9,10 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/goccy/go-yaml"
+	"github.com/hibiken/asynq"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -18,7 +20,7 @@ import (
 
 const (
 	defaultMaxRetries = 3
-	defaultRetention  = "24h"
+	defaultRetention  = 24 * time.Hour
 )
 
 // all valid manifests are required to be able to unmarshal to this struct
@@ -94,9 +96,9 @@ func (server *Server) processBlueprint(
 	}
 
 	// Convert params to proto Parameters
-	params := make([]*pb.Parameter, len(blueprint.Spec.Params))
+	params := make([]*pb.Val, len(blueprint.Spec.Params))
 	for i, p := range blueprint.Spec.Params {
-		params[i] = &pb.Parameter{Value: &pb.Parameter_Dbl{Dbl: p}}
+		params[i] = anyToProtoVal(p)
 	}
 
 	// Convert env to proto EnvironmentVariables
@@ -135,35 +137,84 @@ func (server *Server) processBlueprint(
 		return &PostManifest500Response{}, nil
 	}
 
-	// Register the task in database first
-	registeredTask, err := server.db.RegisterTask(
-		defaultMaxRetries,
-		defaultRetention,
-	)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to register task in database")
+	taskOptions := []asynq.Option{}
+	if blueprint.Spec.Retention != nil {
+		retention, err := time.ParseDuration(*blueprint.Spec.Retention)
+		if err != nil {
+			return &PostManifest400JSONResponse{
+				GenericBadRequestJSONResponse{
+					Error: fmt.Sprintf("Retention string invalid: %s", err.Error()),
+				},
+			}, nil
+		}
 
-		return PostManifest500Response{}, nil
+		taskOptions = append(taskOptions, asynq.Retention(retention))
+	} else {
+		taskOptions = append(taskOptions, asynq.Retention(defaultRetention))
 	}
 
-	task.TaskId = registeredTask.TaskID.String()
+	if blueprint.Spec.Retries != nil {
+		taskOptions = append(taskOptions, asynq.MaxRetry(*blueprint.Spec.Retries))
+	} else {
+		taskOptions = append(taskOptions, asynq.MaxRetry(defaultMaxRetries))
+	}
 
 	// Enqueue the task for processing
-	_, err = server.queueClient.EnqueueTask(registeredTask.TaskID, task)
+	taskInfo, err := server.queueClient.EnqueueTask(
+		task,
+		taskOptions...,
+	)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to enqueue task")
 
 		return PostManifest500Response{}, nil
 	}
 
-	// Create response with task ID from database
-	taskID := registeredTask.TaskID.String()
-	responseBody := fmt.Sprintf("taskId: %s\n", taskID)
+	return PostManifest201TextResponse(taskInfo.ID), nil
+}
 
-	return PostManifest201TextyamlResponse{
-		Body:          strings.NewReader(responseBody),
-		ContentLength: int64(len(responseBody)),
-	}, nil
+// anyToProtoVal converts a value produced by YAML/JSON unmarshalling into a
+// proto Val. Only the types that the standard library decoders can produce are
+// handled:
+//
+//	bool            → BoolVal
+//	int             → S64Val
+//	int64           → S64Val
+//	float64         → F64Val
+//	string          → StringVal
+//	[]interface{}   → ListVal  (recursive)
+//	map[string]any  → RecordVal (recursive)
+//	nil             → OptionVal{Value: nil}  (none)
+func anyToProtoVal(v any) *pb.Val {
+	switch val := v.(type) {
+	case bool:
+		return &pb.Val{Value: &pb.Val_BoolVal{BoolVal: val}}
+	case int:
+		return &pb.Val{Value: &pb.Val_S64Val{S64Val: int64(val)}}
+	case int64:
+		return &pb.Val{Value: &pb.Val_S64Val{S64Val: val}}
+	case float64:
+		return &pb.Val{Value: &pb.Val_F64Val{F64Val: val}}
+	case string:
+		return &pb.Val{Value: &pb.Val_StringVal{StringVal: val}}
+	case []interface{}:
+		elems := make([]*pb.Val, len(val))
+		for i, elem := range val {
+			elems[i] = anyToProtoVal(elem)
+		}
+
+		return &pb.Val{Value: &pb.Val_ListVal{ListVal: &pb.ListVal{Values: elems}}}
+	case map[string]interface{}:
+		fields := make([]*pb.RecordField, 0, len(val))
+		for k, fv := range val {
+			fields = append(fields, &pb.RecordField{Name: k, Value: anyToProtoVal(fv)})
+		}
+
+		return &pb.Val{Value: &pb.Val_RecordVal{RecordVal: &pb.RecordVal{Fields: fields}}}
+	default:
+		// nil or any unrecognised type → option<T> none
+		return &pb.Val{Value: &pb.Val_OptionVal{OptionVal: &pb.OptionVal{}}}
+	}
 }
 
 func unmarshalManifest(data []byte) (BaseManifest, error) {

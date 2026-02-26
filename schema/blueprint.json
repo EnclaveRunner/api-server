@@ -45,10 +45,7 @@
           "description": "The identifier of the function to execute. Format: <namespace>:<name>/<interface>/<function>@<<version>|hash:<versionHash>>"
         },
         "params": {
-          "type": "array",
-          "items": {
-            "type": "number"
-          }
+          "type": "array"
         },
         "args": {
           "type": "array",
@@ -61,6 +58,15 @@
           "items": {
             "$ref": "#/definitions/EnvVariable"
           }
+        },
+        "retention": {
+          "type": "string",
+          "description": "Task retention",
+          "examples": ["1d2h", "12w", "1y", "3h12m"]
+        },
+        "retries": {
+          "type": "integer",
+          "description": "Maximum retries on task failure"
         }
       },
       "required": ["source"],

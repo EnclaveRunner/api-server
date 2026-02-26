@@ -5,6 +5,8 @@ import (
 	"errors"
 	"testing"
 
+	pb "api-server/proto_gen"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -257,6 +259,184 @@ func TestErrInvalidIdentifier(t *testing.T) {
 			"invalid identifier format",
 		)
 	})
+}
+
+func TestAnyToProtoVal(t *testing.T) {
+	tests := []struct {
+		name  string
+		input any
+		check func(t *testing.T, got *pb.Val)
+	}{
+		{
+			name:  "bool true",
+			input: true,
+			check: func(t *testing.T, got *pb.Val) {
+				t.Helper()
+				v, ok := got.Value.(*pb.Val_BoolVal)
+				require.True(t, ok, "expected BoolVal")
+				assert.True(t, v.BoolVal)
+			},
+		},
+		{
+			name:  "bool false",
+			input: false,
+			check: func(t *testing.T, got *pb.Val) {
+				t.Helper()
+				v, ok := got.Value.(*pb.Val_BoolVal)
+				require.True(t, ok, "expected BoolVal")
+				assert.False(t, v.BoolVal)
+			},
+		},
+		{
+			name:  "int",
+			input: int(42),
+			check: func(t *testing.T, got *pb.Val) {
+				t.Helper()
+				v, ok := got.Value.(*pb.Val_S64Val)
+				require.True(t, ok, "expected S64Val")
+				assert.Equal(t, int64(42), v.S64Val)
+			},
+		},
+		{
+			name:  "int64",
+			input: int64(-100),
+			check: func(t *testing.T, got *pb.Val) {
+				t.Helper()
+				v, ok := got.Value.(*pb.Val_S64Val)
+				require.True(t, ok, "expected S64Val")
+				assert.Equal(t, int64(-100), v.S64Val)
+			},
+		},
+		{
+			name:  "float64",
+			input: float64(3.14),
+			check: func(t *testing.T, got *pb.Val) {
+				t.Helper()
+				v, ok := got.Value.(*pb.Val_F64Val)
+				require.True(t, ok, "expected F64Val")
+				assert.InDelta(t, 3.14, v.F64Val, 1e-9)
+			},
+		},
+		{
+			name:  "string",
+			input: "hello",
+			check: func(t *testing.T, got *pb.Val) {
+				t.Helper()
+				v, ok := got.Value.(*pb.Val_StringVal)
+				require.True(t, ok, "expected StringVal")
+				assert.Equal(t, "hello", v.StringVal)
+			},
+		},
+		{
+			name:  "nil",
+			input: nil,
+			check: func(t *testing.T, got *pb.Val) {
+				t.Helper()
+				_, ok := got.Value.(*pb.Val_OptionVal)
+				require.True(t, ok, "expected OptionVal for nil")
+			},
+		},
+		{
+			name:  "unknown type falls back to OptionVal",
+			input: struct{ x int }{x: 1},
+			check: func(t *testing.T, got *pb.Val) {
+				t.Helper()
+				_, ok := got.Value.(*pb.Val_OptionVal)
+				require.True(t, ok, "expected OptionVal for unknown type")
+			},
+		},
+		{
+			name:  "empty slice",
+			input: []interface{}{},
+			check: func(t *testing.T, got *pb.Val) {
+				t.Helper()
+				v, ok := got.Value.(*pb.Val_ListVal)
+				require.True(t, ok, "expected ListVal")
+				assert.Empty(t, v.ListVal.Values)
+			},
+		},
+		{
+			name:  "slice with mixed types",
+			input: []interface{}{true, int(1), "x"},
+			check: func(t *testing.T, got *pb.Val) {
+				t.Helper()
+				v, ok := got.Value.(*pb.Val_ListVal)
+				require.True(t, ok, "expected ListVal")
+				require.Len(t, v.ListVal.Values, 3)
+				_, ok = v.ListVal.Values[0].Value.(*pb.Val_BoolVal)
+				assert.True(t, ok, "first element should be BoolVal")
+				_, ok = v.ListVal.Values[1].Value.(*pb.Val_S64Val)
+				assert.True(t, ok, "second element should be S64Val")
+				_, ok = v.ListVal.Values[2].Value.(*pb.Val_StringVal)
+				assert.True(t, ok, "third element should be StringVal")
+			},
+		},
+		{
+			name:  "nested slice",
+			input: []interface{}{[]interface{}{int(1), int(2)}},
+			check: func(t *testing.T, got *pb.Val) {
+				t.Helper()
+				outer, ok := got.Value.(*pb.Val_ListVal)
+				require.True(t, ok, "expected outer ListVal")
+				require.Len(t, outer.ListVal.Values, 1)
+				inner, ok := outer.ListVal.Values[0].Value.(*pb.Val_ListVal)
+				require.True(t, ok, "expected inner ListVal")
+				require.Len(t, inner.ListVal.Values, 2)
+			},
+		},
+		{
+			name:  "empty map",
+			input: map[string]interface{}{},
+			check: func(t *testing.T, got *pb.Val) {
+				t.Helper()
+				v, ok := got.Value.(*pb.Val_RecordVal)
+				require.True(t, ok, "expected RecordVal")
+				assert.Empty(t, v.RecordVal.Fields)
+			},
+		},
+		{
+			name:  "map with single string field",
+			input: map[string]interface{}{"key": "value"},
+			check: func(t *testing.T, got *pb.Val) {
+				t.Helper()
+				v, ok := got.Value.(*pb.Val_RecordVal)
+				require.True(t, ok, "expected RecordVal")
+				require.Len(t, v.RecordVal.Fields, 1)
+				assert.Equal(t, "key", v.RecordVal.Fields[0].Name)
+				sv, ok := v.RecordVal.Fields[0].Value.Value.(*pb.Val_StringVal)
+				require.True(t, ok, "expected StringVal for field value")
+				assert.Equal(t, "value", sv.StringVal)
+			},
+		},
+		{
+			name: "nested map",
+			input: map[string]interface{}{
+				"inner": map[string]interface{}{"n": int(7)},
+			},
+			check: func(t *testing.T, got *pb.Val) {
+				t.Helper()
+				v, ok := got.Value.(*pb.Val_RecordVal)
+				require.True(t, ok, "expected outer RecordVal")
+				require.Len(t, v.RecordVal.Fields, 1)
+				assert.Equal(t, "inner", v.RecordVal.Fields[0].Name)
+				inner, ok := v.RecordVal.Fields[0].Value.Value.(*pb.Val_RecordVal)
+				require.True(t, ok, "expected inner RecordVal")
+				require.Len(t, inner.RecordVal.Fields, 1)
+				assert.Equal(t, "n", inner.RecordVal.Fields[0].Name)
+				nv, ok := inner.RecordVal.Fields[0].Value.Value.(*pb.Val_S64Val)
+				require.True(t, ok, "expected S64Val for nested field")
+				assert.Equal(t, int64(7), nv.S64Val)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := anyToProtoVal(tt.input)
+			require.NotNil(t, got)
+			tt.check(t, got)
+		})
+	}
 }
 
 // Benchmark tests for parseSource function

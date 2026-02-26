@@ -12,13 +12,80 @@ message FunctionIdentifier {
   string                      name      = 3;
 }
 
-message Parameter {
+// A WIT value — represents any value in the WebAssembly Component Model type
+// system. See https://component-model.bytecodealliance.org/design/wit.html
+message Val {
   oneof value {
-    int32  i32 = 1;
-    int64  i64 = 2;
-    float  flt = 3;
-    double dbl = 4;
+    // Primitive types
+    bool   bool_val   = 1;
+    sint32 s8_val     = 2; // s8
+    uint32 u8_val     = 3; // u8
+    sint32 s16_val    = 4; // s16
+    uint32 u16_val    = 5; // u16
+    sint32 s32_val    = 6; // s32
+    uint32 u32_val    = 7; // u32
+    sint64 s64_val    = 8; // s64
+    uint64 u64_val    = 9; // u64
+    float  f32_val    = 10; // f32
+    double f64_val    = 11; // f64
+    uint32 char_val   = 12; // char — Unicode scalar value (0..=0x10FFFF)
+    string string_val = 13; // string
+
+    // Compound built-in types
+    ListVal   list_val   = 14; // list<T>
+    TupleVal  tuple_val  = 15; // tuple<T0, T1, ...>
+    OptionVal option_val = 16; // option<T>
+    ResultVal result_val = 17; // result<T, E>
+
+    // User-defined types
+    RecordVal  record_val  = 18;  // record { name: T, ... }
+    VariantVal variant_val = 19;  // variant { case(T?), ... }
+    string     enum_val    = 20; // enum { case, ... }  — carries the case name
+    FlagsVal   flags_val   = 21; // flags { name, ... } — set of active flag names
   }
+}
+
+// list<T> — ordered sequence of values
+message ListVal {
+  repeated Val values = 1;
+}
+
+// tuple<T0, T1, ...> — fixed-length ordered sequence
+message TupleVal {
+  repeated Val values = 1;
+}
+
+// option<T> — absent value field means none; present means some(value)
+message OptionVal {
+  Val value = 1;
+}
+
+// result<T, E> — is_ok=true → ok case, is_ok=false → err case;
+// value is absent when the case carries no payload (unit)
+message ResultVal {
+  bool is_ok = 1;
+  Val  value = 2;
+}
+
+// record { field-name: T, ... } — named fields in declaration order
+message RecordVal {
+  repeated RecordField fields = 1;
+}
+
+message RecordField {
+  string name  = 1;
+  Val    value = 2;
+}
+
+// variant { case-name(T?), ... } — active case name plus optional payload
+message VariantVal {
+  string name  = 1;
+  Val    value = 2; // absent if the case carries no payload
+}
+
+// flags { flag-name, ... } — names of all active (set) flags
+message FlagsVal {
+  repeated string flags = 1;
 }
 
 message EnvironmentVariable {
@@ -27,9 +94,8 @@ message EnvironmentVariable {
 }
 
 message Task {
-  string                       task_id               = 1;
-  FunctionIdentifier           function              = 2;
-  repeated Parameter           parameters            = 3;
-  repeated string              arguments             = 4;
-  repeated EnvironmentVariable environment_variables = 5;
+  FunctionIdentifier           function              = 1;
+  repeated Val                 parameters            = 2;
+  repeated string              arguments             = 3;
+  repeated EnvironmentVariable environment_variables = 4;
 }

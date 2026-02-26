@@ -143,7 +143,7 @@ func (server *Server) processBlueprint(
 		if err != nil {
 			return &PostManifest400JSONResponse{
 				GenericBadRequestJSONResponse{
-					Error: fmt.Sprintf("Retention string invalid: %s", err.Error()),
+					Error: "Retention string invalid: " + err.Error(),
 				},
 			}, nil
 		}

@@ -31,8 +31,8 @@ func (s *Server) GetTasksList(
 	}
 
 	taskStates := make([]TaskState, len(tasks))
-	for _, task := range tasks {
-		taskStates = append(taskStates, taskToTaskState(*task))
+	for i, task := range tasks {
+		taskStates[i] = taskToTaskState(task)
 	}
 
 	return GetTasksList200JSONResponse(taskStates), nil
@@ -61,7 +61,7 @@ func (s *Server) GetTasksTask(
 		return GetTasksTask404JSONResponse{}, nil
 	}
 
-	state := taskToTaskState(*task)
+	state := taskToTaskState(task)
 
 	logs, err := s.db.GetLogsOfTask(ctx, request.Params.Id)
 	if err != nil {
@@ -73,7 +73,7 @@ func (s *Server) GetTasksTask(
 	return GetTasksTask200JSONResponse(state), nil
 }
 
-func taskToTaskState(task asynq.TaskInfo) TaskState {
+func taskToTaskState(task *asynq.TaskInfo) TaskState {
 	state := TaskState{
 		Id:         task.ID,
 		Retries:    task.Retried,
@@ -108,13 +108,13 @@ func taskToTaskState(task asynq.TaskInfo) TaskState {
 func dbLogsToJsonLogs(dbLogs []orm.TaskLog) []TaskLog {
 	jsonLogs := make([]TaskLog, len(dbLogs))
 
-	for _, log := range dbLogs {
-		jsonLogs = append(jsonLogs, TaskLog{
+	for i, log := range dbLogs {
+		jsonLogs[i] = TaskLog{
 			Issuer:    log.Issuer,
 			Level:     log.Level,
 			Message:   log.Message,
 			Timestamp: log.Timestamp.Format(time.RFC3339),
-		})
+		}
 	}
 
 	return jsonLogs

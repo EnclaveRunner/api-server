@@ -61,8 +61,8 @@
         },
         "retention": {
           "type": "string",
-          "description": "Task retention",
-          "examples": ["1d2h", "12w", "1y", "3h12m"]
+          "description": "Task retention duration as a Go time duration string (time.ParseDuration), e.g. \"48h\", \"72h\", or \"3h12m\"",
+          "examples": ["48h", "72h", "3h12m", "30m"]
         },
         "retries": {
           "type": "integer",

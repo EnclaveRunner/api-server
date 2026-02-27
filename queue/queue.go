@@ -4,16 +4,16 @@ import (
 	"api-server/config"
 	"api-server/orm"
 	pb "api-server/proto_gen"
+	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
 	"google.golang.org/protobuf/proto"
-	"gorm.io/gorm"
 )
 
 const (
-	TaskTypeNormal = "job:normal"
+	TaskTypeNormal   = "job:normal"
+	TaskQueueDefault = "default"
 )
 
 type QueueClient struct {
@@ -36,38 +36,82 @@ func NewQueueClient(cfg *config.AppConfig, db *orm.DB) QueueClient {
 }
 
 func (q *QueueClient) EnqueueTask(
-	taskID uuid.UUID,
 	task *pb.Task,
 	opts ...asynq.Option,
 ) (*asynq.TaskInfo, error) {
 	payload, err := proto.Marshal(task)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal task to protobuf: %w", err)
+		return nil, &GenericError{
+			fmt.Errorf("failed to marshal task proto: %w", err),
+		}
 	}
 
-	var info *asynq.TaskInfo
-
-	err = q.db.Transaction(func(tx *gorm.DB) error {
-		queueTask := asynq.NewTask(TaskTypeNormal, payload)
-
-		taskInfo, err := q.client.Enqueue(queueTask, opts...)
-		if err != nil {
-			return fmt.Errorf("failed to enqueue task: %w", err)
-		}
-		info = taskInfo
-
-		if err := q.db.EnqueueTask(taskID); err != nil {
-			return fmt.Errorf("failed to update task in database: %w", err)
-		}
-
-		return nil
-	})
+	queueTask := asynq.NewTask(TaskTypeNormal, payload, opts...)
+	taskInfo, err := q.client.Enqueue(queueTask, opts...)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"failed to enqueue task with database update: %w",
-			err,
-		)
+		return nil, &GenericError{err}
 	}
 
-	return info, nil
+	return taskInfo, nil
+}
+
+func (q *QueueClient) GetTask(id string) (*asynq.TaskInfo, error) {
+	taskInfo, err := q.inspector.GetTaskInfo(TaskQueueDefault, id)
+	if err != nil {
+		if errors.Is(err, asynq.ErrTaskNotFound) {
+			return nil, &TaskNotFoundError{
+				Id: id,
+			}
+		}
+
+		return nil, &GenericError{
+			err,
+		}
+	}
+
+	return taskInfo, nil
+}
+
+func (q *QueueClient) GetAllTasks() ([]*asynq.TaskInfo, error) {
+	allTasks := []*asynq.TaskInfo{}
+	//nolint:mnd // For now just retrieve all tasks
+	pageSize := asynq.PageSize(999)
+
+	tasks, err := q.inspector.ListActiveTasks(TaskQueueDefault, pageSize)
+	if err != nil {
+		return nil, &GenericError{err}
+	}
+	allTasks = append(allTasks, tasks...)
+
+	tasks, err = q.inspector.ListArchivedTasks(TaskQueueDefault, pageSize)
+	if err != nil {
+		return nil, &GenericError{err}
+	}
+	allTasks = append(allTasks, tasks...)
+
+	tasks, err = q.inspector.ListCompletedTasks(TaskQueueDefault, pageSize)
+	if err != nil {
+		return nil, &GenericError{err}
+	}
+	allTasks = append(allTasks, tasks...)
+
+	tasks, err = q.inspector.ListPendingTasks(TaskQueueDefault, pageSize)
+	if err != nil {
+		return nil, &GenericError{err}
+	}
+	allTasks = append(allTasks, tasks...)
+
+	tasks, err = q.inspector.ListRetryTasks(TaskQueueDefault, pageSize)
+	if err != nil {
+		return nil, &GenericError{err}
+	}
+	allTasks = append(allTasks, tasks...)
+
+	tasks, err = q.inspector.ListScheduledTasks(TaskQueueDefault, pageSize)
+	if err != nil {
+		return nil, &GenericError{err}
+	}
+	allTasks = append(allTasks, tasks...)
+
+	return allTasks, nil
 }

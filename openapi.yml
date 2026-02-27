@@ -1284,9 +1284,11 @@ paths:
           text/yaml: {}
       responses:
         "201":
-          description: Manifest created successfully.
+          description: Manifest created successfully. Returns the resource id
           content:
-            text/yaml: {}
+            text/plain:
+              schema:
+                type: string
         "400":
           $ref: "#/components/responses/GenericBadRequest"
         "401":
@@ -1305,8 +1307,8 @@ paths:
         - BasicAuth: []
   /tasks/list:
     get:
-      summary: Get Task List
-      description: Retrieve a list of all task states.
+      summary: Get Task list
+      description: Retrieve a list of all tasks not including task logs.
       tags:
         - Tasks
       responses:
@@ -1331,7 +1333,7 @@ paths:
   /tasks/task:
     get:
       summary: Get Single Task
-      description: Retrieve information about a specific task by ID.
+      description: Retrieve information about a specific task by ID containing its logs.
       tags:
         - Tasks
       parameters:
@@ -1366,31 +1368,15 @@ components:
       type: object
       required:
         - id
-        - created_on
-        - last_action
-        - runner_host
         - retries
         - max_retries
+        - state
         - retention
-        - status
-        - result_payload
       properties:
         id:
           type: string
           description: The unique identifier for the task.
           example: "98aw7cfz"
-        created_on:
-          type: string
-          description: The timestamp when the task was created.
-          example: "2026-02-23-22:24"
-        last_action:
-          type: string
-          description: The last action performed on the task.
-          example: "SUBMITTED"
-        runner_host:
-          type: string
-          description: The host running the task.
-          example: ""
         retries:
           type: integer
           description: The current number of retries.
@@ -1399,18 +1385,55 @@ components:
           type: integer
           description: The maximum number of retries allowed.
           example: 3
-        retention:
+        state:
           type: string
-          description: The retention period for the task.
-          example: "1d2h"
-        status:
-          type: string
-          description: The current status of the task.
-          example: "ONGOING"
+          description: The current status of the task. See https://github.com/hibiken/asynq/wiki/Life-of-a-Task
+          example: "ACTIVE"
         result_payload:
           type: string
           description: The result payload of the task.
-          example: ""
+        last_error:
+          type: string
+          description: The error message from the last failure
+        last_failed_at:
+          type: string
+          description: Time of the last failure. RFC 3339 format.
+          example: "2023-09-24T15:30:00Z"
+        next_process_at:
+          type: string
+          description: Time the task will be scheduled to be processed. RFC 3339 format.
+          example: "2023-09-24T15:30:00Z"
+        retention:
+          type: string
+          description: Duration the task will be retained after succeeding. Golang duration string.
+          example: 5h3m2s
+        completed_at:
+          type: string
+          description: Time the task successfully finished processing.
+        logs:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaskLog"
+    TaskLog:
+      type: object
+      required:
+        - timestamp
+        - level
+        - issuer
+        - message
+      properties:
+        timestamp:
+          type: string
+          description: The time the log entry was created. RFC 3339 format.
+        level:
+          type: string
+          description: The log level (DEBUG, INFO, WARN, ERROR, FATAL).
+        issuer:
+          type: string
+          description: The component that issued the log entry (SYSTEM, ARTIFACT).
+        message:
+          type: string
+          description: The log message content.
     ErrGeneric:
       type: object
       required:

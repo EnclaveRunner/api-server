@@ -91,7 +91,13 @@ type Spec struct {
 	Env []EnvVariable `json:"env,omitempty" yaml:"env,omitempty" mapstructure:"env,omitempty"`
 
 	// Params corresponds to the JSON schema field "params".
-	Params []float64 `json:"params,omitempty" yaml:"params,omitempty" mapstructure:"params,omitempty"`
+	Params []interface{} `json:"params,omitempty" yaml:"params,omitempty" mapstructure:"params,omitempty"`
+
+	// Task retention
+	Retention *string `json:"retention,omitempty" yaml:"retention,omitempty" mapstructure:"retention,omitempty"`
+
+	// Maximum retries on task failure
+	Retries *int `json:"retries,omitempty" yaml:"retries,omitempty" mapstructure:"retries,omitempty"`
 
 	// The identifier of the function to execute. Format:
 	// <namespace>:<name>/<interface>/<function>@<<version>|hash:<versionHash>>

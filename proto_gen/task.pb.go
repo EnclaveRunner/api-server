@@ -81,33 +81,52 @@ func (x *FunctionIdentifier) GetName() string {
 	return ""
 }
 
-type Parameter struct {
+// A WIT value — represents any value in the WebAssembly Component Model type
+// system. See https://component-model.bytecodealliance.org/design/wit.html
+type Val struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Value:
 	//
-	//	*Parameter_I32
-	//	*Parameter_I64
-	//	*Parameter_Flt
-	//	*Parameter_Dbl
-	Value         isParameter_Value `protobuf_oneof:"value"`
+	//	*Val_BoolVal
+	//	*Val_S8Val
+	//	*Val_U8Val
+	//	*Val_S16Val
+	//	*Val_U16Val
+	//	*Val_S32Val
+	//	*Val_U32Val
+	//	*Val_S64Val
+	//	*Val_U64Val
+	//	*Val_F32Val
+	//	*Val_F64Val
+	//	*Val_CharVal
+	//	*Val_StringVal
+	//	*Val_ListVal
+	//	*Val_TupleVal
+	//	*Val_OptionVal
+	//	*Val_ResultVal
+	//	*Val_RecordVal
+	//	*Val_VariantVal
+	//	*Val_EnumVal
+	//	*Val_FlagsVal
+	Value         isVal_Value `protobuf_oneof:"value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *Parameter) Reset() {
-	*x = Parameter{}
+func (x *Val) Reset() {
+	*x = Val{}
 	mi := &file_task_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Parameter) String() string {
+func (x *Val) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Parameter) ProtoMessage() {}
+func (*Val) ProtoMessage() {}
 
-func (x *Parameter) ProtoReflect() protoreflect.Message {
+func (x *Val) ProtoReflect() protoreflect.Message {
 	mi := &file_task_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -119,81 +138,723 @@ func (x *Parameter) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Parameter.ProtoReflect.Descriptor instead.
-func (*Parameter) Descriptor() ([]byte, []int) {
+// Deprecated: Use Val.ProtoReflect.Descriptor instead.
+func (*Val) Descriptor() ([]byte, []int) {
 	return file_task_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *Parameter) GetValue() isParameter_Value {
+func (x *Val) GetValue() isVal_Value {
 	if x != nil {
 		return x.Value
 	}
 	return nil
 }
 
-func (x *Parameter) GetI32() int32 {
+func (x *Val) GetBoolVal() bool {
 	if x != nil {
-		if x, ok := x.Value.(*Parameter_I32); ok {
-			return x.I32
+		if x, ok := x.Value.(*Val_BoolVal); ok {
+			return x.BoolVal
+		}
+	}
+	return false
+}
+
+func (x *Val) GetS8Val() int32 {
+	if x != nil {
+		if x, ok := x.Value.(*Val_S8Val); ok {
+			return x.S8Val
 		}
 	}
 	return 0
 }
 
-func (x *Parameter) GetI64() int64 {
+func (x *Val) GetU8Val() uint32 {
 	if x != nil {
-		if x, ok := x.Value.(*Parameter_I64); ok {
-			return x.I64
+		if x, ok := x.Value.(*Val_U8Val); ok {
+			return x.U8Val
 		}
 	}
 	return 0
 }
 
-func (x *Parameter) GetFlt() float32 {
+func (x *Val) GetS16Val() int32 {
 	if x != nil {
-		if x, ok := x.Value.(*Parameter_Flt); ok {
-			return x.Flt
+		if x, ok := x.Value.(*Val_S16Val); ok {
+			return x.S16Val
 		}
 	}
 	return 0
 }
 
-func (x *Parameter) GetDbl() float64 {
+func (x *Val) GetU16Val() uint32 {
 	if x != nil {
-		if x, ok := x.Value.(*Parameter_Dbl); ok {
-			return x.Dbl
+		if x, ok := x.Value.(*Val_U16Val); ok {
+			return x.U16Val
 		}
 	}
 	return 0
 }
 
-type isParameter_Value interface {
-	isParameter_Value()
+func (x *Val) GetS32Val() int32 {
+	if x != nil {
+		if x, ok := x.Value.(*Val_S32Val); ok {
+			return x.S32Val
+		}
+	}
+	return 0
 }
 
-type Parameter_I32 struct {
-	I32 int32 `protobuf:"varint,1,opt,name=i32,proto3,oneof"`
+func (x *Val) GetU32Val() uint32 {
+	if x != nil {
+		if x, ok := x.Value.(*Val_U32Val); ok {
+			return x.U32Val
+		}
+	}
+	return 0
 }
 
-type Parameter_I64 struct {
-	I64 int64 `protobuf:"varint,2,opt,name=i64,proto3,oneof"`
+func (x *Val) GetS64Val() int64 {
+	if x != nil {
+		if x, ok := x.Value.(*Val_S64Val); ok {
+			return x.S64Val
+		}
+	}
+	return 0
 }
 
-type Parameter_Flt struct {
-	Flt float32 `protobuf:"fixed32,3,opt,name=flt,proto3,oneof"`
+func (x *Val) GetU64Val() uint64 {
+	if x != nil {
+		if x, ok := x.Value.(*Val_U64Val); ok {
+			return x.U64Val
+		}
+	}
+	return 0
 }
 
-type Parameter_Dbl struct {
-	Dbl float64 `protobuf:"fixed64,4,opt,name=dbl,proto3,oneof"`
+func (x *Val) GetF32Val() float32 {
+	if x != nil {
+		if x, ok := x.Value.(*Val_F32Val); ok {
+			return x.F32Val
+		}
+	}
+	return 0
 }
 
-func (*Parameter_I32) isParameter_Value() {}
+func (x *Val) GetF64Val() float64 {
+	if x != nil {
+		if x, ok := x.Value.(*Val_F64Val); ok {
+			return x.F64Val
+		}
+	}
+	return 0
+}
 
-func (*Parameter_I64) isParameter_Value() {}
+func (x *Val) GetCharVal() uint32 {
+	if x != nil {
+		if x, ok := x.Value.(*Val_CharVal); ok {
+			return x.CharVal
+		}
+	}
+	return 0
+}
 
-func (*Parameter_Flt) isParameter_Value() {}
+func (x *Val) GetStringVal() string {
+	if x != nil {
+		if x, ok := x.Value.(*Val_StringVal); ok {
+			return x.StringVal
+		}
+	}
+	return ""
+}
 
-func (*Parameter_Dbl) isParameter_Value() {}
+func (x *Val) GetListVal() *ListVal {
+	if x != nil {
+		if x, ok := x.Value.(*Val_ListVal); ok {
+			return x.ListVal
+		}
+	}
+	return nil
+}
+
+func (x *Val) GetTupleVal() *TupleVal {
+	if x != nil {
+		if x, ok := x.Value.(*Val_TupleVal); ok {
+			return x.TupleVal
+		}
+	}
+	return nil
+}
+
+func (x *Val) GetOptionVal() *OptionVal {
+	if x != nil {
+		if x, ok := x.Value.(*Val_OptionVal); ok {
+			return x.OptionVal
+		}
+	}
+	return nil
+}
+
+func (x *Val) GetResultVal() *ResultVal {
+	if x != nil {
+		if x, ok := x.Value.(*Val_ResultVal); ok {
+			return x.ResultVal
+		}
+	}
+	return nil
+}
+
+func (x *Val) GetRecordVal() *RecordVal {
+	if x != nil {
+		if x, ok := x.Value.(*Val_RecordVal); ok {
+			return x.RecordVal
+		}
+	}
+	return nil
+}
+
+func (x *Val) GetVariantVal() *VariantVal {
+	if x != nil {
+		if x, ok := x.Value.(*Val_VariantVal); ok {
+			return x.VariantVal
+		}
+	}
+	return nil
+}
+
+func (x *Val) GetEnumVal() string {
+	if x != nil {
+		if x, ok := x.Value.(*Val_EnumVal); ok {
+			return x.EnumVal
+		}
+	}
+	return ""
+}
+
+func (x *Val) GetFlagsVal() *FlagsVal {
+	if x != nil {
+		if x, ok := x.Value.(*Val_FlagsVal); ok {
+			return x.FlagsVal
+		}
+	}
+	return nil
+}
+
+type isVal_Value interface {
+	isVal_Value()
+}
+
+type Val_BoolVal struct {
+	// Primitive types
+	BoolVal bool `protobuf:"varint,1,opt,name=bool_val,json=boolVal,proto3,oneof"`
+}
+
+type Val_S8Val struct {
+	S8Val int32 `protobuf:"zigzag32,2,opt,name=s8_val,json=s8Val,proto3,oneof"` // s8
+}
+
+type Val_U8Val struct {
+	U8Val uint32 `protobuf:"varint,3,opt,name=u8_val,json=u8Val,proto3,oneof"` // u8
+}
+
+type Val_S16Val struct {
+	S16Val int32 `protobuf:"zigzag32,4,opt,name=s16_val,json=s16Val,proto3,oneof"` // s16
+}
+
+type Val_U16Val struct {
+	U16Val uint32 `protobuf:"varint,5,opt,name=u16_val,json=u16Val,proto3,oneof"` // u16
+}
+
+type Val_S32Val struct {
+	S32Val int32 `protobuf:"zigzag32,6,opt,name=s32_val,json=s32Val,proto3,oneof"` // s32
+}
+
+type Val_U32Val struct {
+	U32Val uint32 `protobuf:"varint,7,opt,name=u32_val,json=u32Val,proto3,oneof"` // u32
+}
+
+type Val_S64Val struct {
+	S64Val int64 `protobuf:"zigzag64,8,opt,name=s64_val,json=s64Val,proto3,oneof"` // s64
+}
+
+type Val_U64Val struct {
+	U64Val uint64 `protobuf:"varint,9,opt,name=u64_val,json=u64Val,proto3,oneof"` // u64
+}
+
+type Val_F32Val struct {
+	F32Val float32 `protobuf:"fixed32,10,opt,name=f32_val,json=f32Val,proto3,oneof"` // f32
+}
+
+type Val_F64Val struct {
+	F64Val float64 `protobuf:"fixed64,11,opt,name=f64_val,json=f64Val,proto3,oneof"` // f64
+}
+
+type Val_CharVal struct {
+	CharVal uint32 `protobuf:"varint,12,opt,name=char_val,json=charVal,proto3,oneof"` // char — Unicode scalar value (0..=0x10FFFF)
+}
+
+type Val_StringVal struct {
+	StringVal string `protobuf:"bytes,13,opt,name=string_val,json=stringVal,proto3,oneof"` // string
+}
+
+type Val_ListVal struct {
+	// Compound built-in types
+	ListVal *ListVal `protobuf:"bytes,14,opt,name=list_val,json=listVal,proto3,oneof"` // list<T>
+}
+
+type Val_TupleVal struct {
+	TupleVal *TupleVal `protobuf:"bytes,15,opt,name=tuple_val,json=tupleVal,proto3,oneof"` // tuple<T0, T1, ...>
+}
+
+type Val_OptionVal struct {
+	OptionVal *OptionVal `protobuf:"bytes,16,opt,name=option_val,json=optionVal,proto3,oneof"` // option<T>
+}
+
+type Val_ResultVal struct {
+	ResultVal *ResultVal `protobuf:"bytes,17,opt,name=result_val,json=resultVal,proto3,oneof"` // result<T, E>
+}
+
+type Val_RecordVal struct {
+	// User-defined types
+	RecordVal *RecordVal `protobuf:"bytes,18,opt,name=record_val,json=recordVal,proto3,oneof"` // record { name: T, ... }
+}
+
+type Val_VariantVal struct {
+	VariantVal *VariantVal `protobuf:"bytes,19,opt,name=variant_val,json=variantVal,proto3,oneof"` // variant { case(T?), ... }
+}
+
+type Val_EnumVal struct {
+	EnumVal string `protobuf:"bytes,20,opt,name=enum_val,json=enumVal,proto3,oneof"` // enum { case, ... }  — carries the case name
+}
+
+type Val_FlagsVal struct {
+	FlagsVal *FlagsVal `protobuf:"bytes,21,opt,name=flags_val,json=flagsVal,proto3,oneof"` // flags { name, ... } — set of active flag names
+}
+
+func (*Val_BoolVal) isVal_Value() {}
+
+func (*Val_S8Val) isVal_Value() {}
+
+func (*Val_U8Val) isVal_Value() {}
+
+func (*Val_S16Val) isVal_Value() {}
+
+func (*Val_U16Val) isVal_Value() {}
+
+func (*Val_S32Val) isVal_Value() {}
+
+func (*Val_U32Val) isVal_Value() {}
+
+func (*Val_S64Val) isVal_Value() {}
+
+func (*Val_U64Val) isVal_Value() {}
+
+func (*Val_F32Val) isVal_Value() {}
+
+func (*Val_F64Val) isVal_Value() {}
+
+func (*Val_CharVal) isVal_Value() {}
+
+func (*Val_StringVal) isVal_Value() {}
+
+func (*Val_ListVal) isVal_Value() {}
+
+func (*Val_TupleVal) isVal_Value() {}
+
+func (*Val_OptionVal) isVal_Value() {}
+
+func (*Val_ResultVal) isVal_Value() {}
+
+func (*Val_RecordVal) isVal_Value() {}
+
+func (*Val_VariantVal) isVal_Value() {}
+
+func (*Val_EnumVal) isVal_Value() {}
+
+func (*Val_FlagsVal) isVal_Value() {}
+
+// list<T> — ordered sequence of values
+type ListVal struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Values        []*Val                 `protobuf:"bytes,1,rep,name=values,proto3" json:"values,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListVal) Reset() {
+	*x = ListVal{}
+	mi := &file_task_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListVal) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListVal) ProtoMessage() {}
+
+func (x *ListVal) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListVal.ProtoReflect.Descriptor instead.
+func (*ListVal) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ListVal) GetValues() []*Val {
+	if x != nil {
+		return x.Values
+	}
+	return nil
+}
+
+// tuple<T0, T1, ...> — fixed-length ordered sequence
+type TupleVal struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Values        []*Val                 `protobuf:"bytes,1,rep,name=values,proto3" json:"values,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TupleVal) Reset() {
+	*x = TupleVal{}
+	mi := &file_task_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TupleVal) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TupleVal) ProtoMessage() {}
+
+func (x *TupleVal) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TupleVal.ProtoReflect.Descriptor instead.
+func (*TupleVal) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *TupleVal) GetValues() []*Val {
+	if x != nil {
+		return x.Values
+	}
+	return nil
+}
+
+// option<T> — absent value field means none; present means some(value)
+type OptionVal struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Value         *Val                   `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OptionVal) Reset() {
+	*x = OptionVal{}
+	mi := &file_task_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OptionVal) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OptionVal) ProtoMessage() {}
+
+func (x *OptionVal) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OptionVal.ProtoReflect.Descriptor instead.
+func (*OptionVal) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *OptionVal) GetValue() *Val {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
+// result<T, E> — is_ok=true → ok case, is_ok=false → err case;
+// value is absent when the case carries no payload (unit)
+type ResultVal struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	IsOk          bool                   `protobuf:"varint,1,opt,name=is_ok,json=isOk,proto3" json:"is_ok,omitempty"`
+	Value         *Val                   `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResultVal) Reset() {
+	*x = ResultVal{}
+	mi := &file_task_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResultVal) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResultVal) ProtoMessage() {}
+
+func (x *ResultVal) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResultVal.ProtoReflect.Descriptor instead.
+func (*ResultVal) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ResultVal) GetIsOk() bool {
+	if x != nil {
+		return x.IsOk
+	}
+	return false
+}
+
+func (x *ResultVal) GetValue() *Val {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
+// record { field-name: T, ... } — named fields in declaration order
+type RecordVal struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Fields        []*RecordField         `protobuf:"bytes,1,rep,name=fields,proto3" json:"fields,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RecordVal) Reset() {
+	*x = RecordVal{}
+	mi := &file_task_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RecordVal) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RecordVal) ProtoMessage() {}
+
+func (x *RecordVal) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RecordVal.ProtoReflect.Descriptor instead.
+func (*RecordVal) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *RecordVal) GetFields() []*RecordField {
+	if x != nil {
+		return x.Fields
+	}
+	return nil
+}
+
+type RecordField struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Value         *Val                   `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RecordField) Reset() {
+	*x = RecordField{}
+	mi := &file_task_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RecordField) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RecordField) ProtoMessage() {}
+
+func (x *RecordField) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RecordField.ProtoReflect.Descriptor instead.
+func (*RecordField) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *RecordField) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *RecordField) GetValue() *Val {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
+// variant { case-name(T?), ... } — active case name plus optional payload
+type VariantVal struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Value         *Val                   `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"` // absent if the case carries no payload
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *VariantVal) Reset() {
+	*x = VariantVal{}
+	mi := &file_task_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *VariantVal) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VariantVal) ProtoMessage() {}
+
+func (x *VariantVal) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VariantVal.ProtoReflect.Descriptor instead.
+func (*VariantVal) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *VariantVal) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *VariantVal) GetValue() *Val {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
+// flags { flag-name, ... } — names of all active (set) flags
+type FlagsVal struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Flags         []string               `protobuf:"bytes,1,rep,name=flags,proto3" json:"flags,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FlagsVal) Reset() {
+	*x = FlagsVal{}
+	mi := &file_task_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FlagsVal) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FlagsVal) ProtoMessage() {}
+
+func (x *FlagsVal) ProtoReflect() protoreflect.Message {
+	mi := &file_task_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FlagsVal.ProtoReflect.Descriptor instead.
+func (*FlagsVal) Descriptor() ([]byte, []int) {
+	return file_task_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *FlagsVal) GetFlags() []string {
+	if x != nil {
+		return x.Flags
+	}
+	return nil
+}
 
 type EnvironmentVariable struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -205,7 +866,7 @@ type EnvironmentVariable struct {
 
 func (x *EnvironmentVariable) Reset() {
 	*x = EnvironmentVariable{}
-	mi := &file_task_proto_msgTypes[2]
+	mi := &file_task_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -217,7 +878,7 @@ func (x *EnvironmentVariable) String() string {
 func (*EnvironmentVariable) ProtoMessage() {}
 
 func (x *EnvironmentVariable) ProtoReflect() protoreflect.Message {
-	mi := &file_task_proto_msgTypes[2]
+	mi := &file_task_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -230,7 +891,7 @@ func (x *EnvironmentVariable) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnvironmentVariable.ProtoReflect.Descriptor instead.
 func (*EnvironmentVariable) Descriptor() ([]byte, []int) {
-	return file_task_proto_rawDescGZIP(), []int{2}
+	return file_task_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *EnvironmentVariable) GetKey() string {
@@ -249,18 +910,17 @@ func (x *EnvironmentVariable) GetValue() string {
 
 type Task struct {
 	state                protoimpl.MessageState `protogen:"open.v1"`
-	TaskId               string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	Function             *FunctionIdentifier    `protobuf:"bytes,2,opt,name=function,proto3" json:"function,omitempty"`
-	Parameters           []*Parameter           `protobuf:"bytes,3,rep,name=parameters,proto3" json:"parameters,omitempty"`
-	Arguments            []string               `protobuf:"bytes,4,rep,name=arguments,proto3" json:"arguments,omitempty"`
-	EnvironmentVariables []*EnvironmentVariable `protobuf:"bytes,5,rep,name=environment_variables,json=environmentVariables,proto3" json:"environment_variables,omitempty"`
+	Function             *FunctionIdentifier    `protobuf:"bytes,1,opt,name=function,proto3" json:"function,omitempty"`
+	Parameters           []*Val                 `protobuf:"bytes,2,rep,name=parameters,proto3" json:"parameters,omitempty"`
+	Arguments            []string               `protobuf:"bytes,3,rep,name=arguments,proto3" json:"arguments,omitempty"`
+	EnvironmentVariables []*EnvironmentVariable `protobuf:"bytes,4,rep,name=environment_variables,json=environmentVariables,proto3" json:"environment_variables,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
 
 func (x *Task) Reset() {
 	*x = Task{}
-	mi := &file_task_proto_msgTypes[3]
+	mi := &file_task_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -272,7 +932,7 @@ func (x *Task) String() string {
 func (*Task) ProtoMessage() {}
 
 func (x *Task) ProtoReflect() protoreflect.Message {
-	mi := &file_task_proto_msgTypes[3]
+	mi := &file_task_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -285,14 +945,7 @@ func (x *Task) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Task.ProtoReflect.Descriptor instead.
 func (*Task) Descriptor() ([]byte, []int) {
-	return file_task_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *Task) GetTaskId() string {
-	if x != nil {
-		return x.TaskId
-	}
-	return ""
+	return file_task_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Task) GetFunction() *FunctionIdentifier {
@@ -302,7 +955,7 @@ func (x *Task) GetFunction() *FunctionIdentifier {
 	return nil
 }
 
-func (x *Task) GetParameters() []*Parameter {
+func (x *Task) GetParameters() []*Val {
 	if x != nil {
 		return x.Parameters
 	}
@@ -332,24 +985,66 @@ const file_task_proto_rawDesc = "" +
 	"\x12FunctionIdentifier\x128\n" +
 	"\bartifact\x18\x01 \x01(\v2\x1c.registry.ArtifactIdentifierR\bartifact\x12\x1c\n" +
 	"\tinterface\x18\x02 \x01(\tR\tinterface\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\"d\n" +
-	"\tParameter\x12\x12\n" +
-	"\x03i32\x18\x01 \x01(\x05H\x00R\x03i32\x12\x12\n" +
-	"\x03i64\x18\x02 \x01(\x03H\x00R\x03i64\x12\x12\n" +
-	"\x03flt\x18\x03 \x01(\x02H\x00R\x03flt\x12\x12\n" +
-	"\x03dbl\x18\x04 \x01(\x01H\x00R\x03dblB\a\n" +
-	"\x05value\"=\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\"\xe5\x05\n" +
+	"\x03Val\x12\x1b\n" +
+	"\bbool_val\x18\x01 \x01(\bH\x00R\aboolVal\x12\x17\n" +
+	"\x06s8_val\x18\x02 \x01(\x11H\x00R\x05s8Val\x12\x17\n" +
+	"\x06u8_val\x18\x03 \x01(\rH\x00R\x05u8Val\x12\x19\n" +
+	"\as16_val\x18\x04 \x01(\x11H\x00R\x06s16Val\x12\x19\n" +
+	"\au16_val\x18\x05 \x01(\rH\x00R\x06u16Val\x12\x19\n" +
+	"\as32_val\x18\x06 \x01(\x11H\x00R\x06s32Val\x12\x19\n" +
+	"\au32_val\x18\a \x01(\rH\x00R\x06u32Val\x12\x19\n" +
+	"\as64_val\x18\b \x01(\x12H\x00R\x06s64Val\x12\x19\n" +
+	"\au64_val\x18\t \x01(\x04H\x00R\x06u64Val\x12\x19\n" +
+	"\af32_val\x18\n" +
+	" \x01(\x02H\x00R\x06f32Val\x12\x19\n" +
+	"\af64_val\x18\v \x01(\x01H\x00R\x06f64Val\x12\x1b\n" +
+	"\bchar_val\x18\f \x01(\rH\x00R\acharVal\x12\x1f\n" +
+	"\n" +
+	"string_val\x18\r \x01(\tH\x00R\tstringVal\x12*\n" +
+	"\blist_val\x18\x0e \x01(\v2\r.task.ListValH\x00R\alistVal\x12-\n" +
+	"\ttuple_val\x18\x0f \x01(\v2\x0e.task.TupleValH\x00R\btupleVal\x120\n" +
+	"\n" +
+	"option_val\x18\x10 \x01(\v2\x0f.task.OptionValH\x00R\toptionVal\x120\n" +
+	"\n" +
+	"result_val\x18\x11 \x01(\v2\x0f.task.ResultValH\x00R\tresultVal\x120\n" +
+	"\n" +
+	"record_val\x18\x12 \x01(\v2\x0f.task.RecordValH\x00R\trecordVal\x123\n" +
+	"\vvariant_val\x18\x13 \x01(\v2\x10.task.VariantValH\x00R\n" +
+	"variantVal\x12\x1b\n" +
+	"\benum_val\x18\x14 \x01(\tH\x00R\aenumVal\x12-\n" +
+	"\tflags_val\x18\x15 \x01(\v2\x0e.task.FlagsValH\x00R\bflagsValB\a\n" +
+	"\x05value\",\n" +
+	"\aListVal\x12!\n" +
+	"\x06values\x18\x01 \x03(\v2\t.task.ValR\x06values\"-\n" +
+	"\bTupleVal\x12!\n" +
+	"\x06values\x18\x01 \x03(\v2\t.task.ValR\x06values\",\n" +
+	"\tOptionVal\x12\x1f\n" +
+	"\x05value\x18\x01 \x01(\v2\t.task.ValR\x05value\"A\n" +
+	"\tResultVal\x12\x13\n" +
+	"\x05is_ok\x18\x01 \x01(\bR\x04isOk\x12\x1f\n" +
+	"\x05value\x18\x02 \x01(\v2\t.task.ValR\x05value\"6\n" +
+	"\tRecordVal\x12)\n" +
+	"\x06fields\x18\x01 \x03(\v2\x11.task.RecordFieldR\x06fields\"B\n" +
+	"\vRecordField\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1f\n" +
+	"\x05value\x18\x02 \x01(\v2\t.task.ValR\x05value\"A\n" +
+	"\n" +
+	"VariantVal\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1f\n" +
+	"\x05value\x18\x02 \x01(\v2\t.task.ValR\x05value\" \n" +
+	"\bFlagsVal\x12\x14\n" +
+	"\x05flags\x18\x01 \x03(\tR\x05flags\"=\n" +
 	"\x13EnvironmentVariable\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value\"\xf4\x01\n" +
-	"\x04Task\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\x124\n" +
-	"\bfunction\x18\x02 \x01(\v2\x18.task.FunctionIdentifierR\bfunction\x12/\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\"\xd5\x01\n" +
+	"\x04Task\x124\n" +
+	"\bfunction\x18\x01 \x01(\v2\x18.task.FunctionIdentifierR\bfunction\x12)\n" +
 	"\n" +
-	"parameters\x18\x03 \x03(\v2\x0f.task.ParameterR\n" +
+	"parameters\x18\x02 \x03(\v2\t.task.ValR\n" +
 	"parameters\x12\x1c\n" +
-	"\targuments\x18\x04 \x03(\tR\targuments\x12N\n" +
-	"\x15environment_variables\x18\x05 \x03(\v2\x19.task.EnvironmentVariableR\x14environmentVariablesB\fZ\n" +
+	"\targuments\x18\x03 \x03(\tR\targuments\x12N\n" +
+	"\x15environment_variables\x18\x04 \x03(\v2\x19.task.EnvironmentVariableR\x14environmentVariablesB\fZ\n" +
 	"proto_gen/b\x06proto3"
 
 var (
@@ -364,24 +1059,46 @@ func file_task_proto_rawDescGZIP() []byte {
 	return file_task_proto_rawDescData
 }
 
-var file_task_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_task_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_task_proto_goTypes = []any{
 	(*FunctionIdentifier)(nil),  // 0: task.FunctionIdentifier
-	(*Parameter)(nil),           // 1: task.Parameter
-	(*EnvironmentVariable)(nil), // 2: task.EnvironmentVariable
-	(*Task)(nil),                // 3: task.Task
-	(*ArtifactIdentifier)(nil),  // 4: registry.ArtifactIdentifier
+	(*Val)(nil),                 // 1: task.Val
+	(*ListVal)(nil),             // 2: task.ListVal
+	(*TupleVal)(nil),            // 3: task.TupleVal
+	(*OptionVal)(nil),           // 4: task.OptionVal
+	(*ResultVal)(nil),           // 5: task.ResultVal
+	(*RecordVal)(nil),           // 6: task.RecordVal
+	(*RecordField)(nil),         // 7: task.RecordField
+	(*VariantVal)(nil),          // 8: task.VariantVal
+	(*FlagsVal)(nil),            // 9: task.FlagsVal
+	(*EnvironmentVariable)(nil), // 10: task.EnvironmentVariable
+	(*Task)(nil),                // 11: task.Task
+	(*ArtifactIdentifier)(nil),  // 12: registry.ArtifactIdentifier
 }
 var file_task_proto_depIdxs = []int32{
-	4, // 0: task.FunctionIdentifier.artifact:type_name -> registry.ArtifactIdentifier
-	0, // 1: task.Task.function:type_name -> task.FunctionIdentifier
-	1, // 2: task.Task.parameters:type_name -> task.Parameter
-	2, // 3: task.Task.environment_variables:type_name -> task.EnvironmentVariable
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	12, // 0: task.FunctionIdentifier.artifact:type_name -> registry.ArtifactIdentifier
+	2,  // 1: task.Val.list_val:type_name -> task.ListVal
+	3,  // 2: task.Val.tuple_val:type_name -> task.TupleVal
+	4,  // 3: task.Val.option_val:type_name -> task.OptionVal
+	5,  // 4: task.Val.result_val:type_name -> task.ResultVal
+	6,  // 5: task.Val.record_val:type_name -> task.RecordVal
+	8,  // 6: task.Val.variant_val:type_name -> task.VariantVal
+	9,  // 7: task.Val.flags_val:type_name -> task.FlagsVal
+	1,  // 8: task.ListVal.values:type_name -> task.Val
+	1,  // 9: task.TupleVal.values:type_name -> task.Val
+	1,  // 10: task.OptionVal.value:type_name -> task.Val
+	1,  // 11: task.ResultVal.value:type_name -> task.Val
+	7,  // 12: task.RecordVal.fields:type_name -> task.RecordField
+	1,  // 13: task.RecordField.value:type_name -> task.Val
+	1,  // 14: task.VariantVal.value:type_name -> task.Val
+	0,  // 15: task.Task.function:type_name -> task.FunctionIdentifier
+	1,  // 16: task.Task.parameters:type_name -> task.Val
+	10, // 17: task.Task.environment_variables:type_name -> task.EnvironmentVariable
+	18, // [18:18] is the sub-list for method output_type
+	18, // [18:18] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_task_proto_init() }
@@ -391,10 +1108,27 @@ func file_task_proto_init() {
 	}
 	file_registry_proto_init()
 	file_task_proto_msgTypes[1].OneofWrappers = []any{
-		(*Parameter_I32)(nil),
-		(*Parameter_I64)(nil),
-		(*Parameter_Flt)(nil),
-		(*Parameter_Dbl)(nil),
+		(*Val_BoolVal)(nil),
+		(*Val_S8Val)(nil),
+		(*Val_U8Val)(nil),
+		(*Val_S16Val)(nil),
+		(*Val_U16Val)(nil),
+		(*Val_S32Val)(nil),
+		(*Val_U32Val)(nil),
+		(*Val_S64Val)(nil),
+		(*Val_U64Val)(nil),
+		(*Val_F32Val)(nil),
+		(*Val_F64Val)(nil),
+		(*Val_CharVal)(nil),
+		(*Val_StringVal)(nil),
+		(*Val_ListVal)(nil),
+		(*Val_TupleVal)(nil),
+		(*Val_OptionVal)(nil),
+		(*Val_ResultVal)(nil),
+		(*Val_RecordVal)(nil),
+		(*Val_VariantVal)(nil),
+		(*Val_EnumVal)(nil),
+		(*Val_FlagsVal)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -402,7 +1136,7 @@ func file_task_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_task_proto_rawDesc), len(file_task_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

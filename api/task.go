@@ -1,12 +1,14 @@
 package api
 
 import (
+	"api-server/orm"
 	"context"
 	"errors"
-	"fmt"
+	"time"
 
-	"github.com/google/uuid"
-	"gorm.io/gorm"
+	"github.com/EnclaveRunner/shareddeps/utils"
+	"github.com/hibiken/asynq"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -21,27 +23,16 @@ func (s *Server) GetTasksList(
 	ctx context.Context,
 	request GetTasksListRequestObject,
 ) (GetTasksListResponseObject, error) {
-	tasks, err := s.db.GetAllTasks(ctx)
+	tasks, err := s.queueClient.GetAllTasks()
 	if err != nil {
-		return GetTasksList500Response{}, fmt.Errorf(
-			"failed to get all tasks: %w",
-			err,
-		)
+		log.Error().Err(err).Msg("Failed to list tasks")
+
+		return GetTasksList500Response{}, nil
 	}
 
 	taskStates := make([]TaskState, len(tasks))
-	for i := range tasks {
-		taskStates[i] = TaskState{
-			Id:            tasks[i].TaskID.String(),
-			CreatedOn:     tasks[i].CreatedOn.Format("2006-01-02-15:04"),
-			LastAction:    tasks[i].LastAction,
-			RunnerHost:    tasks[i].RunnerHost,
-			Retries:       tasks[i].Retries,
-			MaxRetries:    tasks[i].MaxRetries,
-			Retention:     tasks[i].Retention,
-			Status:        tasks[i].Status,
-			ResultPayload: string(tasks[i].ResultPayload),
-		}
+	for i, task := range tasks {
+		taskStates[i] = taskToTaskState(task)
 	}
 
 	return GetTasksList200JSONResponse(taskStates), nil
@@ -56,34 +47,75 @@ func (s *Server) GetTasksTask(
 		return GetTasksTask400JSONResponse{}, ErrRequestBodyRequired
 	}
 
-	taskID, err := uuid.Parse(request.Params.Id)
+	task, err := s.queueClient.GetTask(request.Params.Id)
 	if err != nil {
-		return GetTasksTask400JSONResponse{}, ErrInvalidTaskIDFormat
-	}
+		if !errors.Is(err, asynq.ErrTaskNotFound) {
+			log.Error().
+				Err(err).
+				Str("id", request.Params.Id).
+				Msg("Failed to retrieve task")
 
-	task, err := s.db.GetTaskByID(ctx, taskID)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return GetTasksTask404JSONResponse{}, nil
+			return GetTasksTask500Response{}, nil
 		}
 
-		return GetTasksTask500Response{}, fmt.Errorf(
-			"failed to get task by ID: %w",
-			err,
-		)
+		return GetTasksTask404JSONResponse{}, nil
 	}
 
-	taskState := TaskState{
-		Id:            task.TaskID.String(),
-		CreatedOn:     task.CreatedOn.Format("2006-01-02-15:04"),
-		LastAction:    task.LastAction,
-		RunnerHost:    task.RunnerHost,
-		Retries:       task.Retries,
-		MaxRetries:    task.MaxRetries,
-		Retention:     task.Retention,
-		Status:        task.Status,
-		ResultPayload: string(task.ResultPayload),
+	state := taskToTaskState(task)
+
+	logs, err := s.db.GetLogsOfTask(ctx, request.Params.Id)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to retrieve logs of task")
 	}
 
-	return GetTasksTask200JSONResponse(taskState), nil
+	state.Logs = utils.Ptr(dbLogsToJsonLogs(logs))
+
+	return GetTasksTask200JSONResponse(state), nil
+}
+
+func taskToTaskState(task *asynq.TaskInfo) TaskState {
+	state := TaskState{
+		Id:         task.ID,
+		Retries:    task.Retried,
+		MaxRetries: task.MaxRetry,
+		State:      task.State.String(),
+		Retention:  task.Retention.String(),
+	}
+
+	if task.Result != nil {
+		state.ResultPayload = utils.Ptr(string(task.Result))
+	}
+
+	if task.LastErr != "" {
+		state.LastError = &task.LastErr
+	}
+
+	if !task.LastFailedAt.IsZero() {
+		state.LastFailedAt = utils.Ptr(task.LastFailedAt.Format(time.RFC3339))
+	}
+
+	if !task.NextProcessAt.IsZero() {
+		state.NextProcessAt = utils.Ptr(task.NextProcessAt.Format(time.RFC3339))
+	}
+
+	if !task.CompletedAt.IsZero() {
+		state.CompletedAt = utils.Ptr(task.CompletedAt.Format(time.RFC3339))
+	}
+
+	return state
+}
+
+func dbLogsToJsonLogs(dbLogs []orm.TaskLog) []TaskLog {
+	jsonLogs := make([]TaskLog, len(dbLogs))
+
+	for i, log := range dbLogs {
+		jsonLogs[i] = TaskLog{
+			Issuer:    log.Issuer,
+			Level:     log.Level,
+			Message:   log.Message,
+			Timestamp: log.Timestamp.Format(time.RFC3339),
+		}
+	}
+
+	return jsonLogs
 }

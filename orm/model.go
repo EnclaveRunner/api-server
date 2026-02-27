@@ -24,7 +24,7 @@ type TaskLog struct {
 	Timestamp time.Time `gorm:"not null;autoCreateTime"                        json:"timestamp"`
 	Level     string    `gorm:"not null"                                       json:"level"`
 	Issuer    string    `gorm:"not null"                                       json:"issuer"`
-	Message   string    `gorm:"not null"                                       json:"payload"`
+	Message   string    `gorm:"not null"                                       json:"message"`
 }
 
 // TableName specifies the table name for TaskLog

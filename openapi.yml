@@ -1409,7 +1409,7 @@ components:
           example: 5h3m2s
         completed_at:
           type: string
-          description: Time the task sucessfully finished processing.
+          description: Time the task successfully finished processing.
         logs:
           type: array
           items:

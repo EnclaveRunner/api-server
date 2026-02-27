@@ -1333,7 +1333,7 @@ paths:
   /tasks/task:
     get:
       summary: Get Single Task
-      description: Retrieve information about a specific task by ID containg its logs.
+      description: Retrieve information about a specific task by ID containing its logs.
       tags:
         - Tasks
       parameters:

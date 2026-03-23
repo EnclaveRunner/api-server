@@ -92,6 +92,11 @@ func main() {
 			Err(err).
 			Msg("Failed to parse retention duration (invalid format)")
 	}
+
+	if cfg.Pagination.Default > cfg.Pagination.Maximum {
+		log.Fatal().
+			Msg("Default pagination size cannot be greater than maximum pagination size")
+	}
 	server := api.NewServer(
 		authModule,
 		db,

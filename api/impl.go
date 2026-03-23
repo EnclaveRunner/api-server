@@ -4,6 +4,7 @@ import (
 	"api-server/orm"
 	"api-server/proto_gen"
 	"api-server/queue"
+	"time"
 
 	"github.com/EnclaveRunner/shareddeps/auth"
 )
@@ -13,17 +14,25 @@ import (
 var _ StrictServerInterface = (*Server)(nil)
 
 type Server struct {
-	db             orm.DB
-	authModule     auth.AuthModule
-	registryClient proto_gen.RegistryServiceClient
-	queueClient    queue.QueueClient
+	authModule        auth.AuthModule
+	db                orm.DB
+	maxRetries        int
+	retention         time.Duration
+	paginationMaximum int
+	paginationDefault int
+	queueClient       queue.QueueClient
+	registryClient    proto_gen.RegistryServiceClient
 }
 
 func NewServer(
-	db orm.DB,
 	authModule auth.AuthModule,
-	registryClient proto_gen.RegistryServiceClient,
+	db orm.DB,
+	maxRetries int,
+	retention time.Duration,
+	paginationMaximum int,
+	paginationDefault int,
 	queueClient queue.QueueClient,
+	registryClient proto_gen.RegistryServiceClient,
 ) *Server {
 	return &Server{
 		db:             db,

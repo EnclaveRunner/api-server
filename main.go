@@ -6,6 +6,7 @@ import (
 	"api-server/orm"
 	proto_gen "api-server/proto_gen"
 	"api-server/queue"
+	"time"
 
 	"github.com/EnclaveRunner/shareddeps"
 	"github.com/EnclaveRunner/shareddeps/auth"
@@ -34,6 +35,15 @@ func main() {
 		//nolint:mnd // Default port of redis
 		{Key: "redis.port", Value: 6379},
 		{Key: "redis.db", Value: 0},
+
+		//nolint:mnd // Arbitrary defaults for default pagination size
+		{Key: "pagination.default", Value: 50},
+		//nolint:mnd // Arbitrary defaults for maximum pagination size
+		{Key: "pagination.maximum", Value: 100},
+
+		//nolint:mnd // Default max retries for task
+		{Key: "retry.max_retries", Value: 3},
+		{Key: "retry.retention", Value: "1d"},
 	}
 
 	// load config and create server
@@ -76,8 +86,22 @@ func main() {
 			cfg.ArtifactRegistry.Port,
 		),
 	)
-
-	server := api.NewServer(db, authModule, registryClient, queueClient)
+	retentionDuration, err := time.ParseDuration(cfg.Retry.Retention)
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Msg("Failed to parse retention duration (invalid format)")
+	}
+	server := api.NewServer(
+		authModule,
+		db,
+		cfg.Retry.MaxRetries,
+		retentionDuration,
+		cfg.Pagination.Maximum,
+		cfg.Pagination.Default,
+		queueClient,
+		registryClient,
+	)
 	handler := api.NewStrictHandler(server, nil)
 	api.RegisterHandlers(ginServer, handler)
 

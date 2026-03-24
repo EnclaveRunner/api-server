@@ -745,6 +745,150 @@ paths:
           $ref: "#/components/responses/GenericInternalServerError"
       security:
         - BasicAuth: []
+  /v1/artifact:
+    get:
+      summary: List Artifact Namespaces
+      description: Retrieve a paginated list of artifact namespaces.
+      tags:
+        - Artifacts
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          description: Maximum number of namespaces to return.
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          description: Offset into the namespace list.
+      responses:
+        "200":
+          description: Artifact namespace list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Artifact"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+  /v1/artifact/{namespace}:
+    get:
+      summary: List Artifacts in Namespace
+      description: Retrieve a paginated list of artifacts for a namespace.
+      tags:
+        - Artifacts
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Artifact namespace.
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          description: Maximum number of artifacts to return.
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          description: Offset into the artifact list.
+      responses:
+        "200":
+          description: Artifact list for namespace.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Artifact"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+  /v1/artifact/{namespace}/{name}:
+    get:
+      summary: List Artifact Versions
+      description: Retrieve a paginated list of versions for an artifact.
+      tags:
+        - Artifacts
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Artifact namespace.
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Artifact name.
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          description: Maximum number of versions to return.
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          description: Offset into the version list.
+      responses:
+        "200":
+          description: Artifact version list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Artifact"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
   /v1/artifact/{namespace}/{name}/tag/{tag}:
     get:
       summary: Retrieve Artifact Metadata by Tag
@@ -1142,12 +1286,6 @@ paths:
           schema:
             type: integer
           description: Offset for pagination.
-        - name: package
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Filter tasks by package (namespace:name).
         - name: state
           in: query
           required: false
@@ -1326,6 +1464,9 @@ components:
         retention:
           type: string
           description: Duration to retain the task after completion.
+        retries:
+          type: integer
+          description: Maximum number of retries before the task is moved to state archived
     Task:
       type: object
       required:
@@ -1360,6 +1501,9 @@ components:
         retention:
           type: string
           description: Duration to retain the task after completion.
+        retries:
+          type: integer
+          description: Maximum number of retries before the task is moved to state archived
         status:
           $ref: "#/components/schemas/TaskStatus"
     TaskStatus:
@@ -1372,9 +1516,6 @@ components:
         retries:
           type: integer
           description: Current retry count.
-        max_retries:
-          type: integer
-          description: Maximum allowed retries.
         state:
           type: string
           description: Current status of the task.
@@ -1392,9 +1533,6 @@ components:
           type: string
           format: date-time
           description: Time the task is scheduled for processing next.
-        retention:
-          type: string
-          description: Duration to retain the task after succeeding.
         completed_at:
           type: string
           format: date-time
@@ -1472,14 +1610,6 @@ components:
           description: Roles assigned to the user.
           items:
             type: string
-    UserRequest:
-      type: object
-      required:
-        - id
-      properties:
-        id:
-          type: string
-          description: The uuid of the user to retrieve.
     CreateUser:
       type: object
       required:
@@ -1530,22 +1660,6 @@ components:
           description: Roles assigned to the current user.
           items:
             type: string
-    RBACRole:
-      type: object
-      required:
-        - role
-      properties:
-        role:
-          type: string
-          description: The name of the role.
-    RBACUserRolesRequest:
-      type: object
-      required:
-        - userId
-      properties:
-        userId:
-          type: string
-          description: The uuid of the user.
     RBACPolicy:
       type: object
       required:
@@ -1573,19 +1687,6 @@ components:
             - HEAD
             - "*"
           description: The allowed permission (e.g., "GET", "POST", "*").
-    PackageName:
-      type: object
-      description: Package name of an artifact.
-      required:
-        - namespace
-        - name
-      properties:
-        namespace:
-          type: string
-          description: The namespace of the artifact.
-        name:
-          type: string
-          description: The name of the artifact.
     Artifact:
       type: object
       description: Metadata of an artifact version.
@@ -1674,3 +1775,4 @@ components:
     BasicAuth:
       type: http
       scheme: basic
+

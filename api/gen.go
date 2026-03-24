@@ -75,6 +75,9 @@ type CreateTaskRequest struct {
 	// Retention Duration to retain the task after completion.
 	Retention *string `json:"retention,omitempty"`
 
+	// Retries Maximum number of retries before the task is moved to state archived
+	Retries *int `json:"retries,omitempty"`
+
 	// Source Task source in the form namespace:name/interface/function@<hash|tag>.
 	Source string `json:"source"`
 }
@@ -188,6 +191,9 @@ type Task struct {
 	// Retention Duration to retain the task after completion.
 	Retention *string `json:"retention,omitempty"`
 
+	// Retries Maximum number of retries before the task is moved to state archived
+	Retries *int `json:"retries,omitempty"`
+
 	// Source Task source in the form namespace:name/interface/function@<hash|tag>.
 	Source string     `json:"source"`
 	Status TaskStatus `json:"status"`
@@ -219,17 +225,11 @@ type TaskStatus struct {
 	// LastFailedAt Time of the last failure.
 	LastFailedAt *time.Time `json:"last_failed_at,omitempty"`
 
-	// MaxRetries Maximum allowed retries.
-	MaxRetries int `json:"max_retries"`
-
 	// NextProcessAt Time the task is scheduled for processing next.
 	NextProcessAt *time.Time `json:"next_process_at,omitempty"`
 
 	// ResultPayload Result payload of the task.
 	ResultPayload *string `json:"result_payload,omitempty"`
-
-	// Retention Duration to retain the task after succeeding.
-	Retention *string `json:"retention,omitempty"`
 
 	// Retries Current retry count.
 	Retries int `json:"retries"`
@@ -273,6 +273,33 @@ type GenericNotFound = ErrGeneric
 // GenericTooLarge defines model for GenericTooLarge.
 type GenericTooLarge = ErrGeneric
 
+// GetV1ArtifactParams defines parameters for GetV1Artifact.
+type GetV1ArtifactParams struct {
+	// Limit Maximum number of namespaces to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Offset into the namespace list.
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+}
+
+// GetV1ArtifactNamespaceParams defines parameters for GetV1ArtifactNamespace.
+type GetV1ArtifactNamespaceParams struct {
+	// Limit Maximum number of artifacts to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Offset into the artifact list.
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+}
+
+// GetV1ArtifactNamespaceNameParams defines parameters for GetV1ArtifactNamespaceName.
+type GetV1ArtifactNamespaceNameParams struct {
+	// Limit Maximum number of versions to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Offset into the version list.
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+}
+
 // GetV1RbacPolicyParams defines parameters for GetV1RbacPolicy.
 type GetV1RbacPolicyParams struct {
 	// Role Filter policies by role name.
@@ -292,9 +319,6 @@ type GetV1TaskParams struct {
 
 	// Offset Offset for pagination.
 	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
-
-	// Package Filter tasks by package (namespace:name).
-	Package *string `form:"package,omitempty" json:"package,omitempty"`
 
 	// State Filter tasks by state (e.g., ACTIVE).
 	State *string `form:"state,omitempty" json:"state,omitempty"`
@@ -353,6 +377,9 @@ type PatchV1UserIdJSONRequestBody = PatchUser
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// List Artifact Namespaces
+	// (GET /v1/artifact)
+	GetV1Artifact(c *gin.Context, params GetV1ArtifactParams)
 	// Upload Artifact
 	// (POST /v1/artifact/raw/{namespace}/{name})
 	PostV1ArtifactRawNamespaceName(c *gin.Context, namespace string, name string)
@@ -362,6 +389,12 @@ type ServerInterface interface {
 	// Download Artifact by Tag
 	// (GET /v1/artifact/raw/{namespace}/{name}/tag/{tag})
 	GetV1ArtifactRawNamespaceNameTagTag(c *gin.Context, namespace string, name string, tag string)
+	// List Artifacts in Namespace
+	// (GET /v1/artifact/{namespace})
+	GetV1ArtifactNamespace(c *gin.Context, namespace string, params GetV1ArtifactNamespaceParams)
+	// List Artifact Versions
+	// (GET /v1/artifact/{namespace}/{name})
+	GetV1ArtifactNamespaceName(c *gin.Context, namespace string, name string, params GetV1ArtifactNamespaceNameParams)
 	// Delete Artifact by Hash
 	// (DELETE /v1/artifact/{namespace}/{name}/hash/{hash})
 	DeleteV1ArtifactNamespaceNameHashHash(c *gin.Context, namespace string, name string, hash string)
@@ -471,6 +504,42 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(c *gin.Context)
+
+// GetV1Artifact operation middleware
+func (siw *ServerInterfaceWrapper) GetV1Artifact(c *gin.Context) {
+
+	var err error
+
+	c.Set(BasicAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetV1ArtifactParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", c.Request.URL.Query(), &params.Limit)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", c.Request.URL.Query(), &params.Offset)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter offset: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetV1Artifact(c, params)
+}
 
 // PostV1ArtifactRawNamespaceName operation middleware
 func (siw *ServerInterfaceWrapper) PostV1ArtifactRawNamespaceName(c *gin.Context) {
@@ -593,6 +662,105 @@ func (siw *ServerInterfaceWrapper) GetV1ArtifactRawNamespaceNameTagTag(c *gin.Co
 	}
 
 	siw.Handler.GetV1ArtifactRawNamespaceNameTagTag(c, namespace, name, tag)
+}
+
+// GetV1ArtifactNamespace operation middleware
+func (siw *ServerInterfaceWrapper) GetV1ArtifactNamespace(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", c.Param("namespace"), &namespace, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter namespace: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(BasicAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetV1ArtifactNamespaceParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", c.Request.URL.Query(), &params.Limit)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", c.Request.URL.Query(), &params.Offset)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter offset: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetV1ArtifactNamespace(c, namespace, params)
+}
+
+// GetV1ArtifactNamespaceName operation middleware
+func (siw *ServerInterfaceWrapper) GetV1ArtifactNamespaceName(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", c.Param("namespace"), &namespace, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter namespace: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Path parameter "name" -------------
+	var name string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "name", c.Param("name"), &name, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter name: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(BasicAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetV1ArtifactNamespaceNameParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", c.Request.URL.Query(), &params.Limit)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", c.Request.URL.Query(), &params.Offset)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter offset: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetV1ArtifactNamespaceName(c, namespace, name, params)
 }
 
 // DeleteV1ArtifactNamespaceNameHashHash operation middleware
@@ -1245,14 +1413,6 @@ func (siw *ServerInterfaceWrapper) GetV1Task(c *gin.Context) {
 		return
 	}
 
-	// ------------- Optional query parameter "package" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "package", c.Request.URL.Query(), &params.Package)
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter package: %w", err), http.StatusBadRequest)
-		return
-	}
-
 	// ------------- Optional query parameter "state" -------------
 
 	err = runtime.BindQueryParameter("form", true, false, "state", c.Request.URL.Query(), &params.State)
@@ -1616,9 +1776,12 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 		ErrorHandler:       errorHandler,
 	}
 
+	router.GET(options.BaseURL+"/v1/artifact", wrapper.GetV1Artifact)
 	router.POST(options.BaseURL+"/v1/artifact/raw/:namespace/:name", wrapper.PostV1ArtifactRawNamespaceName)
 	router.GET(options.BaseURL+"/v1/artifact/raw/:namespace/:name/hash/:hash", wrapper.GetV1ArtifactRawNamespaceNameHashHash)
 	router.GET(options.BaseURL+"/v1/artifact/raw/:namespace/:name/tag/:tag", wrapper.GetV1ArtifactRawNamespaceNameTagTag)
+	router.GET(options.BaseURL+"/v1/artifact/:namespace", wrapper.GetV1ArtifactNamespace)
+	router.GET(options.BaseURL+"/v1/artifact/:namespace/:name", wrapper.GetV1ArtifactNamespaceName)
 	router.DELETE(options.BaseURL+"/v1/artifact/:namespace/:name/hash/:hash", wrapper.DeleteV1ArtifactNamespaceNameHashHash)
 	router.GET(options.BaseURL+"/v1/artifact/:namespace/:name/hash/:hash", wrapper.GetV1ArtifactNamespaceNameHashHash)
 	router.PATCH(options.BaseURL+"/v1/artifact/:namespace/:name/hash/:hash", wrapper.PatchV1ArtifactNamespaceNameHashHash)
@@ -1671,6 +1834,62 @@ type GenericNotFoundJSONResponse ErrGeneric
 type GenericTooLargeJSONResponse ErrGeneric
 
 type GenericUnauthenticatedResponse struct {
+}
+
+type GetV1ArtifactRequestObject struct {
+	Params GetV1ArtifactParams
+}
+
+type GetV1ArtifactResponseObject interface {
+	VisitGetV1ArtifactResponse(w http.ResponseWriter) error
+}
+
+type GetV1Artifact200JSONResponse []Artifact
+
+func (response GetV1Artifact200JSONResponse) VisitGetV1ArtifactResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1Artifact400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response GetV1Artifact400JSONResponse) VisitGetV1ArtifactResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1Artifact401Response = GenericUnauthenticatedResponse
+
+func (response GetV1Artifact401Response) VisitGetV1ArtifactResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type GetV1Artifact403Response = GenericForbiddenResponse
+
+func (response GetV1Artifact403Response) VisitGetV1ArtifactResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type GetV1Artifact413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response GetV1Artifact413JSONResponse) VisitGetV1ArtifactResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1Artifact500Response = GenericInternalServerErrorResponse
+
+func (response GetV1Artifact500Response) VisitGetV1ArtifactResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
 }
 
 type PostV1ArtifactRawNamespaceNameRequestObject struct {
@@ -1890,6 +2109,121 @@ func (response GetV1ArtifactRawNamespaceNameTagTag413JSONResponse) VisitGetV1Art
 type GetV1ArtifactRawNamespaceNameTagTag500Response = GenericInternalServerErrorResponse
 
 func (response GetV1ArtifactRawNamespaceNameTagTag500Response) VisitGetV1ArtifactRawNamespaceNameTagTagResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type GetV1ArtifactNamespaceRequestObject struct {
+	Namespace string `json:"namespace"`
+	Params    GetV1ArtifactNamespaceParams
+}
+
+type GetV1ArtifactNamespaceResponseObject interface {
+	VisitGetV1ArtifactNamespaceResponse(w http.ResponseWriter) error
+}
+
+type GetV1ArtifactNamespace200JSONResponse []Artifact
+
+func (response GetV1ArtifactNamespace200JSONResponse) VisitGetV1ArtifactNamespaceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1ArtifactNamespace400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response GetV1ArtifactNamespace400JSONResponse) VisitGetV1ArtifactNamespaceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1ArtifactNamespace401Response = GenericUnauthenticatedResponse
+
+func (response GetV1ArtifactNamespace401Response) VisitGetV1ArtifactNamespaceResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type GetV1ArtifactNamespace403Response = GenericForbiddenResponse
+
+func (response GetV1ArtifactNamespace403Response) VisitGetV1ArtifactNamespaceResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type GetV1ArtifactNamespace413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response GetV1ArtifactNamespace413JSONResponse) VisitGetV1ArtifactNamespaceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1ArtifactNamespace500Response = GenericInternalServerErrorResponse
+
+func (response GetV1ArtifactNamespace500Response) VisitGetV1ArtifactNamespaceResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type GetV1ArtifactNamespaceNameRequestObject struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	Params    GetV1ArtifactNamespaceNameParams
+}
+
+type GetV1ArtifactNamespaceNameResponseObject interface {
+	VisitGetV1ArtifactNamespaceNameResponse(w http.ResponseWriter) error
+}
+
+type GetV1ArtifactNamespaceName200JSONResponse []Artifact
+
+func (response GetV1ArtifactNamespaceName200JSONResponse) VisitGetV1ArtifactNamespaceNameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1ArtifactNamespaceName400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response GetV1ArtifactNamespaceName400JSONResponse) VisitGetV1ArtifactNamespaceNameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1ArtifactNamespaceName401Response = GenericUnauthenticatedResponse
+
+func (response GetV1ArtifactNamespaceName401Response) VisitGetV1ArtifactNamespaceNameResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type GetV1ArtifactNamespaceName403Response = GenericForbiddenResponse
+
+func (response GetV1ArtifactNamespaceName403Response) VisitGetV1ArtifactNamespaceNameResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type GetV1ArtifactNamespaceName413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response GetV1ArtifactNamespaceName413JSONResponse) VisitGetV1ArtifactNamespaceNameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1ArtifactNamespaceName500Response = GenericInternalServerErrorResponse
+
+func (response GetV1ArtifactNamespaceName500Response) VisitGetV1ArtifactNamespaceNameResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
 	return nil
 }
@@ -3913,6 +4247,9 @@ func (response PatchV1UserId500Response) VisitPatchV1UserIdResponse(w http.Respo
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// List Artifact Namespaces
+	// (GET /v1/artifact)
+	GetV1Artifact(ctx context.Context, request GetV1ArtifactRequestObject) (GetV1ArtifactResponseObject, error)
 	// Upload Artifact
 	// (POST /v1/artifact/raw/{namespace}/{name})
 	PostV1ArtifactRawNamespaceName(ctx context.Context, request PostV1ArtifactRawNamespaceNameRequestObject) (PostV1ArtifactRawNamespaceNameResponseObject, error)
@@ -3922,6 +4259,12 @@ type StrictServerInterface interface {
 	// Download Artifact by Tag
 	// (GET /v1/artifact/raw/{namespace}/{name}/tag/{tag})
 	GetV1ArtifactRawNamespaceNameTagTag(ctx context.Context, request GetV1ArtifactRawNamespaceNameTagTagRequestObject) (GetV1ArtifactRawNamespaceNameTagTagResponseObject, error)
+	// List Artifacts in Namespace
+	// (GET /v1/artifact/{namespace})
+	GetV1ArtifactNamespace(ctx context.Context, request GetV1ArtifactNamespaceRequestObject) (GetV1ArtifactNamespaceResponseObject, error)
+	// List Artifact Versions
+	// (GET /v1/artifact/{namespace}/{name})
+	GetV1ArtifactNamespaceName(ctx context.Context, request GetV1ArtifactNamespaceNameRequestObject) (GetV1ArtifactNamespaceNameResponseObject, error)
 	// Delete Artifact by Hash
 	// (DELETE /v1/artifact/{namespace}/{name}/hash/{hash})
 	DeleteV1ArtifactNamespaceNameHashHash(ctx context.Context, request DeleteV1ArtifactNamespaceNameHashHashRequestObject) (DeleteV1ArtifactNamespaceNameHashHashResponseObject, error)
@@ -4035,6 +4378,33 @@ type strictHandler struct {
 	middlewares []StrictMiddlewareFunc
 }
 
+// GetV1Artifact operation middleware
+func (sh *strictHandler) GetV1Artifact(ctx *gin.Context, params GetV1ArtifactParams) {
+	var request GetV1ArtifactRequestObject
+
+	request.Params = params
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetV1Artifact(ctx, request.(GetV1ArtifactRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetV1Artifact")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(GetV1ArtifactResponseObject); ok {
+		if err := validResponse.VisitGetV1ArtifactResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // PostV1ArtifactRawNamespaceName operation middleware
 func (sh *strictHandler) PostV1ArtifactRawNamespaceName(ctx *gin.Context, namespace string, name string) {
 	var request PostV1ArtifactRawNamespaceNameRequestObject
@@ -4116,6 +4486,63 @@ func (sh *strictHandler) GetV1ArtifactRawNamespaceNameTagTag(ctx *gin.Context, n
 		ctx.Status(http.StatusInternalServerError)
 	} else if validResponse, ok := response.(GetV1ArtifactRawNamespaceNameTagTagResponseObject); ok {
 		if err := validResponse.VisitGetV1ArtifactRawNamespaceNameTagTagResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetV1ArtifactNamespace operation middleware
+func (sh *strictHandler) GetV1ArtifactNamespace(ctx *gin.Context, namespace string, params GetV1ArtifactNamespaceParams) {
+	var request GetV1ArtifactNamespaceRequestObject
+
+	request.Namespace = namespace
+	request.Params = params
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetV1ArtifactNamespace(ctx, request.(GetV1ArtifactNamespaceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetV1ArtifactNamespace")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(GetV1ArtifactNamespaceResponseObject); ok {
+		if err := validResponse.VisitGetV1ArtifactNamespaceResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetV1ArtifactNamespaceName operation middleware
+func (sh *strictHandler) GetV1ArtifactNamespaceName(ctx *gin.Context, namespace string, name string, params GetV1ArtifactNamespaceNameParams) {
+	var request GetV1ArtifactNamespaceNameRequestObject
+
+	request.Namespace = namespace
+	request.Name = name
+	request.Params = params
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetV1ArtifactNamespaceName(ctx, request.(GetV1ArtifactNamespaceNameRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetV1ArtifactNamespaceName")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(GetV1ArtifactNamespaceNameResponseObject); ok {
+		if err := validResponse.VisitGetV1ArtifactNamespaceNameResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -5072,77 +5499,80 @@ func (sh *strictHandler) PatchV1UserId(ctx *gin.Context, id string) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"AwAA///4sPTRsJoAAA==",
+	"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",
+	"IAOnAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

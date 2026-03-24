@@ -558,29 +558,28 @@ func (x *UploadMetadata) GetTags() []string {
 	return nil
 }
 
-type AddRemoveTagRequest struct {
+type SetTagsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Package       *PackageName           `protobuf:"bytes,1,opt,name=package,proto3" json:"package,omitempty"`
-	VersionHash   string                 `protobuf:"bytes,2,opt,name=version_hash,json=versionHash,proto3" json:"version_hash,omitempty"`
-	Tag           string                 `protobuf:"bytes,3,opt,name=tag,proto3" json:"tag,omitempty"`
+	Artifact      *ArtifactIdentifier    `protobuf:"bytes,1,opt,name=artifact,proto3" json:"artifact,omitempty"`
+	Tags          []string               `protobuf:"bytes,2,rep,name=tags,proto3" json:"tags,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AddRemoveTagRequest) Reset() {
-	*x = AddRemoveTagRequest{}
+func (x *SetTagsRequest) Reset() {
+	*x = SetTagsRequest{}
 	mi := &file_registry_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AddRemoveTagRequest) String() string {
+func (x *SetTagsRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AddRemoveTagRequest) ProtoMessage() {}
+func (*SetTagsRequest) ProtoMessage() {}
 
-func (x *AddRemoveTagRequest) ProtoReflect() protoreflect.Message {
+func (x *SetTagsRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_registry_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -592,30 +591,23 @@ func (x *AddRemoveTagRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddRemoveTagRequest.ProtoReflect.Descriptor instead.
-func (*AddRemoveTagRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use SetTagsRequest.ProtoReflect.Descriptor instead.
+func (*SetTagsRequest) Descriptor() ([]byte, []int) {
 	return file_registry_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *AddRemoveTagRequest) GetPackage() *PackageName {
+func (x *SetTagsRequest) GetArtifact() *ArtifactIdentifier {
 	if x != nil {
-		return x.Package
+		return x.Artifact
 	}
 	return nil
 }
 
-func (x *AddRemoveTagRequest) GetVersionHash() string {
+func (x *SetTagsRequest) GetTags() []string {
 	if x != nil {
-		return x.VersionHash
+		return x.Tags
 	}
-	return ""
-}
-
-func (x *AddRemoveTagRequest) GetTag() string {
-	if x != nil {
-		return x.Tag
-	}
-	return ""
+	return nil
 }
 
 var File_registry_proto protoreflect.FileDescriptor
@@ -656,19 +648,17 @@ const file_registry_proto_rawDesc = "" +
 	"\arequest\"M\n" +
 	"\x0eUploadMetadata\x12'\n" +
 	"\x03fqn\x18\x01 \x01(\v2\x15.registry.PackageNameR\x03fqn\x12\x12\n" +
-	"\x04tags\x18\x02 \x03(\tR\x04tags\"{\n" +
-	"\x13AddRemoveTagRequest\x12/\n" +
-	"\apackage\x18\x01 \x01(\v2\x15.registry.PackageNameR\apackage\x12!\n" +
-	"\fversion_hash\x18\x02 \x01(\tR\vversionHash\x12\x10\n" +
-	"\x03tag\x18\x03 \x01(\tR\x03tag2\xf2\x03\n" +
+	"\x04tags\x18\x02 \x03(\tR\x04tags\"^\n" +
+	"\x0eSetTagsRequest\x128\n" +
+	"\bartifact\x18\x01 \x01(\v2\x1c.registry.ArtifactIdentifierR\bartifact\x12\x12\n" +
+	"\x04tags\x18\x02 \x03(\tR\x04tags2\xae\x03\n" +
 	"\x0fRegistryService\x12I\n" +
 	"\x0eQueryArtifacts\x12\x17.registry.ArtifactQuery\x1a\x1e.registry.ArtifactListResponse\x12I\n" +
 	"\fPullArtifact\x12\x1c.registry.ArtifactIdentifier\x1a\x19.registry.ArtifactContent0\x01\x12G\n" +
 	"\x0eUploadArtifact\x12\x1f.registry.UploadArtifactRequest\x1a\x12.registry.Artifact(\x01\x12B\n" +
 	"\x0eDeleteArtifact\x12\x1c.registry.ArtifactIdentifier\x1a\x12.registry.Artifact\x12?\n" +
-	"\vGetArtifact\x12\x1c.registry.ArtifactIdentifier\x1a\x12.registry.Artifact\x12;\n" +
-	"\x06AddTag\x12\x1d.registry.AddRemoveTagRequest\x1a\x12.registry.Artifact\x12>\n" +
-	"\tRemoveTag\x12\x1d.registry.AddRemoveTagRequest\x1a\x12.registry.ArtifactB\fZ\n" +
+	"\vGetArtifact\x12\x1c.registry.ArtifactIdentifier\x1a\x12.registry.Artifact\x127\n" +
+	"\aSetTags\x12\x18.registry.SetTagsRequest\x1a\x12.registry.ArtifactB\fZ\n" +
 	"proto_gen/b\x06proto3"
 
 var (
@@ -694,7 +684,7 @@ var file_registry_proto_goTypes = []any{
 	(*ArtifactContent)(nil),       // 6: registry.ArtifactContent
 	(*UploadArtifactRequest)(nil), // 7: registry.UploadArtifactRequest
 	(*UploadMetadata)(nil),        // 8: registry.UploadMetadata
-	(*AddRemoveTagRequest)(nil),   // 9: registry.AddRemoveTagRequest
+	(*SetTagsRequest)(nil),        // 9: registry.SetTagsRequest
 	(*timestamppb.Timestamp)(nil), // 10: google.protobuf.Timestamp
 }
 var file_registry_proto_depIdxs = []int32{
@@ -706,23 +696,21 @@ var file_registry_proto_depIdxs = []int32{
 	8,  // 5: registry.UploadArtifactRequest.metadata:type_name -> registry.UploadMetadata
 	6,  // 6: registry.UploadArtifactRequest.content:type_name -> registry.ArtifactContent
 	0,  // 7: registry.UploadMetadata.fqn:type_name -> registry.PackageName
-	0,  // 8: registry.AddRemoveTagRequest.package:type_name -> registry.PackageName
+	1,  // 8: registry.SetTagsRequest.artifact:type_name -> registry.ArtifactIdentifier
 	4,  // 9: registry.RegistryService.QueryArtifacts:input_type -> registry.ArtifactQuery
 	1,  // 10: registry.RegistryService.PullArtifact:input_type -> registry.ArtifactIdentifier
 	7,  // 11: registry.RegistryService.UploadArtifact:input_type -> registry.UploadArtifactRequest
 	1,  // 12: registry.RegistryService.DeleteArtifact:input_type -> registry.ArtifactIdentifier
 	1,  // 13: registry.RegistryService.GetArtifact:input_type -> registry.ArtifactIdentifier
-	9,  // 14: registry.RegistryService.AddTag:input_type -> registry.AddRemoveTagRequest
-	9,  // 15: registry.RegistryService.RemoveTag:input_type -> registry.AddRemoveTagRequest
-	5,  // 16: registry.RegistryService.QueryArtifacts:output_type -> registry.ArtifactListResponse
-	6,  // 17: registry.RegistryService.PullArtifact:output_type -> registry.ArtifactContent
-	2,  // 18: registry.RegistryService.UploadArtifact:output_type -> registry.Artifact
-	2,  // 19: registry.RegistryService.DeleteArtifact:output_type -> registry.Artifact
-	2,  // 20: registry.RegistryService.GetArtifact:output_type -> registry.Artifact
-	2,  // 21: registry.RegistryService.AddTag:output_type -> registry.Artifact
-	2,  // 22: registry.RegistryService.RemoveTag:output_type -> registry.Artifact
-	16, // [16:23] is the sub-list for method output_type
-	9,  // [9:16] is the sub-list for method input_type
+	9,  // 14: registry.RegistryService.SetTags:input_type -> registry.SetTagsRequest
+	5,  // 15: registry.RegistryService.QueryArtifacts:output_type -> registry.ArtifactListResponse
+	6,  // 16: registry.RegistryService.PullArtifact:output_type -> registry.ArtifactContent
+	2,  // 17: registry.RegistryService.UploadArtifact:output_type -> registry.Artifact
+	2,  // 18: registry.RegistryService.DeleteArtifact:output_type -> registry.Artifact
+	2,  // 19: registry.RegistryService.GetArtifact:output_type -> registry.Artifact
+	2,  // 20: registry.RegistryService.SetTags:output_type -> registry.Artifact
+	15, // [15:21] is the sub-list for method output_type
+	9,  // [9:15] is the sub-list for method input_type
 	9,  // [9:9] is the sub-list for extension type_name
 	9,  // [9:9] is the sub-list for extension extendee
 	0,  // [0:9] is the sub-list for field type_name

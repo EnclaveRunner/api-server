@@ -439,6 +439,106 @@ func TestAnyToProtoVal(t *testing.T) {
 	}
 }
 
+func TestProtoValToAny(t *testing.T) {
+	tests := []struct {
+		name  string
+		input *pb.Val
+		want  any
+	}{
+		{
+			name:  "nil proto value",
+			input: nil,
+			want:  nil,
+		},
+		{
+			name:  "bool",
+			input: &pb.Val{Value: &pb.Val_BoolVal{BoolVal: true}},
+			want:  true,
+		},
+		{
+			name:  "s64",
+			input: &pb.Val{Value: &pb.Val_S64Val{S64Val: -42}},
+			want:  int64(-42),
+		},
+		{
+			name:  "f64",
+			input: &pb.Val{Value: &pb.Val_F64Val{F64Val: 3.5}},
+			want:  float64(3.5),
+		},
+		{
+			name:  "string",
+			input: &pb.Val{Value: &pb.Val_StringVal{StringVal: "hello"}},
+			want:  "hello",
+		},
+		{
+			name: "list",
+			input: &pb.Val{
+				Value: &pb.Val_ListVal{ListVal: &pb.ListVal{Values: []*pb.Val{
+					{Value: &pb.Val_BoolVal{BoolVal: false}},
+					{Value: &pb.Val_S64Val{S64Val: 1}},
+					{Value: &pb.Val_StringVal{StringVal: "x"}},
+				}}},
+			},
+			want: []interface{}{false, int64(1), "x"},
+		},
+		{
+			name: "record",
+			input: &pb.Val{
+				Value: &pb.Val_RecordVal{
+					RecordVal: &pb.RecordVal{Fields: []*pb.RecordField{
+						{Name: "ok", Value: &pb.Val{Value: &pb.Val_BoolVal{BoolVal: true}}},
+						{Name: "n", Value: &pb.Val{Value: &pb.Val_S64Val{S64Val: 7}}},
+					}},
+				},
+			},
+			want: map[string]interface{}{"ok": true, "n": int64(7)},
+		},
+		{
+			name:  "option none",
+			input: &pb.Val{Value: &pb.Val_OptionVal{OptionVal: &pb.OptionVal{}}},
+			want:  nil,
+		},
+		{
+			name: "nested structure",
+			input: &pb.Val{
+				Value: &pb.Val_RecordVal{
+					RecordVal: &pb.RecordVal{Fields: []*pb.RecordField{
+						{
+							Name: "items",
+							Value: &pb.Val{
+								Value: &pb.Val_ListVal{ListVal: &pb.ListVal{Values: []*pb.Val{
+									{Value: &pb.Val_S64Val{S64Val: 1}},
+									{Value: &pb.Val_OptionVal{OptionVal: &pb.OptionVal{}}},
+								}}},
+							},
+						},
+					}},
+				},
+			},
+			want: map[string]interface{}{"items": []interface{}{int64(1), nil}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := protoValToAny(tt.input)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestAnyProtoValRoundTripSubset(t *testing.T) {
+	input := map[string]interface{}{
+		"flag": true,
+		"num":  int64(11),
+		"txt":  "abc",
+		"list": []interface{}{float64(1.5), nil, map[string]interface{}{"k": "v"}},
+	}
+
+	got := protoValToAny(anyToProtoVal(input))
+	assert.Equal(t, input, got)
+}
+
 // Benchmark tests for parseSource function
 func BenchmarkParseSource(b *testing.B) {
 	testCases := []string{

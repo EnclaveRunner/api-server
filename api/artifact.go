@@ -3,10 +3,10 @@ package api
 import (
 	pb "api-server/proto_gen"
 	"bytes"
+	"cmp"
 	"context"
 	"errors"
 	"io"
-	"strings"
 
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
@@ -19,114 +19,79 @@ const (
 	ArtifactRegistryMaxMessageSize = 1024 * 1024 * 3 // 3MiB: Make sure to keep below gRPC max message size of 4MiB
 )
 
-func artifactToArtifact(artifact *pb.Artifact) Artifact {
-	return Artifact{
-		Package: PackageName{
-			Namespace: artifact.Package.Namespace,
-			Name:      artifact.Package.Name,
-		},
-		VersionHash: artifact.VersionHash,
-		Tags:        artifact.Tags,
-		Pulls:       int(artifact.Metadata.Pulls),
-		CreatedAt:   artifact.Metadata.Created.AsTime(),
-	}
-}
-
-// DeleteArtifact implements StrictServerInterface.
-func (server *Server) DeleteArtifact(
-	ctx context.Context,
-	request DeleteArtifactRequestObject,
-) (DeleteArtifactResponseObject, error) {
-	artifactIdentifier := &pb.ArtifactIdentifier{Package: &pb.PackageName{
-		Namespace: request.Body.Package.Namespace,
-		Name:      request.Body.Package.Name,
-	}}
-
-	if after, ok := strings.CutPrefix(request.Body.Identifier, VersionHashPrefix); ok {
-		artifactIdentifier.Identifier = &pb.ArtifactIdentifier_VersionHash{
-			VersionHash: after,
-		}
-	} else {
-		artifactIdentifier.Identifier = &pb.ArtifactIdentifier_Tag{
-			Tag: request.Body.Identifier,
-		}
-	}
-
-	artifact, err := server.registryClient.DeleteArtifact(ctx, artifactIdentifier)
+// GetV1Artifact implements StrictServerInterface.
+func (server *Server) GetV1Artifact(ctx context.Context, request GetV1ArtifactRequestObject) (GetV1ArtifactResponseObject, error) {
+	artifactQueryResponse, err := server.registryClient.QueryArtifacts(ctx, &pb.ArtifactQuery{})
 	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			return DeleteArtifact404JSONResponse{
-				GenericNotFoundJSONResponse{
-					Error: "Artifact not found",
-				},
-			}, nil
-		}
-
-		log.Error().Err(err).Msg("Failed to delete artifact")
-
-		return &DeleteArtifact500Response{}, nil
+		return nil, status.Error(codes.Internal, "failed to query artifacts")
 	}
 
-	return DeleteArtifact200JSONResponse(artifactToArtifact(artifact)), nil
+	artifactsPaginated := paginate(artifactQueryResponse.Artifacts, *request.Params.Limit, *request.Params.Offset, cmpArtifacts)
+
+	responseArtifacts := make([]Artifact, len(artifactsPaginated))
+	for i, artifact := range artifactsPaginated {
+		responseArtifacts[i] = artifactToArtifact(artifact)
+	}
+
+	return GetV1Artifact200JSONResponse(responseArtifacts), nil
 }
 
-// DeleteArtifactTag implements StrictServerInterface.
-func (server *Server) DeleteArtifactTag(
+// GetV1ArtifactNamespace implements StrictServerInterface.
+func (server *Server) GetV1ArtifactNamespace(ctx context.Context, request GetV1ArtifactNamespaceRequestObject) (GetV1ArtifactNamespaceResponseObject, error) {
+	artifactQueryResponse, err := server.registryClient.QueryArtifacts(ctx, &pb.ArtifactQuery{
+		Namespace: &request.Namespace,
+	})
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to query artifacts")
+	}
+
+	artifactsPaginated := paginate(artifactQueryResponse.Artifacts, *request.Params.Limit, *request.Params.Offset, cmpArtifacts)
+
+	responseArtifacts := make([]Artifact, len(artifactsPaginated))
+	for i, artifact := range artifactsPaginated {
+		responseArtifacts[i] = artifactToArtifact(artifact)
+	}
+
+	return GetV1ArtifactNamespace200JSONResponse(responseArtifacts), nil
+}
+
+// GetV1ArtifactNamespaceName implements StrictServerInterface.
+func (server *Server) GetV1ArtifactNamespaceName(ctx context.Context, request GetV1ArtifactNamespaceNameRequestObject) (GetV1ArtifactNamespaceNameResponseObject, error) {
+	artifactQueryResponse, err := server.registryClient.QueryArtifacts(ctx, &pb.ArtifactQuery{
+		Namespace: &request.Namespace,
+		Name:      &request.Name,
+	})
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to query artifacts")
+	}
+
+	artifactsPaginated := paginate(artifactQueryResponse.Artifacts, *request.Params.Limit, *request.Params.Offset, cmpArtifacts)
+
+	responseArtifacts := make([]Artifact, len(artifactsPaginated))
+	for i, artifact := range artifactsPaginated {
+		responseArtifacts[i] = artifactToArtifact(artifact)
+	}
+
+	return GetV1ArtifactNamespaceName200JSONResponse(responseArtifacts), nil
+}
+
+// GetV1ArtifactNamespaceNameHashHash implements [StrictServerInterface].
+func (server *Server) GetV1ArtifactNamespaceNameHashHash(
 	ctx context.Context,
-	request DeleteArtifactTagRequestObject,
-) (DeleteArtifactTagResponseObject, error) {
-	removeTagRequest := &pb.AddRemoveTagRequest{
+	request GetV1ArtifactNamespaceNameHashHashRequestObject,
+) (GetV1ArtifactNamespaceNameHashHashResponseObject, error) {
+	artifactResponse, err := server.registryClient.GetArtifact(ctx, &pb.ArtifactIdentifier{
 		Package: &pb.PackageName{
-			Namespace: request.Body.Package.Namespace,
-			Name:      request.Body.Package.Name,
+			Namespace: request.Namespace,
+			Name:      request.Name,
 		},
-		VersionHash: request.Body.VersionHash,
-		Tag:         request.Body.Tag,
-	}
-
-	_, err := server.registryClient.RemoveTag(ctx, removeTagRequest)
+		Identifier: &pb.ArtifactIdentifier_VersionHash{
+			VersionHash: request.Hash,
+		},
+	})
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
-			return DeleteArtifactTag404JSONResponse{
-				GenericNotFoundJSONResponse{
-					Error: "Artifact not found",
-				},
-			}, nil
-		}
-
-		log.Error().Err(err).Msg("Failed to remove tag from artifact")
-
-		return &DeleteArtifactTag500Response{}, nil
-	}
-
-	// DeleteArtifactTag returns 200 with no body on success
-	return DeleteArtifactTag200Response{}, nil
-}
-
-// GetArtifact implements StrictServerInterface.
-func (server *Server) GetArtifact(
-	ctx context.Context,
-	request GetArtifactRequestObject,
-) (GetArtifactResponseObject, error) {
-	artifactIdentifier := &pb.ArtifactIdentifier{Package: &pb.PackageName{
-		Namespace: request.Params.Namespace,
-		Name:      request.Params.Name,
-	}}
-
-	if after, ok := strings.CutPrefix(request.Params.Identifier, VersionHashPrefix); ok {
-		artifactIdentifier.Identifier = &pb.ArtifactIdentifier_VersionHash{
-			VersionHash: after,
-		}
-	} else {
-		artifactIdentifier.Identifier = &pb.ArtifactIdentifier_Tag{
-			Tag: request.Params.Identifier,
-		}
-	}
-
-	artifact, err := server.registryClient.GetArtifact(ctx, artifactIdentifier)
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			return GetArtifact404JSONResponse{
+			return GetV1ArtifactNamespaceNameHashHash404JSONResponse{
 				GenericNotFoundJSONResponse{
 					Error: "Artifact not found",
 				},
@@ -135,68 +100,62 @@ func (server *Server) GetArtifact(
 
 		log.Error().Err(err).Msg("Failed to get artifact")
 
-		return &GetArtifact500Response{}, nil
+		return &GetV1ArtifactNamespaceNameHashHash500Response{}, nil
 	}
 
-	return GetArtifact200JSONResponse(artifactToArtifact(artifact)), nil
+	return GetV1ArtifactNamespaceNameHashHash200JSONResponse(artifactToArtifact(artifactResponse)), nil
 }
 
-// GetArtifactList implements StrictServerInterface.
-func (server *Server) GetArtifactList(
+// GetV1ArtifactNamespaceNameTagTag implements [StrictServerInterface].
+func (server *Server) GetV1ArtifactNamespaceNameTagTag(
 	ctx context.Context,
-	request GetArtifactListRequestObject,
-) (GetArtifactListResponseObject, error) {
-	query := &pb.ArtifactQuery{}
-
-	if request.Params.Namespace != nil {
-		query.Namespace = request.Params.Namespace
-	}
-
-	if request.Params.Name != nil {
-		query.Name = request.Params.Name
-	}
-
-	response, err := server.registryClient.QueryArtifacts(ctx, query)
+	request GetV1ArtifactNamespaceNameTagTagRequestObject,
+) (GetV1ArtifactNamespaceNameTagTagResponseObject, error) {
+	artifactResponse, err := server.registryClient.GetArtifact(ctx, &pb.ArtifactIdentifier{
+		Package: &pb.PackageName{
+			Namespace: request.Namespace,
+			Name:      request.Name,
+		},
+		Identifier: &pb.ArtifactIdentifier_Tag{
+			Tag: request.Tag,
+		},
+	})
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to query artifacts")
+		if status.Code(err) == codes.NotFound {
+			return GetV1ArtifactNamespaceNameTagTag404JSONResponse{
+				GenericNotFoundJSONResponse{
+					Error: "Artifact not found",
+				},
+			}, nil
+		}
 
-		return &GetArtifactList500Response{}, nil
+		log.Error().Err(err).Msg("Failed to get artifact")
+
+		return &GetV1ArtifactNamespaceNameTagTag500Response{}, nil
 	}
 
-	artifacts := make([]Artifact, len(response.Artifacts))
-	for i, artifact := range response.Artifacts {
-		artifacts[i] = artifactToArtifact(artifact)
-	}
-
-	return GetArtifactList200JSONResponse(artifacts), nil
+	return GetV1ArtifactNamespaceNameTagTag200JSONResponse(artifactToArtifact(artifactResponse)), nil
 }
 
-// GetArtifactUpload implements StrictServerInterface.
-func (server *Server) GetArtifactUpload(
+// GetV1ArtifactRawNamespaceNameHashHash implements [StrictServerInterface].
+func (server *Server) GetV1ArtifactRawNamespaceNameHashHash(
 	ctx context.Context,
-	request GetArtifactUploadRequestObject,
-) (GetArtifactUploadResponseObject, error) {
+	request GetV1ArtifactRawNamespaceNameHashHashRequestObject,
+) (GetV1ArtifactRawNamespaceNameHashHashResponseObject, error) {
 	pullRequest := &pb.ArtifactIdentifier{
 		Package: &pb.PackageName{
-			Namespace: request.Params.Namespace,
-			Name:      request.Params.Name,
+			Namespace: request.Namespace,
+			Name:      request.Name,
 		},
-	}
-
-	if after, ok := strings.CutPrefix(request.Params.Identifier, VersionHashPrefix); ok {
-		pullRequest.Identifier = &pb.ArtifactIdentifier_VersionHash{
-			VersionHash: after,
-		}
-	} else {
-		pullRequest.Identifier = &pb.ArtifactIdentifier_Tag{
-			Tag: request.Params.Identifier,
-		}
+		Identifier: &pb.ArtifactIdentifier_VersionHash{
+			VersionHash: request.Hash,
+		},
 	}
 
 	stream, err := server.registryClient.PullArtifact(ctx, pullRequest)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
-			return GetArtifactUpload404JSONResponse{
+			return GetV1ArtifactRawNamespaceNameHashHash404JSONResponse{
 				GenericNotFoundJSONResponse{
 					Error: "Artifact not found",
 				},
@@ -205,7 +164,7 @@ func (server *Server) GetArtifactUpload(
 
 		log.Error().Err(err).Msg("Failed to pull artifact")
 
-		return &GetArtifactUpload500Response{}, nil
+		return &GenericInternalServerErrorResponse{}, nil
 	}
 
 	// Read all chunks from the stream
@@ -218,254 +177,90 @@ func (server *Server) GetArtifactUpload(
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to receive artifact chunk")
 
-			return &GetArtifactUpload500Response{}, nil
+			return &GenericInternalServerErrorResponse{}, nil
 		}
 
 		_, err = buffer.Write(chunk.Data)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to write artifact chunk")
 
-			return &GetArtifactUpload500Response{}, nil
+			return &GenericInternalServerErrorResponse{}, nil
 		}
 	}
 
-	return GetArtifactUpload200ApplicationoctetStreamResponse{
+	return GetV1ArtifactRawNamespaceNameHashHash200ApplicationoctetStreamResponse{
 		Body:          bytes.NewReader(buffer.Bytes()),
 		ContentLength: int64(buffer.Len()),
 	}, nil
 }
 
-// HeadArtifact implements StrictServerInterface.
-func (server *Server) HeadArtifact(
+// GetV1ArtifactRawNamespaceNameTagTag implements [StrictServerInterface].
+func (server *Server) GetV1ArtifactRawNamespaceNameTagTag(
 	ctx context.Context,
-	request HeadArtifactRequestObject,
-) (HeadArtifactResponseObject, error) {
-	artifactIdentifier := &pb.ArtifactIdentifier{Package: &pb.PackageName{
-		Namespace: request.Params.Namespace,
-		Name:      request.Params.Name,
-	}}
-
-	if after, ok := strings.CutPrefix(request.Params.Identifier, VersionHashPrefix); ok {
-		artifactIdentifier.Identifier = &pb.ArtifactIdentifier_VersionHash{
-			VersionHash: after,
-		}
-	} else {
-		artifactIdentifier.Identifier = &pb.ArtifactIdentifier_Tag{
-			Tag: request.Params.Identifier,
-		}
-	}
-
-	_, err := server.registryClient.GetArtifact(ctx, artifactIdentifier)
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			return HeadArtifact404Response{}, nil
-		}
-
-		log.Error().Err(err).Msg("Failed to check artifact existence")
-
-		return HeadArtifact500Response{}, nil
-	}
-
-	return HeadArtifact200Response{}, nil
-}
-
-// PostArtifactTag implements StrictServerInterface.
-func (server *Server) PostArtifactTag(
-	ctx context.Context,
-	request PostArtifactTagRequestObject,
-) (PostArtifactTagResponseObject, error) {
-	addTagRequest := &pb.AddRemoveTagRequest{
+	request GetV1ArtifactRawNamespaceNameTagTagRequestObject,
+) (GetV1ArtifactRawNamespaceNameTagTagResponseObject, error) {
+	pullRequest := &pb.ArtifactIdentifier{
 		Package: &pb.PackageName{
-			Namespace: request.Body.Package.Namespace,
-			Name:      request.Body.Package.Name,
+			Namespace: request.Namespace,
+			Name:      request.Name,
 		},
-		VersionHash: request.Body.VersionHash,
-		Tag:         request.Body.NewTag,
+		Identifier: &pb.ArtifactIdentifier_Tag{
+			Tag: request.Tag,
+		},
 	}
 
-	_, err := server.registryClient.AddTag(ctx, addTagRequest)
+	stream, err := server.registryClient.PullArtifact(ctx, pullRequest)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
-			return PostArtifactTag404JSONResponse{
+			return GetV1ArtifactRawNamespaceNameTagTag404JSONResponse{
 				GenericNotFoundJSONResponse{
 					Error: "Artifact not found",
 				},
 			}, nil
 		}
 
-		log.Error().Err(err).Msg("Failed to add tag to artifact")
+		log.Error().Err(err).Msg("Failed to pull artifact")
 
-		return &PostArtifactTag500Response{}, nil
+		return &GenericInternalServerErrorResponse{}, nil
 	}
 
-	// PostArtifactTag returns 201 with no body on success
-	return PostArtifactTag201Response{}, nil
-}
-
-func readWithMaxLength(
-	reader io.Reader,
-	maxLength int,
-) (value string, tooLong bool, err error) {
-	buff := make([]byte, maxLength)
-	readBytes, err := io.ReadFull(reader, buff)
-	if err == nil {
-		// No io.EOF, means there is more that maxLength bytes
-		return "", true, nil
-	}
-
-	if !errors.Is(err, io.ErrUnexpectedEOF) {
-		log.Debug().Err(err).Msg("Failed to read field")
-		//nolint:wrapcheck // Propagate read errors to be handled by caller
-		return "", false, err
-	}
-
-	return string(buff[:readBytes]), false, nil
-}
-
-// PostArtifactUpload implements StrictServerInterface.
-func (server *Server) PostArtifactUpload(
-	ctx context.Context,
-	request PostArtifactUploadRequestObject,
-) (PostArtifactUploadResponseObject, error) {
-	// First pass: collect all metadata fields
-	var namespace, name string
-	var tags []string
-
+	// Read all chunks from the stream
+	var buffer bytes.Buffer
 	for {
-		part, err := request.Body.NextPart()
+		chunk, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to read multipart form")
+			log.Error().Err(err).Msg("Failed to receive artifact chunk")
 
-			return &PostArtifactUpload500Response{}, nil
+			return &GenericInternalServerErrorResponse{}, nil
 		}
 
-		switch part.FormName() {
-		case "namespace":
-			if namespace != "" {
-				log.Error().Msg("Multiple namespace fields provided")
+		_, err = buffer.Write(chunk.Data)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to write artifact chunk")
 
-				return PostArtifactUpload400JSONResponse{
-					GenericBadRequestJSONResponse{
-						Error: "Multiple namespace fields provided",
-					},
-				}, nil
-			}
-
-			data, tooLong, err := readWithMaxLength(part, MetadataFieldMaxSize)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to read namespace field")
-
-				return &PostArtifactUpload500Response{}, nil
-			}
-
-			if tooLong {
-				log.Error().Msg("Namespace field too long")
-
-				return PostArtifactUpload413JSONResponse{
-					GenericTooLargeJSONResponse{
-						Error: "Namespace field is too long",
-					},
-				}, nil
-			}
-
-			namespace = data
-		case "name":
-			if name != "" {
-				log.Error().Msg("Multiple name fields provided")
-
-				return PostArtifactUpload400JSONResponse{
-					GenericBadRequestJSONResponse{
-						Error: "Multiple name fields provided",
-					},
-				}, nil
-			}
-
-			data, tooLong, err := readWithMaxLength(part, MetadataFieldMaxSize)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to read name field")
-
-				return &PostArtifactUpload500Response{}, nil
-			}
-
-			if tooLong {
-				log.Error().Msg("Name field too long")
-
-				return PostArtifactUpload413JSONResponse{
-					GenericTooLargeJSONResponse{
-						Error: "Name field is too long",
-					},
-				}, nil
-			}
-
-			name = data
-		case "tag":
-			data, tooLong, err := readWithMaxLength(
-				part,
-				MetadataFieldMaxSize-len(strings.Join(tags, "")),
-			)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to read tags field")
-
-				return &PostArtifactUpload500Response{}, nil
-			}
-
-			if tooLong {
-				log.Error().Msg("Tags field too long")
-
-				return PostArtifactUpload413JSONResponse{
-					GenericTooLargeJSONResponse{
-						Error: "Tags field is too long",
-					},
-				}, nil
-			}
-
-			tags = append(tags, data)
-		case "file":
-			// Process file immediately - don't store the part reader
-			return server.uploadArtifactWithFile(
-				ctx,
-				namespace,
-				name,
-				tags,
-				part,
-			)
-		default:
-			log.Error().
-				Str("field_name", part.FormName()).
-				Msg("Unexpected form field encountered")
-
-			return &PostArtifactUpload400JSONResponse{
-				GenericBadRequestJSONResponse{
-					Error: "Encountered an unexpected form field: " + part.FormName(),
-				},
-			}, nil
+			return &GenericInternalServerErrorResponse{}, nil
 		}
 	}
 
-	// File part not provided
-	log.Error().Msg("File part not provided")
-
-	return PostArtifactUpload400JSONResponse{
-		GenericBadRequestJSONResponse{
-			Error: "File part is required",
-		},
+	return GetV1ArtifactRawNamespaceNameTagTag200ApplicationoctetStreamResponse{
+		Body:          bytes.NewReader(buffer.Bytes()),
+		ContentLength: int64(buffer.Len()),
 	}, nil
 }
 
-func (server *Server) uploadArtifactWithFile(
+// PostV1ArtifactRawNamespaceName implements [StrictServerInterface].
+func (server *Server) PostV1ArtifactRawNamespaceName(
 	ctx context.Context,
-	namespace, name string,
-	tags []string,
-	fileReader io.Reader,
-) (PostArtifactUploadResponseObject, error) {
+	request PostV1ArtifactRawNamespaceNameRequestObject,
+) (PostV1ArtifactRawNamespaceNameResponseObject, error) {
 	stream, err := server.registryClient.UploadArtifact(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create upload artifact stream")
 
-		return &PostArtifactUpload500Response{}, nil
+		return &GenericInternalServerErrorResponse{}, nil
 	}
 
 	//nolint:errcheck // CloseSend never returns an error
@@ -473,10 +268,9 @@ func (server *Server) uploadArtifactWithFile(
 
 	metadata := &pb.UploadMetadata{
 		Fqn: &pb.PackageName{
-			Namespace: namespace,
-			Name:      name,
+			Namespace: request.Namespace,
+			Name:      request.Name,
 		},
-		Tags: tags,
 	}
 
 	err = stream.Send(&pb.UploadArtifactRequest{
@@ -485,18 +279,18 @@ func (server *Server) uploadArtifactWithFile(
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to send upload artifact metadata")
 
-		return &PostArtifactUpload500Response{}, nil
+		return &GenericInternalServerErrorResponse{}, nil
 	}
 
 	for {
 		buff := make([]byte, ArtifactRegistryMaxMessageSize)
-		readBytes, err := io.ReadFull(fileReader, buff)
+		readBytes, err := io.ReadFull(request.Body, buff)
 
 		isEOF := errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF)
 		if err != nil && !isEOF {
 			log.Error().Err(err).Msg("Failed to read artifact file")
 
-			return &PostArtifactUpload500Response{}, nil
+			return &GenericInternalServerErrorResponse{}, nil
 		}
 
 		lastChunk := errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF)
@@ -517,7 +311,7 @@ func (server *Server) uploadArtifactWithFile(
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to send artifact chunk")
 
-			return &PostArtifactUpload500Response{}, nil
+			return &GenericInternalServerErrorResponse{}, nil
 		}
 
 		if lastChunk {
@@ -531,15 +325,198 @@ func (server *Server) uploadArtifactWithFile(
 		if status.Code(err) == codes.AlreadyExists {
 			log.Warn().Err(err).Msg("Artifact already exists")
 
-			return PostArtifactUpload409JSONResponse{
+			return PostV1ArtifactRawNamespaceName409JSONResponse{
 				Error: "An artifact already exists with this fully qualified name and version hash",
 			}, nil
 		}
 
 		log.Error().Err(err).Msg("Failed to finalize artifact upload")
 
-		return &PostArtifactUpload500Response{}, nil
+		return &GenericInternalServerErrorResponse{}, nil
 	}
 
-	return PostArtifactUpload201JSONResponse(artifactToArtifact(artifact)), nil
+	return PostV1ArtifactRawNamespaceName201JSONResponse{
+		VersionHash: artifact.VersionHash,
+	}, nil
+}
+
+// PatchV1ArtifactNamespaceNameHashHash implements [StrictServerInterface].
+func (server *Server) PatchV1ArtifactNamespaceNameHashHash(
+	ctx context.Context,
+	request PatchV1ArtifactNamespaceNameHashHashRequestObject,
+) (PatchV1ArtifactNamespaceNameHashHashResponseObject, error) {
+	requestParams := pb.SetTagsRequest{
+		Artifact: &pb.ArtifactIdentifier{
+			Package: &pb.PackageName{
+				Namespace: request.Namespace,
+				Name:      request.Name,
+			},
+			Identifier: &pb.ArtifactIdentifier_VersionHash{
+				VersionHash: request.Hash,
+			},
+		},
+	}
+
+	if request.Body.Tags == nil {
+		requestParams.Tags = []string{}
+	} else {
+		requestParams.Tags = *request.Body.Tags
+	}
+
+	artifactResponse, err := server.registryClient.SetTags(ctx, &requestParams)
+	if err != nil {
+		switch status.Code(err) {
+		case codes.NotFound:
+			return PatchV1ArtifactNamespaceNameHashHash404JSONResponse{
+				GenericNotFoundJSONResponse{
+					Error: "Artifact not found",
+				},
+			}, nil
+		case codes.InvalidArgument:
+			return PatchV1ArtifactNamespaceNameHashHash400JSONResponse{
+				GenericBadRequestJSONResponse{
+					Error: "Invalid tags provided: " + err.Error(),
+				},
+			}, nil
+		default:
+			log.Error().Err(err).Msg("Failed to set artifact tags")
+			return &GenericInternalServerErrorResponse{}, nil
+		}
+	}
+
+	return PatchV1ArtifactNamespaceNameHashHash200JSONResponse(artifactToArtifact(artifactResponse)), nil
+}
+
+// PatchV1ArtifactNamespaceNameTagTag implements [StrictServerInterface].
+func (server *Server) PatchV1ArtifactNamespaceNameTagTag(
+	ctx context.Context,
+	request PatchV1ArtifactNamespaceNameTagTagRequestObject,
+) (PatchV1ArtifactNamespaceNameTagTagResponseObject, error) {
+	requestParams := pb.SetTagsRequest{
+		Artifact: &pb.ArtifactIdentifier{
+			Package: &pb.PackageName{
+				Namespace: request.Namespace,
+				Name:      request.Name,
+			},
+			Identifier: &pb.ArtifactIdentifier_Tag{
+				Tag: request.Tag,
+			},
+		},
+	}
+
+	if request.Body.Tags == nil {
+		requestParams.Tags = []string{}
+	} else {
+		requestParams.Tags = *request.Body.Tags
+	}
+
+	artifactResponse, err := server.registryClient.SetTags(ctx, &requestParams)
+	if err != nil {
+		switch status.Code(err) {
+		case codes.NotFound:
+			return PatchV1ArtifactNamespaceNameTagTag404JSONResponse{
+				GenericNotFoundJSONResponse{
+					Error: "Artifact not found",
+				},
+			}, nil
+		case codes.InvalidArgument:
+			return PatchV1ArtifactNamespaceNameTagTag400JSONResponse{
+				GenericBadRequestJSONResponse{
+					Error: "Invalid tags provided: " + err.Error(),
+				},
+			}, nil
+		default:
+			log.Error().Err(err).Msg("Failed to set artifact tags")
+			return &GenericInternalServerErrorResponse{}, nil
+		}
+	}
+
+	return PatchV1ArtifactNamespaceNameTagTag200JSONResponse(artifactToArtifact(artifactResponse)), nil
+}
+
+// DeleteV1ArtifactNamespaceNameHashHash implements [StrictServerInterface].
+func (server *Server) DeleteV1ArtifactNamespaceNameHashHash(
+	ctx context.Context,
+	request DeleteV1ArtifactNamespaceNameHashHashRequestObject,
+) (DeleteV1ArtifactNamespaceNameHashHashResponseObject, error) {
+	artifactResponse, err := server.registryClient.DeleteArtifact(ctx, &pb.ArtifactIdentifier{
+		Package: &pb.PackageName{
+			Namespace: request.Namespace,
+			Name:      request.Name,
+		},
+		Identifier: &pb.ArtifactIdentifier_VersionHash{
+			VersionHash: request.Hash,
+		},
+	})
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			return DeleteV1ArtifactNamespaceNameHashHash404JSONResponse{
+				GenericNotFoundJSONResponse{
+					Error: "Artifact not found",
+				},
+			}, nil
+		}
+
+		log.Error().Err(err).Msg("Failed to delete artifact")
+
+		return &DeleteV1ArtifactNamespaceNameHashHash500Response{}, nil
+	}
+
+	return DeleteV1ArtifactNamespaceNameHashHash200JSONResponse(artifactToArtifact(artifactResponse)), nil
+}
+
+// DeleteV1ArtifactNamespaceNameTagTag implements [StrictServerInterface].
+func (server *Server) DeleteV1ArtifactNamespaceNameTagTag(
+	ctx context.Context,
+	request DeleteV1ArtifactNamespaceNameTagTagRequestObject,
+) (DeleteV1ArtifactNamespaceNameTagTagResponseObject, error) {
+	artifactResponse, err := server.registryClient.DeleteArtifact(ctx, &pb.ArtifactIdentifier{
+		Package: &pb.PackageName{
+			Namespace: request.Namespace,
+			Name:      request.Name,
+		},
+		Identifier: &pb.ArtifactIdentifier_Tag{
+			Tag: request.Tag,
+		},
+	})
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			return DeleteV1ArtifactNamespaceNameTagTag404JSONResponse{
+				GenericNotFoundJSONResponse{
+					Error: "Artifact not found",
+				},
+			}, nil
+		}
+
+		log.Error().Err(err).Msg("Failed to delete artifact")
+
+		return &DeleteV1ArtifactNamespaceNameTagTag500Response{}, nil
+	}
+
+	return DeleteV1ArtifactNamespaceNameTagTag200JSONResponse(artifactToArtifact(artifactResponse)), nil
+}
+
+func cmpArtifacts(a, b *pb.Artifact) int {
+	if a.Package.Namespace != b.Package.Namespace {
+		return cmp.Compare(a.Package.Namespace, b.Package.Namespace)
+	}
+
+	if a.Package.Name != b.Package.Name {
+		return cmp.Compare(a.Package.Name, b.Package.Name)
+	}
+
+	return cmp.Compare(a.VersionHash, b.VersionHash)
+}
+
+func artifactToArtifact(artifact *pb.Artifact) Artifact {
+	return Artifact{
+		Package: PackageName{
+			Namespace: artifact.Package.Namespace,
+			Name:      artifact.Package.Name,
+		},
+		VersionHash: artifact.VersionHash,
+		Tags:        artifact.Tags,
+		Pulls:       int(artifact.Metadata.Pulls),
+		CreatedAt:   artifact.Metadata.Created.AsTime(),
+	}
 }

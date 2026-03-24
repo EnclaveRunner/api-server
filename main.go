@@ -6,11 +6,15 @@ import (
 	"api-server/orm"
 	proto_gen "api-server/proto_gen"
 	"api-server/queue"
+	"fmt"
+	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/EnclaveRunner/shareddeps"
 	"github.com/EnclaveRunner/shareddeps/auth"
 	shareddepsConfig "github.com/EnclaveRunner/shareddeps/config"
+	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 )
 
@@ -58,6 +62,7 @@ func main() {
 	}
 
 	ginServer := shareddeps.InitRESTServer(cfg)
+	ginServer.Use(paginationValidationMiddleware(cfg.Pagination.Default, cfg.Pagination.Maximum))
 
 	dbGorm := orm.InitDB(cfg)
 	policyAdapter := orm.NewCasbinAdapter(dbGorm)
@@ -197,5 +202,52 @@ func MigrateRBAC(authModule auth.AuthModule) {
 				Err(err).
 				Msgf("Failed to add policy: %s -> %s [%s]", policy.UserGroup, policy.ResourceGroup, policy.Method)
 		}
+	}
+}
+
+func paginationValidationMiddleware(defaultLimit, maxLimit int) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		limitStr := ctx.Query("limit")
+		offsetStr := ctx.Query("offset")
+
+		var limit, offset int
+		if limitStr == "" {
+			limit = defaultLimit
+		} else {
+			parsedLimit, err := strconv.Atoi(limitStr)
+			if err != nil || parsedLimit < 1 || parsedLimit > maxLimit {
+				ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+					"error": fmt.Sprintf("Invalid limit parameter. Must be an integer between 1 and %d", maxLimit),
+				})
+				return
+			}
+			limit = parsedLimit
+		}
+
+		if offsetStr == "" {
+			offset = 0
+		} else {
+			parsedOffset, err := strconv.Atoi(offsetStr)
+			if err != nil || parsedOffset < 0 {
+				ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+					"error": "Invalid offset parameter. Must be a non-negative integer.",
+				})
+				return
+			}
+			offset = parsedOffset
+		}
+
+		if limit > maxLimit {
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"error": fmt.Sprintf("Limit parameter cannot exceed %d", maxLimit),
+			})
+			return
+		}
+
+		// Insert validated pagination parameters back into the query for handlers to use
+		params := ctx.Request.URL.Query()
+		params.Set("limit", strconv.Itoa(limit))
+		params.Set("offset", strconv.Itoa(offset))
+		ctx.Request.URL.RawQuery = params.Encode()
 	}
 }

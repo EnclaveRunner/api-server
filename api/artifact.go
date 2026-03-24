@@ -510,10 +510,8 @@ func cmpArtifacts(a, b *pb.Artifact) int {
 
 func artifactToArtifact(artifact *pb.Artifact) Artifact {
 	return Artifact{
-		Package: PackageName{
-			Namespace: artifact.Package.Namespace,
-			Name:      artifact.Package.Name,
-		},
+		Namespace:   artifact.Package.Namespace,
+		Name:        artifact.Package.Name,
 		VersionHash: artifact.VersionHash,
 		Tags:        artifact.Tags,
 		Pulls:       int(artifact.Metadata.Pulls),

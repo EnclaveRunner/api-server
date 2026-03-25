@@ -352,18 +352,21 @@ func (server *Server) PutV1RbacPolicy(ctx context.Context, request PutV1RbacPoli
 func (server *Server) PutV1RbacResourceGroupResourceGroup(ctx context.Context, request PutV1RbacResourceGroupResourceGroupRequestObject) (PutV1RbacResourceGroupResourceGroupResponseObject, error) {
 	currentEndpoints, err := server.authModule.GetResourceGroup(request.ResourceGroup)
 	if err != nil {
-		if errors.Is(err, &auth.NotFoundError{}) {
+		var errNotFound *auth.NotFoundError
+		if errors.As(err, &errNotFound) {
 			err = server.authModule.CreateResourceGroup(request.ResourceGroup)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to create resource group")
 
 				return GenericInternalServerErrorResponse{}, nil
 			}
+
+			currentEndpoints = []string{}
+		} else {
+			log.Error().Err(err).Msg("Failed to get resource group")
+
+			return GenericInternalServerErrorResponse{}, nil
 		}
-
-		log.Error().Err(err).Msg("Failed to get resource group")
-
-		return GenericInternalServerErrorResponse{}, nil
 	}
 
 	for _, endpoint := range currentEndpoints {
@@ -402,18 +405,21 @@ func (server *Server) PutV1RbacResourceGroupResourceGroup(ctx context.Context, r
 func (server *Server) PutV1RbacRoleRole(ctx context.Context, request PutV1RbacRoleRoleRequestObject) (PutV1RbacRoleRoleResponseObject, error) {
 	currentUsers, err := server.authModule.GetUserGroup(request.Role)
 	if err != nil {
-		if errors.Is(err, &auth.NotFoundError{}) {
+		var errNotFound *auth.NotFoundError
+		if errors.As(err, &errNotFound) {
 			err = server.authModule.CreateUserGroup(request.Role)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to create role")
 
 				return GenericInternalServerErrorResponse{}, nil
 			}
+
+			currentUsers = []string{}
+		} else {
+			log.Error().Err(err).Msg("Failed to get user group")
+
+			return GenericInternalServerErrorResponse{}, nil
 		}
-
-		log.Error().Err(err).Msg("Failed to get user group")
-
-		return GenericInternalServerErrorResponse{}, nil
 	}
 
 	for _, user := range currentUsers {

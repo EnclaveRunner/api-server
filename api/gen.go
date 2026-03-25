@@ -129,9 +129,6 @@ type PatchMe struct {
 	// DisplayName The display name for the current user.
 	DisplayName *string `json:"displayName,omitempty"`
 
-	// Name The name for the current user.
-	Name *string `json:"name,omitempty"`
-
 	// Password The password for the current user.
 	Password *string `json:"password,omitempty"`
 
@@ -144,14 +141,23 @@ type PatchUser struct {
 	// DisplayName The display name for the user.
 	DisplayName *string `json:"displayName,omitempty"`
 
-	// Name The name for the user.
-	Name *string `json:"name,omitempty"`
-
 	// Password The password for the user.
 	Password *string `json:"password,omitempty"`
 
 	// Roles Roles assigned to the user.
 	Roles *[]string `json:"roles,omitempty"`
+}
+
+// PutResourceGroupRequest defines model for PutResourceGroupRequest.
+type PutResourceGroupRequest struct {
+	// Endpoints Endpoints assigned to this resource group.
+	Endpoints []string `json:"endpoints"`
+}
+
+// PutRoleRequest defines model for PutRoleRequest.
+type PutRoleRequest struct {
+	// Users Usernames assigned to this role.
+	Users []string `json:"users"`
 }
 
 // RBACPolicy defines model for RBACPolicy.
@@ -183,7 +189,7 @@ type RoleResource struct {
 	// Name The role name.
 	Name string `json:"name"`
 
-	// Users User UUIDs assigned to this role.
+	// Users Usernames assigned to this role.
 	Users []string `json:"users"`
 }
 
@@ -264,9 +270,6 @@ type UploadArtifactResponse struct {
 type UserResponse struct {
 	// DisplayName The display name of the user.
 	DisplayName string `json:"displayName"`
-
-	// Id The uuid of the user.
-	Id string `json:"id"`
 
 	// Name The name of the user.
 	Name string `json:"name"`
@@ -413,10 +416,10 @@ type DeleteV1RbacPolicyJSONRequestBody = RBACPolicy
 type PutV1RbacPolicyJSONRequestBody = RBACPolicy
 
 // PutV1RbacResourceGroupResourceGroupJSONRequestBody defines body for PutV1RbacResourceGroupResourceGroup for application/json ContentType.
-type PutV1RbacResourceGroupResourceGroupJSONRequestBody = ResourceGroupResource
+type PutV1RbacResourceGroupResourceGroupJSONRequestBody = PutResourceGroupRequest
 
 // PutV1RbacRoleRoleJSONRequestBody defines body for PutV1RbacRoleRole for application/json ContentType.
-type PutV1RbacRoleRoleJSONRequestBody = RoleResource
+type PutV1RbacRoleRoleJSONRequestBody = PutRoleRequest
 
 // PostV1TaskJSONRequestBody defines body for PostV1Task for application/json ContentType.
 type PostV1TaskJSONRequestBody = CreateTaskRequest
@@ -427,8 +430,8 @@ type PostV1UserJSONRequestBody = CreateUser
 // PatchV1UserMeJSONRequestBody defines body for PatchV1UserMe for application/json ContentType.
 type PatchV1UserMeJSONRequestBody = PatchMe
 
-// PatchV1UserIdJSONRequestBody defines body for PatchV1UserId for application/json ContentType.
-type PatchV1UserIdJSONRequestBody = PatchUser
+// PatchV1UserUsernameJSONRequestBody defines body for PatchV1UserUsername for application/json ContentType.
+type PatchV1UserUsernameJSONRequestBody = PatchUser
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -535,17 +538,17 @@ type ServerInterface interface {
 	// (PATCH /v1/user/me)
 	PatchV1UserMe(c *gin.Context)
 	// Delete User
-	// (DELETE /v1/user/{id})
-	DeleteV1UserId(c *gin.Context, id string)
+	// (DELETE /v1/user/{username})
+	DeleteV1UserUsername(c *gin.Context, username string)
 	// Get User
-	// (GET /v1/user/{id})
-	GetV1UserId(c *gin.Context, id string)
+	// (GET /v1/user/{username})
+	GetV1UserUsername(c *gin.Context, username string)
 	// Check User Existence
-	// (HEAD /v1/user/{id})
-	HeadV1UserId(c *gin.Context, id string)
+	// (HEAD /v1/user/{username})
+	HeadV1UserUsername(c *gin.Context, username string)
 	// Update User
-	// (PATCH /v1/user/{id})
-	PatchV1UserId(c *gin.Context, id string)
+	// (PATCH /v1/user/{username})
+	PatchV1UserUsername(c *gin.Context, username string)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -1723,17 +1726,17 @@ func (siw *ServerInterfaceWrapper) PatchV1UserMe(c *gin.Context) {
 	siw.Handler.PatchV1UserMe(c)
 }
 
-// DeleteV1UserId operation middleware
-func (siw *ServerInterfaceWrapper) DeleteV1UserId(c *gin.Context) {
+// DeleteV1UserUsername operation middleware
+func (siw *ServerInterfaceWrapper) DeleteV1UserUsername(c *gin.Context) {
 
 	var err error
 
-	// ------------- Path parameter "id" -------------
-	var id string
+	// ------------- Path parameter "username" -------------
+	var username string
 
-	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	err = runtime.BindStyledParameterWithOptions("simple", "username", c.Param("username"), &username, runtime.BindStyledParameterOptions{Explode: false, Required: true})
 	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter username: %w", err), http.StatusBadRequest)
 		return
 	}
 
@@ -1746,20 +1749,20 @@ func (siw *ServerInterfaceWrapper) DeleteV1UserId(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.DeleteV1UserId(c, id)
+	siw.Handler.DeleteV1UserUsername(c, username)
 }
 
-// GetV1UserId operation middleware
-func (siw *ServerInterfaceWrapper) GetV1UserId(c *gin.Context) {
+// GetV1UserUsername operation middleware
+func (siw *ServerInterfaceWrapper) GetV1UserUsername(c *gin.Context) {
 
 	var err error
 
-	// ------------- Path parameter "id" -------------
-	var id string
+	// ------------- Path parameter "username" -------------
+	var username string
 
-	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	err = runtime.BindStyledParameterWithOptions("simple", "username", c.Param("username"), &username, runtime.BindStyledParameterOptions{Explode: false, Required: true})
 	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter username: %w", err), http.StatusBadRequest)
 		return
 	}
 
@@ -1772,20 +1775,20 @@ func (siw *ServerInterfaceWrapper) GetV1UserId(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.GetV1UserId(c, id)
+	siw.Handler.GetV1UserUsername(c, username)
 }
 
-// HeadV1UserId operation middleware
-func (siw *ServerInterfaceWrapper) HeadV1UserId(c *gin.Context) {
+// HeadV1UserUsername operation middleware
+func (siw *ServerInterfaceWrapper) HeadV1UserUsername(c *gin.Context) {
 
 	var err error
 
-	// ------------- Path parameter "id" -------------
-	var id string
+	// ------------- Path parameter "username" -------------
+	var username string
 
-	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	err = runtime.BindStyledParameterWithOptions("simple", "username", c.Param("username"), &username, runtime.BindStyledParameterOptions{Explode: false, Required: true})
 	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter username: %w", err), http.StatusBadRequest)
 		return
 	}
 
@@ -1798,20 +1801,20 @@ func (siw *ServerInterfaceWrapper) HeadV1UserId(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.HeadV1UserId(c, id)
+	siw.Handler.HeadV1UserUsername(c, username)
 }
 
-// PatchV1UserId operation middleware
-func (siw *ServerInterfaceWrapper) PatchV1UserId(c *gin.Context) {
+// PatchV1UserUsername operation middleware
+func (siw *ServerInterfaceWrapper) PatchV1UserUsername(c *gin.Context) {
 
 	var err error
 
-	// ------------- Path parameter "id" -------------
-	var id string
+	// ------------- Path parameter "username" -------------
+	var username string
 
-	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	err = runtime.BindStyledParameterWithOptions("simple", "username", c.Param("username"), &username, runtime.BindStyledParameterOptions{Explode: false, Required: true})
 	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter username: %w", err), http.StatusBadRequest)
 		return
 	}
 
@@ -1824,7 +1827,7 @@ func (siw *ServerInterfaceWrapper) PatchV1UserId(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.PatchV1UserId(c, id)
+	siw.Handler.PatchV1UserUsername(c, username)
 }
 
 // GinServerOptions provides options for the Gin server.
@@ -1888,10 +1891,10 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.DELETE(options.BaseURL+"/v1/user/me", wrapper.DeleteV1UserMe)
 	router.GET(options.BaseURL+"/v1/user/me", wrapper.GetV1UserMe)
 	router.PATCH(options.BaseURL+"/v1/user/me", wrapper.PatchV1UserMe)
-	router.DELETE(options.BaseURL+"/v1/user/:id", wrapper.DeleteV1UserId)
-	router.GET(options.BaseURL+"/v1/user/:id", wrapper.GetV1UserId)
-	router.HEAD(options.BaseURL+"/v1/user/:id", wrapper.HeadV1UserId)
-	router.PATCH(options.BaseURL+"/v1/user/:id", wrapper.PatchV1UserId)
+	router.DELETE(options.BaseURL+"/v1/user/:username", wrapper.DeleteV1UserUsername)
+	router.GET(options.BaseURL+"/v1/user/:username", wrapper.GetV1UserUsername)
+	router.HEAD(options.BaseURL+"/v1/user/:username", wrapper.HeadV1UserUsername)
+	router.PATCH(options.BaseURL+"/v1/user/:username", wrapper.PatchV1UserUsername)
 }
 
 type FieldErrorJSONResponse struct {
@@ -4003,272 +4006,272 @@ func (response PatchV1UserMe500Response) VisitPatchV1UserMeResponse(w http.Respo
 	return nil
 }
 
-type DeleteV1UserIdRequestObject struct {
-	Id string `json:"id"`
+type DeleteV1UserUsernameRequestObject struct {
+	Username string `json:"username"`
 }
 
-type DeleteV1UserIdResponseObject interface {
-	VisitDeleteV1UserIdResponse(w http.ResponseWriter) error
+type DeleteV1UserUsernameResponseObject interface {
+	VisitDeleteV1UserUsernameResponse(w http.ResponseWriter) error
 }
 
-type DeleteV1UserId200JSONResponse UserResponse
+type DeleteV1UserUsername200JSONResponse UserResponse
 
-func (response DeleteV1UserId200JSONResponse) VisitDeleteV1UserIdResponse(w http.ResponseWriter) error {
+func (response DeleteV1UserUsername200JSONResponse) VisitDeleteV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type DeleteV1UserId400JSONResponse struct{ GenericBadRequestJSONResponse }
+type DeleteV1UserUsername400JSONResponse struct{ GenericBadRequestJSONResponse }
 
-func (response DeleteV1UserId400JSONResponse) VisitDeleteV1UserIdResponse(w http.ResponseWriter) error {
+func (response DeleteV1UserUsername400JSONResponse) VisitDeleteV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type DeleteV1UserId401Response = GenericUnauthenticatedResponse
+type DeleteV1UserUsername401Response = GenericUnauthenticatedResponse
 
-func (response DeleteV1UserId401Response) VisitDeleteV1UserIdResponse(w http.ResponseWriter) error {
+func (response DeleteV1UserUsername401Response) VisitDeleteV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.WriteHeader(401)
 	return nil
 }
 
-type DeleteV1UserId403Response = GenericForbiddenResponse
+type DeleteV1UserUsername403Response = GenericForbiddenResponse
 
-func (response DeleteV1UserId403Response) VisitDeleteV1UserIdResponse(w http.ResponseWriter) error {
+func (response DeleteV1UserUsername403Response) VisitDeleteV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.WriteHeader(403)
 	return nil
 }
 
-type DeleteV1UserId404JSONResponse struct{ GenericNotFoundJSONResponse }
+type DeleteV1UserUsername404JSONResponse struct{ GenericNotFoundJSONResponse }
 
-func (response DeleteV1UserId404JSONResponse) VisitDeleteV1UserIdResponse(w http.ResponseWriter) error {
+func (response DeleteV1UserUsername404JSONResponse) VisitDeleteV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type DeleteV1UserId413JSONResponse struct{ GenericTooLargeJSONResponse }
+type DeleteV1UserUsername413JSONResponse struct{ GenericTooLargeJSONResponse }
 
-func (response DeleteV1UserId413JSONResponse) VisitDeleteV1UserIdResponse(w http.ResponseWriter) error {
+func (response DeleteV1UserUsername413JSONResponse) VisitDeleteV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(413)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type DeleteV1UserId500Response = GenericInternalServerErrorResponse
+type DeleteV1UserUsername500Response = GenericInternalServerErrorResponse
 
-func (response DeleteV1UserId500Response) VisitDeleteV1UserIdResponse(w http.ResponseWriter) error {
+func (response DeleteV1UserUsername500Response) VisitDeleteV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
 	return nil
 }
 
-type GetV1UserIdRequestObject struct {
-	Id string `json:"id"`
+type GetV1UserUsernameRequestObject struct {
+	Username string `json:"username"`
 }
 
-type GetV1UserIdResponseObject interface {
-	VisitGetV1UserIdResponse(w http.ResponseWriter) error
+type GetV1UserUsernameResponseObject interface {
+	VisitGetV1UserUsernameResponse(w http.ResponseWriter) error
 }
 
-type GetV1UserId200JSONResponse UserResponse
+type GetV1UserUsername200JSONResponse UserResponse
 
-func (response GetV1UserId200JSONResponse) VisitGetV1UserIdResponse(w http.ResponseWriter) error {
+func (response GetV1UserUsername200JSONResponse) VisitGetV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetV1UserId400JSONResponse struct{ GenericBadRequestJSONResponse }
+type GetV1UserUsername400JSONResponse struct{ GenericBadRequestJSONResponse }
 
-func (response GetV1UserId400JSONResponse) VisitGetV1UserIdResponse(w http.ResponseWriter) error {
+func (response GetV1UserUsername400JSONResponse) VisitGetV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetV1UserId401Response = GenericUnauthenticatedResponse
+type GetV1UserUsername401Response = GenericUnauthenticatedResponse
 
-func (response GetV1UserId401Response) VisitGetV1UserIdResponse(w http.ResponseWriter) error {
+func (response GetV1UserUsername401Response) VisitGetV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.WriteHeader(401)
 	return nil
 }
 
-type GetV1UserId403Response = GenericForbiddenResponse
+type GetV1UserUsername403Response = GenericForbiddenResponse
 
-func (response GetV1UserId403Response) VisitGetV1UserIdResponse(w http.ResponseWriter) error {
+func (response GetV1UserUsername403Response) VisitGetV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.WriteHeader(403)
 	return nil
 }
 
-type GetV1UserId404JSONResponse struct{ GenericNotFoundJSONResponse }
+type GetV1UserUsername404JSONResponse struct{ GenericNotFoundJSONResponse }
 
-func (response GetV1UserId404JSONResponse) VisitGetV1UserIdResponse(w http.ResponseWriter) error {
+func (response GetV1UserUsername404JSONResponse) VisitGetV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetV1UserId413JSONResponse struct{ GenericTooLargeJSONResponse }
+type GetV1UserUsername413JSONResponse struct{ GenericTooLargeJSONResponse }
 
-func (response GetV1UserId413JSONResponse) VisitGetV1UserIdResponse(w http.ResponseWriter) error {
+func (response GetV1UserUsername413JSONResponse) VisitGetV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(413)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetV1UserId500Response = GenericInternalServerErrorResponse
+type GetV1UserUsername500Response = GenericInternalServerErrorResponse
 
-func (response GetV1UserId500Response) VisitGetV1UserIdResponse(w http.ResponseWriter) error {
+func (response GetV1UserUsername500Response) VisitGetV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
 	return nil
 }
 
-type HeadV1UserIdRequestObject struct {
-	Id string `json:"id"`
+type HeadV1UserUsernameRequestObject struct {
+	Username string `json:"username"`
 }
 
-type HeadV1UserIdResponseObject interface {
-	VisitHeadV1UserIdResponse(w http.ResponseWriter) error
+type HeadV1UserUsernameResponseObject interface {
+	VisitHeadV1UserUsernameResponse(w http.ResponseWriter) error
 }
 
-type HeadV1UserId200Response struct {
+type HeadV1UserUsername200Response struct {
 }
 
-func (response HeadV1UserId200Response) VisitHeadV1UserIdResponse(w http.ResponseWriter) error {
+func (response HeadV1UserUsername200Response) VisitHeadV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.WriteHeader(200)
 	return nil
 }
 
-type HeadV1UserId400Response struct {
+type HeadV1UserUsername400Response struct {
 }
 
-func (response HeadV1UserId400Response) VisitHeadV1UserIdResponse(w http.ResponseWriter) error {
+func (response HeadV1UserUsername400Response) VisitHeadV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.WriteHeader(400)
 	return nil
 }
 
-type HeadV1UserId401Response struct {
+type HeadV1UserUsername401Response struct {
 }
 
-func (response HeadV1UserId401Response) VisitHeadV1UserIdResponse(w http.ResponseWriter) error {
+func (response HeadV1UserUsername401Response) VisitHeadV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.WriteHeader(401)
 	return nil
 }
 
-type HeadV1UserId403Response struct {
+type HeadV1UserUsername403Response struct {
 }
 
-func (response HeadV1UserId403Response) VisitHeadV1UserIdResponse(w http.ResponseWriter) error {
+func (response HeadV1UserUsername403Response) VisitHeadV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.WriteHeader(403)
 	return nil
 }
 
-type HeadV1UserId404Response struct {
+type HeadV1UserUsername404Response struct {
 }
 
-func (response HeadV1UserId404Response) VisitHeadV1UserIdResponse(w http.ResponseWriter) error {
+func (response HeadV1UserUsername404Response) VisitHeadV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.WriteHeader(404)
 	return nil
 }
 
-type HeadV1UserId413JSONResponse struct{ GenericTooLargeJSONResponse }
+type HeadV1UserUsername413JSONResponse struct{ GenericTooLargeJSONResponse }
 
-func (response HeadV1UserId413JSONResponse) VisitHeadV1UserIdResponse(w http.ResponseWriter) error {
+func (response HeadV1UserUsername413JSONResponse) VisitHeadV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(413)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type HeadV1UserId500Response struct {
+type HeadV1UserUsername500Response struct {
 }
 
-func (response HeadV1UserId500Response) VisitHeadV1UserIdResponse(w http.ResponseWriter) error {
+func (response HeadV1UserUsername500Response) VisitHeadV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
 	return nil
 }
 
-type PatchV1UserIdRequestObject struct {
-	Id   string `json:"id"`
-	Body *PatchV1UserIdJSONRequestBody
+type PatchV1UserUsernameRequestObject struct {
+	Username string `json:"username"`
+	Body     *PatchV1UserUsernameJSONRequestBody
 }
 
-type PatchV1UserIdResponseObject interface {
-	VisitPatchV1UserIdResponse(w http.ResponseWriter) error
+type PatchV1UserUsernameResponseObject interface {
+	VisitPatchV1UserUsernameResponse(w http.ResponseWriter) error
 }
 
-type PatchV1UserId200JSONResponse UserResponse
+type PatchV1UserUsername200JSONResponse UserResponse
 
-func (response PatchV1UserId200JSONResponse) VisitPatchV1UserIdResponse(w http.ResponseWriter) error {
+func (response PatchV1UserUsername200JSONResponse) VisitPatchV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PatchV1UserId400JSONResponse struct{ GenericBadRequestJSONResponse }
+type PatchV1UserUsername400JSONResponse struct{ GenericBadRequestJSONResponse }
 
-func (response PatchV1UserId400JSONResponse) VisitPatchV1UserIdResponse(w http.ResponseWriter) error {
+func (response PatchV1UserUsername400JSONResponse) VisitPatchV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PatchV1UserId401Response = GenericUnauthenticatedResponse
+type PatchV1UserUsername401Response = GenericUnauthenticatedResponse
 
-func (response PatchV1UserId401Response) VisitPatchV1UserIdResponse(w http.ResponseWriter) error {
+func (response PatchV1UserUsername401Response) VisitPatchV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.WriteHeader(401)
 	return nil
 }
 
-type PatchV1UserId403Response = GenericForbiddenResponse
+type PatchV1UserUsername403Response = GenericForbiddenResponse
 
-func (response PatchV1UserId403Response) VisitPatchV1UserIdResponse(w http.ResponseWriter) error {
+func (response PatchV1UserUsername403Response) VisitPatchV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.WriteHeader(403)
 	return nil
 }
 
-type PatchV1UserId404JSONResponse struct{ GenericNotFoundJSONResponse }
+type PatchV1UserUsername404JSONResponse struct{ GenericNotFoundJSONResponse }
 
-func (response PatchV1UserId404JSONResponse) VisitPatchV1UserIdResponse(w http.ResponseWriter) error {
+func (response PatchV1UserUsername404JSONResponse) VisitPatchV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PatchV1UserId409JSONResponse ErrGeneric
+type PatchV1UserUsername409JSONResponse ErrGeneric
 
-func (response PatchV1UserId409JSONResponse) VisitPatchV1UserIdResponse(w http.ResponseWriter) error {
+func (response PatchV1UserUsername409JSONResponse) VisitPatchV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(409)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PatchV1UserId413JSONResponse struct{ GenericTooLargeJSONResponse }
+type PatchV1UserUsername413JSONResponse struct{ GenericTooLargeJSONResponse }
 
-func (response PatchV1UserId413JSONResponse) VisitPatchV1UserIdResponse(w http.ResponseWriter) error {
+func (response PatchV1UserUsername413JSONResponse) VisitPatchV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(413)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PatchV1UserId500Response = GenericInternalServerErrorResponse
+type PatchV1UserUsername500Response = GenericInternalServerErrorResponse
 
-func (response PatchV1UserId500Response) VisitPatchV1UserIdResponse(w http.ResponseWriter) error {
+func (response PatchV1UserUsername500Response) VisitPatchV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
 	return nil
 }
@@ -4378,17 +4381,17 @@ type StrictServerInterface interface {
 	// (PATCH /v1/user/me)
 	PatchV1UserMe(ctx context.Context, request PatchV1UserMeRequestObject) (PatchV1UserMeResponseObject, error)
 	// Delete User
-	// (DELETE /v1/user/{id})
-	DeleteV1UserId(ctx context.Context, request DeleteV1UserIdRequestObject) (DeleteV1UserIdResponseObject, error)
+	// (DELETE /v1/user/{username})
+	DeleteV1UserUsername(ctx context.Context, request DeleteV1UserUsernameRequestObject) (DeleteV1UserUsernameResponseObject, error)
 	// Get User
-	// (GET /v1/user/{id})
-	GetV1UserId(ctx context.Context, request GetV1UserIdRequestObject) (GetV1UserIdResponseObject, error)
+	// (GET /v1/user/{username})
+	GetV1UserUsername(ctx context.Context, request GetV1UserUsernameRequestObject) (GetV1UserUsernameResponseObject, error)
 	// Check User Existence
-	// (HEAD /v1/user/{id})
-	HeadV1UserId(ctx context.Context, request HeadV1UserIdRequestObject) (HeadV1UserIdResponseObject, error)
+	// (HEAD /v1/user/{username})
+	HeadV1UserUsername(ctx context.Context, request HeadV1UserUsernameRequestObject) (HeadV1UserUsernameResponseObject, error)
 	// Update User
-	// (PATCH /v1/user/{id})
-	PatchV1UserId(ctx context.Context, request PatchV1UserIdRequestObject) (PatchV1UserIdResponseObject, error)
+	// (PATCH /v1/user/{username})
+	PatchV1UserUsername(ctx context.Context, request PatchV1UserUsernameRequestObject) (PatchV1UserUsernameResponseObject, error)
 }
 
 type StrictHandlerFunc = strictgin.StrictGinHandlerFunc
@@ -5402,17 +5405,17 @@ func (sh *strictHandler) PatchV1UserMe(ctx *gin.Context) {
 	}
 }
 
-// DeleteV1UserId operation middleware
-func (sh *strictHandler) DeleteV1UserId(ctx *gin.Context, id string) {
-	var request DeleteV1UserIdRequestObject
+// DeleteV1UserUsername operation middleware
+func (sh *strictHandler) DeleteV1UserUsername(ctx *gin.Context, username string) {
+	var request DeleteV1UserUsernameRequestObject
 
-	request.Id = id
+	request.Username = username
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteV1UserId(ctx, request.(DeleteV1UserIdRequestObject))
+		return sh.ssi.DeleteV1UserUsername(ctx, request.(DeleteV1UserUsernameRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "DeleteV1UserId")
+		handler = middleware(handler, "DeleteV1UserUsername")
 	}
 
 	response, err := handler(ctx, request)
@@ -5420,8 +5423,8 @@ func (sh *strictHandler) DeleteV1UserId(ctx *gin.Context, id string) {
 	if err != nil {
 		ctx.Error(err)
 		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(DeleteV1UserIdResponseObject); ok {
-		if err := validResponse.VisitDeleteV1UserIdResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(DeleteV1UserUsernameResponseObject); ok {
+		if err := validResponse.VisitDeleteV1UserUsernameResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -5429,17 +5432,17 @@ func (sh *strictHandler) DeleteV1UserId(ctx *gin.Context, id string) {
 	}
 }
 
-// GetV1UserId operation middleware
-func (sh *strictHandler) GetV1UserId(ctx *gin.Context, id string) {
-	var request GetV1UserIdRequestObject
+// GetV1UserUsername operation middleware
+func (sh *strictHandler) GetV1UserUsername(ctx *gin.Context, username string) {
+	var request GetV1UserUsernameRequestObject
 
-	request.Id = id
+	request.Username = username
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetV1UserId(ctx, request.(GetV1UserIdRequestObject))
+		return sh.ssi.GetV1UserUsername(ctx, request.(GetV1UserUsernameRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetV1UserId")
+		handler = middleware(handler, "GetV1UserUsername")
 	}
 
 	response, err := handler(ctx, request)
@@ -5447,8 +5450,8 @@ func (sh *strictHandler) GetV1UserId(ctx *gin.Context, id string) {
 	if err != nil {
 		ctx.Error(err)
 		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(GetV1UserIdResponseObject); ok {
-		if err := validResponse.VisitGetV1UserIdResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(GetV1UserUsernameResponseObject); ok {
+		if err := validResponse.VisitGetV1UserUsernameResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -5456,17 +5459,17 @@ func (sh *strictHandler) GetV1UserId(ctx *gin.Context, id string) {
 	}
 }
 
-// HeadV1UserId operation middleware
-func (sh *strictHandler) HeadV1UserId(ctx *gin.Context, id string) {
-	var request HeadV1UserIdRequestObject
+// HeadV1UserUsername operation middleware
+func (sh *strictHandler) HeadV1UserUsername(ctx *gin.Context, username string) {
+	var request HeadV1UserUsernameRequestObject
 
-	request.Id = id
+	request.Username = username
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.HeadV1UserId(ctx, request.(HeadV1UserIdRequestObject))
+		return sh.ssi.HeadV1UserUsername(ctx, request.(HeadV1UserUsernameRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "HeadV1UserId")
+		handler = middleware(handler, "HeadV1UserUsername")
 	}
 
 	response, err := handler(ctx, request)
@@ -5474,8 +5477,8 @@ func (sh *strictHandler) HeadV1UserId(ctx *gin.Context, id string) {
 	if err != nil {
 		ctx.Error(err)
 		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(HeadV1UserIdResponseObject); ok {
-		if err := validResponse.VisitHeadV1UserIdResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(HeadV1UserUsernameResponseObject); ok {
+		if err := validResponse.VisitHeadV1UserUsernameResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -5483,13 +5486,13 @@ func (sh *strictHandler) HeadV1UserId(ctx *gin.Context, id string) {
 	}
 }
 
-// PatchV1UserId operation middleware
-func (sh *strictHandler) PatchV1UserId(ctx *gin.Context, id string) {
-	var request PatchV1UserIdRequestObject
+// PatchV1UserUsername operation middleware
+func (sh *strictHandler) PatchV1UserUsername(ctx *gin.Context, username string) {
+	var request PatchV1UserUsernameRequestObject
 
-	request.Id = id
+	request.Username = username
 
-	var body PatchV1UserIdJSONRequestBody
+	var body PatchV1UserUsernameJSONRequestBody
 	if err := ctx.ShouldBindJSON(&body); err != nil {
 		ctx.Status(http.StatusBadRequest)
 		ctx.Error(err)
@@ -5498,10 +5501,10 @@ func (sh *strictHandler) PatchV1UserId(ctx *gin.Context, id string) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.PatchV1UserId(ctx, request.(PatchV1UserIdRequestObject))
+		return sh.ssi.PatchV1UserUsername(ctx, request.(PatchV1UserUsernameRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "PatchV1UserId")
+		handler = middleware(handler, "PatchV1UserUsername")
 	}
 
 	response, err := handler(ctx, request)
@@ -5509,8 +5512,8 @@ func (sh *strictHandler) PatchV1UserId(ctx *gin.Context, id string) {
 	if err != nil {
 		ctx.Error(err)
 		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(PatchV1UserIdResponseObject); ok {
-		if err := validResponse.VisitPatchV1UserIdResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(PatchV1UserUsernameResponseObject); ok {
+		if err := validResponse.VisitPatchV1UserUsernameResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -5521,82 +5524,82 @@ func (sh *strictHandler) PatchV1UserId(ctx *gin.Context, id string) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"AAA=",
+	"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",
+	"AAD//yxHH3PvrQAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

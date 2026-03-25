@@ -103,17 +103,17 @@ paths:
           $ref: "#/components/responses/GenericInternalServerError"
       security:
         - BasicAuth: []
-  /v1/user/{id}:
+  /v1/user/{username}:
     parameters:
-      - name: id
+      - name: username
         in: path
         required: true
         schema:
           type: string
-        description: UUID of the user.
+        description: Unique name of the user.
     get:
       summary: Get User
-      description: Retrieve information about a specific user by id.
+      description: Retrieve information about a specific user by username.
       tags:
         - Users
       responses:
@@ -139,7 +139,7 @@ paths:
         - BasicAuth: []
     head:
       summary: Check User Existence
-      description: Check if a specific user exists.
+      description: Check if a specific user exists by username.
       tags:
         - Users
       responses:
@@ -1654,13 +1654,9 @@ components:
     UserResponse:
       type: object
       required:
-        - id
         - name
         - displayName
       properties:
-        id:
-          type: string
-          description: The uuid of the user.
         name:
           type: string
           description: The name of the user.
@@ -1691,9 +1687,6 @@ components:
     PatchUser:
       type: object
       properties:
-        name:
-          type: string
-          description: The name for the user.
         password:
           type: string
           description: The password for the user.
@@ -1708,9 +1701,6 @@ components:
     PatchMe:
       type: object
       properties:
-        name:
-          type: string
-          description: The name for the current user.
         password:
           type: string
           description: The password for the current user.
@@ -1757,7 +1747,7 @@ components:
           description: The role name.
         users:
           type: array
-          description: User UUIDs assigned to this role.
+          description: Usernames assigned to this role.
           items:
             type: string
     PutRoleRequest:
@@ -1767,7 +1757,7 @@ components:
       properties:
         users:
           type: array
-          description: User UUIDs assigned to this role.
+          description: Usernames assigned to this role.
           items:
             type: string
     ResourceGroupResource:

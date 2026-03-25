@@ -23,7 +23,7 @@ func (db *DB) BasicAuthFunc() middleware.BasicAuthenticator {
 
 		pwd, err := gorm.G[Auth_Basic](
 			db.dbGorm,
-		).Where(&Auth_Basic{UserID: user.ID}).
+		).Where(&Auth_Basic{Username: user.Username}).
 			First(ctx)
 		if err != nil {
 			return "", gorm.ErrRecordNotFound
@@ -35,6 +35,6 @@ func (db *DB) BasicAuthFunc() middleware.BasicAuthenticator {
 			return "", gorm.ErrRecordNotFound
 		}
 
-		return user.ID.String(), nil
+		return user.Username, nil
 	}
 }

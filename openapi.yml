@@ -310,6 +310,27 @@ paths:
       description: Retrieve a list of all roles in the system.
       tags:
         - RBAC
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          description: Maximum number of policies to return.
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          description: Offset into the policy list.
+        - name: role
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter policies by role.
       responses:
         "200":
           description: Successful response with a list of roles.
@@ -318,7 +339,7 @@ paths:
               schema:
                 type: array
                 items:
-                  type: string
+                  $ref: "#/components/schemas/RoleResource"
         "401":
           $ref: "#/components/responses/GenericUnauthenticated"
         "403":
@@ -339,18 +360,16 @@ paths:
         description: The name of the role.
     get:
       summary: Get assigned users for role
-      description: Retrieve a list of users assigned to a specific role.
+      description: Retrieve a role resource.
       tags:
         - RBAC
       responses:
         "200":
-          description: Successful response with a list of users assigned to the role.
+          description: Successful response with the role resource.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: string
+                $ref: "#/components/schemas/RoleResource"
         "400":
           $ref: "#/components/responses/GenericBadRequest"
         "401":
@@ -392,9 +411,19 @@ paths:
       description: Create a new role or replace an existing one at the specified role name.
       tags:
         - RBAC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PutRoleRequest"
       responses:
         "201":
           description: Role created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoleResource"
         "400":
           $ref: "#/components/responses/GenericBadRequest"
         "401":
@@ -421,6 +450,10 @@ paths:
       responses:
         "200":
           description: Roles deleted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoleResource"
         "400":
           $ref: "#/components/responses/GenericBadRequest"
         "401":
@@ -430,7 +463,7 @@ paths:
         "404":
           $ref: "#/components/responses/GenericNotFound"
         "409":
-          description: "Role is still assigned to users."
+          description: "Tried to delete enclave admin role"
           content:
             application/json:
               schema:
@@ -447,6 +480,27 @@ paths:
       description: Retrieve a list of all resource groups in the system.
       tags:
         - RBAC
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          description: Maximum number of policies to return.
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          description: Offset into the policy list.
+        - name: role
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter policies by role.
       responses:
         "200":
           description: Successful response with a list of resource groups.
@@ -455,7 +509,7 @@ paths:
               schema:
                 type: array
                 items:
-                  type: string
+                  $ref: "#/components/schemas/ResourceGroupResource"
         "401":
           $ref: "#/components/responses/GenericUnauthenticated"
         "403":
@@ -476,18 +530,16 @@ paths:
         description: The name of the resource group.
     get:
       summary: Get Endpoints Assigned to Resource Group
-      description: Retrieve a list of endpoints assigned to a specific resource group.
+      description: Retrieve a resource group resource.
       tags:
         - RBAC
       responses:
         "200":
-          description: Successful response with a list of roles assigned to the resource group.
+          description: Successful response with the resource group resource.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: string
+                $ref: "#/components/schemas/ResourceGroupResource"
         "400":
           $ref: "#/components/responses/GenericBadRequest"
         "401":
@@ -529,9 +581,19 @@ paths:
       description: Create a new resource group or replace an existing one at the specified name.
       tags:
         - RBAC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PutResourceGroupRequest"
       responses:
         "201":
           description: Resource group created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceGroupResource"
         "400":
           $ref: "#/components/responses/GenericBadRequest"
         "401":
@@ -558,6 +620,10 @@ paths:
       responses:
         "200":
           description: Resource group deleted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceGroupResource"
         "400":
           $ref: "#/components/responses/GenericBadRequest"
         "401":
@@ -579,24 +645,38 @@ paths:
       tags:
         - RBAC
       parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          description: Maximum number of policies to return.
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          description: Offset into the policy list.
         - name: role
           in: query
           required: false
           schema:
             type: string
-          description: Filter policies by role name.
+          description: Filter policies by role.
         - name: resource-group
           in: query
           required: false
           schema:
             type: string
           description: Filter policies by resource group.
-        - name: permission
+        - name: method
           in: query
           required: false
           schema:
             type: string
-          description: Filter policies by permission.
+          description: Filter policies by HTTP method.
       responses:
         "200":
           description: Successful response with a list of RBAC policies.
@@ -616,39 +696,9 @@ paths:
           $ref: "#/components/responses/GenericInternalServerError"
       security:
         - BasicAuth: []
-  /v1/rbac/policy/{name}:
-    parameters:
-      - name: name
-        in: path
-        required: true
-        schema:
-          type: string
-        description: Unique name of the policy.
-    head:
-      summary: Check RBAC Policy Existence
-      description: Check if a role-based access control (RBAC) policy exists by its name.
-      tags:
-        - RBAC
-      responses:
-        "200":
-          description: RBAC policy exists.
-        "404":
-          description: RBAC policy not found.
-        "400":
-          description: Bad request.
-        "401":
-          description: Unauthorized.
-        "403":
-          description: Forbidden.
-        "413":
-          $ref: "#/components/responses/GenericTooLarge"
-        "500":
-          description: Internal server error.
-      security:
-        - BasicAuth: []
     put:
       summary: Create or Replace RBAC Policy
-      description: Create a new role-based access control (RBAC) policy or replace an existing one at the specified name.
+      description: Create a new role-based access control (RBAC) policy or replace an existing one for the provided tuple.
       tags:
         - RBAC
       requestBody:
@@ -676,9 +726,15 @@ paths:
         - BasicAuth: []
     delete:
       summary: Delete RBAC Policy
-      description: Delete an existing role-based access control (RBAC) policy, if it existed.
+      description: Delete an existing role-based access control (RBAC) policy for the provided tuple, if it existed.
       tags:
         - RBAC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RBACPolicy"
       responses:
         "200":
           description: RBAC policy deleted successfully.
@@ -688,6 +744,12 @@ paths:
           $ref: "#/components/responses/GenericUnauthenticated"
         "403":
           $ref: "#/components/responses/GenericForbidden"
+        "409":
+          description: "Tried to delete enclave admin policy"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrGeneric"
         "413":
           $ref: "#/components/responses/GenericTooLarge"
         "500":
@@ -1663,30 +1725,75 @@ components:
     RBACPolicy:
       type: object
       required:
-        - name
-        - role
         - resourceGroup
-        - permission
+        - role
+        - method
       properties:
-        name:
-          type: string
-          description: Unique name of the policy.
         role:
           type: string
           description: The name of the role. (or "*" for all roles)
         resourceGroup:
           type: string
           description: The name of the resource group. (or "*" for all resource groups)
-        permission:
+        method:
           type: string
           enum:
             - GET
             - POST
+            - PUT
             - PATCH
             - DELETE
             - HEAD
             - "*"
-          description: The allowed permission (e.g., "GET", "POST", "*").
+          description: The allowed HTTP method (e.g., "GET", "POST", "*").
+    RoleResource:
+      type: object
+      required:
+        - name
+        - users
+      properties:
+        name:
+          type: string
+          description: The role name.
+        users:
+          type: array
+          description: User UUIDs assigned to this role.
+          items:
+            type: string
+    PutRoleRequest:
+      type: object
+      required:
+        - users
+      properties:
+        users:
+          type: array
+          description: User UUIDs assigned to this role.
+          items:
+            type: string
+    ResourceGroupResource:
+      type: object
+      required:
+        - name
+        - endpoints
+      properties:
+        name:
+          type: string
+          description: The resource group name.
+        endpoints:
+          type: array
+          description: Endpoints assigned to this resource group.
+          items:
+            type: string
+    PutResourceGroupRequest:
+      type: object
+      required:
+        - endpoints
+      properties:
+        endpoints:
+          type: array
+          description: Endpoints assigned to this resource group.
+          items:
+            type: string
     Artifact:
       type: object
       description: Metadata of an artifact version.

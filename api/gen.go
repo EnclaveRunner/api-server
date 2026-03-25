@@ -27,14 +27,15 @@ const (
 	BasicAuthScopes = "BasicAuth.Scopes"
 )
 
-// Defines values for RBACPolicyPermission.
+// Defines values for RBACPolicyMethod.
 const (
-	Asterisk RBACPolicyPermission = "*"
-	DELETE   RBACPolicyPermission = "DELETE"
-	GET      RBACPolicyPermission = "GET"
-	HEAD     RBACPolicyPermission = "HEAD"
-	PATCH    RBACPolicyPermission = "PATCH"
-	POST     RBACPolicyPermission = "POST"
+	Asterisk RBACPolicyMethod = "*"
+	DELETE   RBACPolicyMethod = "DELETE"
+	GET      RBACPolicyMethod = "GET"
+	HEAD     RBACPolicyMethod = "HEAD"
+	PATCH    RBACPolicyMethod = "PATCH"
+	POST     RBACPolicyMethod = "POST"
+	PUT      RBACPolicyMethod = "PUT"
 )
 
 // Artifact Metadata of an artifact version.
@@ -155,11 +156,8 @@ type PatchUser struct {
 
 // RBACPolicy defines model for RBACPolicy.
 type RBACPolicy struct {
-	// Name Unique name of the policy.
-	Name string `json:"name"`
-
-	// Permission The allowed permission (e.g., "GET", "POST", "*").
-	Permission RBACPolicyPermission `json:"permission"`
+	// Method The allowed HTTP method (e.g., "GET", "POST", "*").
+	Method RBACPolicyMethod `json:"method"`
 
 	// ResourceGroup The name of the resource group. (or "*" for all resource groups)
 	ResourceGroup string `json:"resourceGroup"`
@@ -168,8 +166,26 @@ type RBACPolicy struct {
 	Role string `json:"role"`
 }
 
-// RBACPolicyPermission The allowed permission (e.g., "GET", "POST", "*").
-type RBACPolicyPermission string
+// RBACPolicyMethod The allowed HTTP method (e.g., "GET", "POST", "*").
+type RBACPolicyMethod string
+
+// ResourceGroupResource defines model for ResourceGroupResource.
+type ResourceGroupResource struct {
+	// Endpoints Endpoints assigned to this resource group.
+	Endpoints []string `json:"endpoints"`
+
+	// Name The resource group name.
+	Name string `json:"name"`
+}
+
+// RoleResource defines model for RoleResource.
+type RoleResource struct {
+	// Name The role name.
+	Name string `json:"name"`
+
+	// Users User UUIDs assigned to this role.
+	Users []string `json:"users"`
+}
 
 // Task defines model for Task.
 type Task struct {
@@ -302,14 +318,44 @@ type GetV1ArtifactNamespaceNameParams struct {
 
 // GetV1RbacPolicyParams defines parameters for GetV1RbacPolicy.
 type GetV1RbacPolicyParams struct {
-	// Role Filter policies by role name.
+	// Limit Maximum number of policies to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Offset into the policy list.
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Role Filter policies by role.
 	Role *string `form:"role,omitempty" json:"role,omitempty"`
 
 	// ResourceGroup Filter policies by resource group.
 	ResourceGroup *string `form:"resource-group,omitempty" json:"resource-group,omitempty"`
 
-	// Permission Filter policies by permission.
-	Permission *string `form:"permission,omitempty" json:"permission,omitempty"`
+	// Method Filter policies by HTTP method.
+	Method *string `form:"method,omitempty" json:"method,omitempty"`
+}
+
+// GetV1RbacResourceGroupParams defines parameters for GetV1RbacResourceGroup.
+type GetV1RbacResourceGroupParams struct {
+	// Limit Maximum number of policies to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Offset into the policy list.
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Role Filter policies by role.
+	Role *string `form:"role,omitempty" json:"role,omitempty"`
+}
+
+// GetV1RbacRoleParams defines parameters for GetV1RbacRole.
+type GetV1RbacRoleParams struct {
+	// Limit Maximum number of policies to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Offset into the policy list.
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Role Filter policies by role.
+	Role *string `form:"role,omitempty" json:"role,omitempty"`
 }
 
 // GetV1TaskParams defines parameters for GetV1Task.
@@ -360,8 +406,17 @@ type PatchV1ArtifactNamespaceNameHashHashJSONRequestBody = PatchArtifact
 // PatchV1ArtifactNamespaceNameTagTagJSONRequestBody defines body for PatchV1ArtifactNamespaceNameTagTag for application/json ContentType.
 type PatchV1ArtifactNamespaceNameTagTagJSONRequestBody = PatchArtifact
 
-// PutV1RbacPolicyNameJSONRequestBody defines body for PutV1RbacPolicyName for application/json ContentType.
-type PutV1RbacPolicyNameJSONRequestBody = RBACPolicy
+// DeleteV1RbacPolicyJSONRequestBody defines body for DeleteV1RbacPolicy for application/json ContentType.
+type DeleteV1RbacPolicyJSONRequestBody = RBACPolicy
+
+// PutV1RbacPolicyJSONRequestBody defines body for PutV1RbacPolicy for application/json ContentType.
+type PutV1RbacPolicyJSONRequestBody = RBACPolicy
+
+// PutV1RbacResourceGroupResourceGroupJSONRequestBody defines body for PutV1RbacResourceGroupResourceGroup for application/json ContentType.
+type PutV1RbacResourceGroupResourceGroupJSONRequestBody = ResourceGroupResource
+
+// PutV1RbacRoleRoleJSONRequestBody defines body for PutV1RbacRoleRole for application/json ContentType.
+type PutV1RbacRoleRoleJSONRequestBody = RoleResource
 
 // PostV1TaskJSONRequestBody defines body for PostV1Task for application/json ContentType.
 type PostV1TaskJSONRequestBody = CreateTaskRequest
@@ -413,21 +468,18 @@ type ServerInterface interface {
 	// Patch Artifact Metadata by Tag
 	// (PATCH /v1/artifact/{namespace}/{name}/tag/{tag})
 	PatchV1ArtifactNamespaceNameTagTag(c *gin.Context, namespace string, name string, tag string)
+	// Delete RBAC Policy
+	// (DELETE /v1/rbac/policy)
+	DeleteV1RbacPolicy(c *gin.Context)
 	// List RBAC Policies
 	// (GET /v1/rbac/policy)
 	GetV1RbacPolicy(c *gin.Context, params GetV1RbacPolicyParams)
-	// Delete RBAC Policy
-	// (DELETE /v1/rbac/policy/{name})
-	DeleteV1RbacPolicyName(c *gin.Context, name string)
-	// Check RBAC Policy Existence
-	// (HEAD /v1/rbac/policy/{name})
-	HeadV1RbacPolicyName(c *gin.Context, name string)
 	// Create or Replace RBAC Policy
-	// (PUT /v1/rbac/policy/{name})
-	PutV1RbacPolicyName(c *gin.Context, name string)
+	// (PUT /v1/rbac/policy)
+	PutV1RbacPolicy(c *gin.Context)
 	// List All Resource Groups
 	// (GET /v1/rbac/resource-group)
-	GetV1RbacResourceGroup(c *gin.Context)
+	GetV1RbacResourceGroup(c *gin.Context, params GetV1RbacResourceGroupParams)
 	// Delete Resource Group
 	// (DELETE /v1/rbac/resource-group/{resourceGroup})
 	DeleteV1RbacResourceGroupResourceGroup(c *gin.Context, resourceGroup string)
@@ -442,7 +494,7 @@ type ServerInterface interface {
 	PutV1RbacResourceGroupResourceGroup(c *gin.Context, resourceGroup string)
 	// List All Roles
 	// (GET /v1/rbac/role)
-	GetV1RbacRole(c *gin.Context)
+	GetV1RbacRole(c *gin.Context, params GetV1RbacRoleParams)
 	// Delete Role
 	// (DELETE /v1/rbac/role/{role})
 	DeleteV1RbacRoleRole(c *gin.Context, role string)
@@ -1027,6 +1079,21 @@ func (siw *ServerInterfaceWrapper) PatchV1ArtifactNamespaceNameTagTag(c *gin.Con
 	siw.Handler.PatchV1ArtifactNamespaceNameTagTag(c, namespace, name, tag)
 }
 
+// DeleteV1RbacPolicy operation middleware
+func (siw *ServerInterfaceWrapper) DeleteV1RbacPolicy(c *gin.Context) {
+
+	c.Set(BasicAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.DeleteV1RbacPolicy(c)
+}
+
 // GetV1RbacPolicy operation middleware
 func (siw *ServerInterfaceWrapper) GetV1RbacPolicy(c *gin.Context) {
 
@@ -1036,6 +1103,22 @@ func (siw *ServerInterfaceWrapper) GetV1RbacPolicy(c *gin.Context) {
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetV1RbacPolicyParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", c.Request.URL.Query(), &params.Limit)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", c.Request.URL.Query(), &params.Offset)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter offset: %w", err), http.StatusBadRequest)
+		return
+	}
 
 	// ------------- Optional query parameter "role" -------------
 
@@ -1053,11 +1136,11 @@ func (siw *ServerInterfaceWrapper) GetV1RbacPolicy(c *gin.Context) {
 		return
 	}
 
-	// ------------- Optional query parameter "permission" -------------
+	// ------------- Optional query parameter "method" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "permission", c.Request.URL.Query(), &params.Permission)
+	err = runtime.BindQueryParameter("form", true, false, "method", c.Request.URL.Query(), &params.Method)
 	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter permission: %w", err), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter method: %w", err), http.StatusBadRequest)
 		return
 	}
 
@@ -1071,19 +1154,8 @@ func (siw *ServerInterfaceWrapper) GetV1RbacPolicy(c *gin.Context) {
 	siw.Handler.GetV1RbacPolicy(c, params)
 }
 
-// DeleteV1RbacPolicyName operation middleware
-func (siw *ServerInterfaceWrapper) DeleteV1RbacPolicyName(c *gin.Context) {
-
-	var err error
-
-	// ------------- Path parameter "name" -------------
-	var name string
-
-	err = runtime.BindStyledParameterWithOptions("simple", "name", c.Param("name"), &name, runtime.BindStyledParameterOptions{Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter name: %w", err), http.StatusBadRequest)
-		return
-	}
+// PutV1RbacPolicy operation middleware
+func (siw *ServerInterfaceWrapper) PutV1RbacPolicy(c *gin.Context) {
 
 	c.Set(BasicAuthScopes, []string{})
 
@@ -1094,65 +1166,42 @@ func (siw *ServerInterfaceWrapper) DeleteV1RbacPolicyName(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.DeleteV1RbacPolicyName(c, name)
-}
-
-// HeadV1RbacPolicyName operation middleware
-func (siw *ServerInterfaceWrapper) HeadV1RbacPolicyName(c *gin.Context) {
-
-	var err error
-
-	// ------------- Path parameter "name" -------------
-	var name string
-
-	err = runtime.BindStyledParameterWithOptions("simple", "name", c.Param("name"), &name, runtime.BindStyledParameterOptions{Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter name: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	c.Set(BasicAuthScopes, []string{})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.HeadV1RbacPolicyName(c, name)
-}
-
-// PutV1RbacPolicyName operation middleware
-func (siw *ServerInterfaceWrapper) PutV1RbacPolicyName(c *gin.Context) {
-
-	var err error
-
-	// ------------- Path parameter "name" -------------
-	var name string
-
-	err = runtime.BindStyledParameterWithOptions("simple", "name", c.Param("name"), &name, runtime.BindStyledParameterOptions{Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter name: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	c.Set(BasicAuthScopes, []string{})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.PutV1RbacPolicyName(c, name)
+	siw.Handler.PutV1RbacPolicy(c)
 }
 
 // GetV1RbacResourceGroup operation middleware
 func (siw *ServerInterfaceWrapper) GetV1RbacResourceGroup(c *gin.Context) {
 
+	var err error
+
 	c.Set(BasicAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetV1RbacResourceGroupParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", c.Request.URL.Query(), &params.Limit)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", c.Request.URL.Query(), &params.Offset)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter offset: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "role" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "role", c.Request.URL.Query(), &params.Role)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter role: %w", err), http.StatusBadRequest)
+		return
+	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -1161,7 +1210,7 @@ func (siw *ServerInterfaceWrapper) GetV1RbacResourceGroup(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.GetV1RbacResourceGroup(c)
+	siw.Handler.GetV1RbacResourceGroup(c, params)
 }
 
 // DeleteV1RbacResourceGroupResourceGroup operation middleware
@@ -1271,7 +1320,36 @@ func (siw *ServerInterfaceWrapper) PutV1RbacResourceGroupResourceGroup(c *gin.Co
 // GetV1RbacRole operation middleware
 func (siw *ServerInterfaceWrapper) GetV1RbacRole(c *gin.Context) {
 
+	var err error
+
 	c.Set(BasicAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetV1RbacRoleParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", c.Request.URL.Query(), &params.Limit)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", c.Request.URL.Query(), &params.Offset)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter offset: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "role" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "role", c.Request.URL.Query(), &params.Role)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter role: %w", err), http.StatusBadRequest)
+		return
+	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -1280,7 +1358,7 @@ func (siw *ServerInterfaceWrapper) GetV1RbacRole(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.GetV1RbacRole(c)
+	siw.Handler.GetV1RbacRole(c, params)
 }
 
 // DeleteV1RbacRoleRole operation middleware
@@ -1788,10 +1866,9 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.DELETE(options.BaseURL+"/v1/artifact/:namespace/:name/tag/:tag", wrapper.DeleteV1ArtifactNamespaceNameTagTag)
 	router.GET(options.BaseURL+"/v1/artifact/:namespace/:name/tag/:tag", wrapper.GetV1ArtifactNamespaceNameTagTag)
 	router.PATCH(options.BaseURL+"/v1/artifact/:namespace/:name/tag/:tag", wrapper.PatchV1ArtifactNamespaceNameTagTag)
+	router.DELETE(options.BaseURL+"/v1/rbac/policy", wrapper.DeleteV1RbacPolicy)
 	router.GET(options.BaseURL+"/v1/rbac/policy", wrapper.GetV1RbacPolicy)
-	router.DELETE(options.BaseURL+"/v1/rbac/policy/:name", wrapper.DeleteV1RbacPolicyName)
-	router.HEAD(options.BaseURL+"/v1/rbac/policy/:name", wrapper.HeadV1RbacPolicyName)
-	router.PUT(options.BaseURL+"/v1/rbac/policy/:name", wrapper.PutV1RbacPolicyName)
+	router.PUT(options.BaseURL+"/v1/rbac/policy", wrapper.PutV1RbacPolicy)
 	router.GET(options.BaseURL+"/v1/rbac/resource-group", wrapper.GetV1RbacResourceGroup)
 	router.DELETE(options.BaseURL+"/v1/rbac/resource-group/:resourceGroup", wrapper.DeleteV1RbacResourceGroupResourceGroup)
 	router.GET(options.BaseURL+"/v1/rbac/resource-group/:resourceGroup", wrapper.GetV1RbacResourceGroupResourceGroup)
@@ -2632,6 +2709,70 @@ func (response PatchV1ArtifactNamespaceNameTagTag500Response) VisitPatchV1Artifa
 	return nil
 }
 
+type DeleteV1RbacPolicyRequestObject struct {
+	Body *DeleteV1RbacPolicyJSONRequestBody
+}
+
+type DeleteV1RbacPolicyResponseObject interface {
+	VisitDeleteV1RbacPolicyResponse(w http.ResponseWriter) error
+}
+
+type DeleteV1RbacPolicy200Response struct {
+}
+
+func (response DeleteV1RbacPolicy200Response) VisitDeleteV1RbacPolicyResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	return nil
+}
+
+type DeleteV1RbacPolicy400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response DeleteV1RbacPolicy400JSONResponse) VisitDeleteV1RbacPolicyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1RbacPolicy401Response = GenericUnauthenticatedResponse
+
+func (response DeleteV1RbacPolicy401Response) VisitDeleteV1RbacPolicyResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type DeleteV1RbacPolicy403Response = GenericForbiddenResponse
+
+func (response DeleteV1RbacPolicy403Response) VisitDeleteV1RbacPolicyResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type DeleteV1RbacPolicy409JSONResponse ErrGeneric
+
+func (response DeleteV1RbacPolicy409JSONResponse) VisitDeleteV1RbacPolicyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1RbacPolicy413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response DeleteV1RbacPolicy413JSONResponse) VisitDeleteV1RbacPolicyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1RbacPolicy500Response = GenericInternalServerErrorResponse
+
+func (response DeleteV1RbacPolicy500Response) VisitDeleteV1RbacPolicyResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
 type GetV1RbacPolicyRequestObject struct {
 	Params GetV1RbacPolicyParams
 }
@@ -2679,199 +2820,79 @@ func (response GetV1RbacPolicy500Response) VisitGetV1RbacPolicyResponse(w http.R
 	return nil
 }
 
-type DeleteV1RbacPolicyNameRequestObject struct {
-	Name string `json:"name"`
+type PutV1RbacPolicyRequestObject struct {
+	Body *PutV1RbacPolicyJSONRequestBody
 }
 
-type DeleteV1RbacPolicyNameResponseObject interface {
-	VisitDeleteV1RbacPolicyNameResponse(w http.ResponseWriter) error
+type PutV1RbacPolicyResponseObject interface {
+	VisitPutV1RbacPolicyResponse(w http.ResponseWriter) error
 }
 
-type DeleteV1RbacPolicyName200Response struct {
+type PutV1RbacPolicy201Response struct {
 }
 
-func (response DeleteV1RbacPolicyName200Response) VisitDeleteV1RbacPolicyNameResponse(w http.ResponseWriter) error {
-	w.WriteHeader(200)
-	return nil
-}
-
-type DeleteV1RbacPolicyName400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response DeleteV1RbacPolicyName400JSONResponse) VisitDeleteV1RbacPolicyNameResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteV1RbacPolicyName401Response = GenericUnauthenticatedResponse
-
-func (response DeleteV1RbacPolicyName401Response) VisitDeleteV1RbacPolicyNameResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type DeleteV1RbacPolicyName403Response = GenericForbiddenResponse
-
-func (response DeleteV1RbacPolicyName403Response) VisitDeleteV1RbacPolicyNameResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type DeleteV1RbacPolicyName413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response DeleteV1RbacPolicyName413JSONResponse) VisitDeleteV1RbacPolicyNameResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteV1RbacPolicyName500Response = GenericInternalServerErrorResponse
-
-func (response DeleteV1RbacPolicyName500Response) VisitDeleteV1RbacPolicyNameResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type HeadV1RbacPolicyNameRequestObject struct {
-	Name string `json:"name"`
-}
-
-type HeadV1RbacPolicyNameResponseObject interface {
-	VisitHeadV1RbacPolicyNameResponse(w http.ResponseWriter) error
-}
-
-type HeadV1RbacPolicyName200Response struct {
-}
-
-func (response HeadV1RbacPolicyName200Response) VisitHeadV1RbacPolicyNameResponse(w http.ResponseWriter) error {
-	w.WriteHeader(200)
-	return nil
-}
-
-type HeadV1RbacPolicyName400Response struct {
-}
-
-func (response HeadV1RbacPolicyName400Response) VisitHeadV1RbacPolicyNameResponse(w http.ResponseWriter) error {
-	w.WriteHeader(400)
-	return nil
-}
-
-type HeadV1RbacPolicyName401Response struct {
-}
-
-func (response HeadV1RbacPolicyName401Response) VisitHeadV1RbacPolicyNameResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type HeadV1RbacPolicyName403Response struct {
-}
-
-func (response HeadV1RbacPolicyName403Response) VisitHeadV1RbacPolicyNameResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type HeadV1RbacPolicyName404Response struct {
-}
-
-func (response HeadV1RbacPolicyName404Response) VisitHeadV1RbacPolicyNameResponse(w http.ResponseWriter) error {
-	w.WriteHeader(404)
-	return nil
-}
-
-type HeadV1RbacPolicyName413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response HeadV1RbacPolicyName413JSONResponse) VisitHeadV1RbacPolicyNameResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type HeadV1RbacPolicyName500Response struct {
-}
-
-func (response HeadV1RbacPolicyName500Response) VisitHeadV1RbacPolicyNameResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type PutV1RbacPolicyNameRequestObject struct {
-	Name string `json:"name"`
-	Body *PutV1RbacPolicyNameJSONRequestBody
-}
-
-type PutV1RbacPolicyNameResponseObject interface {
-	VisitPutV1RbacPolicyNameResponse(w http.ResponseWriter) error
-}
-
-type PutV1RbacPolicyName201Response struct {
-}
-
-func (response PutV1RbacPolicyName201Response) VisitPutV1RbacPolicyNameResponse(w http.ResponseWriter) error {
+func (response PutV1RbacPolicy201Response) VisitPutV1RbacPolicyResponse(w http.ResponseWriter) error {
 	w.WriteHeader(201)
 	return nil
 }
 
-type PutV1RbacPolicyName400JSONResponse struct{ GenericBadRequestJSONResponse }
+type PutV1RbacPolicy400JSONResponse struct{ GenericBadRequestJSONResponse }
 
-func (response PutV1RbacPolicyName400JSONResponse) VisitPutV1RbacPolicyNameResponse(w http.ResponseWriter) error {
+func (response PutV1RbacPolicy400JSONResponse) VisitPutV1RbacPolicyResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PutV1RbacPolicyName401Response = GenericUnauthenticatedResponse
+type PutV1RbacPolicy401Response = GenericUnauthenticatedResponse
 
-func (response PutV1RbacPolicyName401Response) VisitPutV1RbacPolicyNameResponse(w http.ResponseWriter) error {
+func (response PutV1RbacPolicy401Response) VisitPutV1RbacPolicyResponse(w http.ResponseWriter) error {
 	w.WriteHeader(401)
 	return nil
 }
 
-type PutV1RbacPolicyName403Response = GenericForbiddenResponse
+type PutV1RbacPolicy403Response = GenericForbiddenResponse
 
-func (response PutV1RbacPolicyName403Response) VisitPutV1RbacPolicyNameResponse(w http.ResponseWriter) error {
+func (response PutV1RbacPolicy403Response) VisitPutV1RbacPolicyResponse(w http.ResponseWriter) error {
 	w.WriteHeader(403)
 	return nil
 }
 
-type PutV1RbacPolicyName404JSONResponse struct{ FieldErrorJSONResponse }
+type PutV1RbacPolicy404JSONResponse struct{ FieldErrorJSONResponse }
 
-func (response PutV1RbacPolicyName404JSONResponse) VisitPutV1RbacPolicyNameResponse(w http.ResponseWriter) error {
+func (response PutV1RbacPolicy404JSONResponse) VisitPutV1RbacPolicyResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PutV1RbacPolicyName413JSONResponse struct{ GenericTooLargeJSONResponse }
+type PutV1RbacPolicy413JSONResponse struct{ GenericTooLargeJSONResponse }
 
-func (response PutV1RbacPolicyName413JSONResponse) VisitPutV1RbacPolicyNameResponse(w http.ResponseWriter) error {
+func (response PutV1RbacPolicy413JSONResponse) VisitPutV1RbacPolicyResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(413)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PutV1RbacPolicyName500Response = GenericInternalServerErrorResponse
+type PutV1RbacPolicy500Response = GenericInternalServerErrorResponse
 
-func (response PutV1RbacPolicyName500Response) VisitPutV1RbacPolicyNameResponse(w http.ResponseWriter) error {
+func (response PutV1RbacPolicy500Response) VisitPutV1RbacPolicyResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
 	return nil
 }
 
 type GetV1RbacResourceGroupRequestObject struct {
+	Params GetV1RbacResourceGroupParams
 }
 
 type GetV1RbacResourceGroupResponseObject interface {
 	VisitGetV1RbacResourceGroupResponse(w http.ResponseWriter) error
 }
 
-type GetV1RbacResourceGroup200JSONResponse []string
+type GetV1RbacResourceGroup200JSONResponse []ResourceGroupResource
 
 func (response GetV1RbacResourceGroup200JSONResponse) VisitGetV1RbacResourceGroupResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -2918,12 +2939,13 @@ type DeleteV1RbacResourceGroupResourceGroupResponseObject interface {
 	VisitDeleteV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error
 }
 
-type DeleteV1RbacResourceGroupResourceGroup200Response struct {
-}
+type DeleteV1RbacResourceGroupResourceGroup200JSONResponse ResourceGroupResource
 
-func (response DeleteV1RbacResourceGroupResourceGroup200Response) VisitDeleteV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
+func (response DeleteV1RbacResourceGroupResourceGroup200JSONResponse) VisitDeleteV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
-	return nil
+
+	return json.NewEncoder(w).Encode(response)
 }
 
 type DeleteV1RbacResourceGroupResourceGroup400JSONResponse struct{ GenericBadRequestJSONResponse }
@@ -2982,7 +3004,7 @@ type GetV1RbacResourceGroupResourceGroupResponseObject interface {
 	VisitGetV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error
 }
 
-type GetV1RbacResourceGroupResourceGroup200JSONResponse []string
+type GetV1RbacResourceGroupResourceGroup200JSONResponse ResourceGroupResource
 
 func (response GetV1RbacResourceGroupResourceGroup200JSONResponse) VisitGetV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -3106,18 +3128,20 @@ func (response HeadV1RbacResourceGroupResourceGroup500Response) VisitHeadV1RbacR
 
 type PutV1RbacResourceGroupResourceGroupRequestObject struct {
 	ResourceGroup string `json:"resourceGroup"`
+	Body          *PutV1RbacResourceGroupResourceGroupJSONRequestBody
 }
 
 type PutV1RbacResourceGroupResourceGroupResponseObject interface {
 	VisitPutV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error
 }
 
-type PutV1RbacResourceGroupResourceGroup201Response struct {
-}
+type PutV1RbacResourceGroupResourceGroup201JSONResponse ResourceGroupResource
 
-func (response PutV1RbacResourceGroupResourceGroup201Response) VisitPutV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
+func (response PutV1RbacResourceGroupResourceGroup201JSONResponse) VisitPutV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(201)
-	return nil
+
+	return json.NewEncoder(w).Encode(response)
 }
 
 type PutV1RbacResourceGroupResourceGroup400JSONResponse struct{ GenericBadRequestJSONResponse }
@@ -3169,13 +3193,14 @@ func (response PutV1RbacResourceGroupResourceGroup500Response) VisitPutV1RbacRes
 }
 
 type GetV1RbacRoleRequestObject struct {
+	Params GetV1RbacRoleParams
 }
 
 type GetV1RbacRoleResponseObject interface {
 	VisitGetV1RbacRoleResponse(w http.ResponseWriter) error
 }
 
-type GetV1RbacRole200JSONResponse []string
+type GetV1RbacRole200JSONResponse []RoleResource
 
 func (response GetV1RbacRole200JSONResponse) VisitGetV1RbacRoleResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -3222,12 +3247,13 @@ type DeleteV1RbacRoleRoleResponseObject interface {
 	VisitDeleteV1RbacRoleRoleResponse(w http.ResponseWriter) error
 }
 
-type DeleteV1RbacRoleRole200Response struct {
-}
+type DeleteV1RbacRoleRole200JSONResponse RoleResource
 
-func (response DeleteV1RbacRoleRole200Response) VisitDeleteV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+func (response DeleteV1RbacRoleRole200JSONResponse) VisitDeleteV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
-	return nil
+
+	return json.NewEncoder(w).Encode(response)
 }
 
 type DeleteV1RbacRoleRole400JSONResponse struct{ GenericBadRequestJSONResponse }
@@ -3295,7 +3321,7 @@ type GetV1RbacRoleRoleResponseObject interface {
 	VisitGetV1RbacRoleRoleResponse(w http.ResponseWriter) error
 }
 
-type GetV1RbacRoleRole200JSONResponse []string
+type GetV1RbacRoleRole200JSONResponse RoleResource
 
 func (response GetV1RbacRoleRole200JSONResponse) VisitGetV1RbacRoleRoleResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -3419,18 +3445,20 @@ func (response HeadV1RbacRoleRole500Response) VisitHeadV1RbacRoleRoleResponse(w 
 
 type PutV1RbacRoleRoleRequestObject struct {
 	Role string `json:"role"`
+	Body *PutV1RbacRoleRoleJSONRequestBody
 }
 
 type PutV1RbacRoleRoleResponseObject interface {
 	VisitPutV1RbacRoleRoleResponse(w http.ResponseWriter) error
 }
 
-type PutV1RbacRoleRole201Response struct {
-}
+type PutV1RbacRoleRole201JSONResponse RoleResource
 
-func (response PutV1RbacRoleRole201Response) VisitPutV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+func (response PutV1RbacRoleRole201JSONResponse) VisitPutV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(201)
-	return nil
+
+	return json.NewEncoder(w).Encode(response)
 }
 
 type PutV1RbacRoleRole400JSONResponse struct{ GenericBadRequestJSONResponse }
@@ -4283,18 +4311,15 @@ type StrictServerInterface interface {
 	// Patch Artifact Metadata by Tag
 	// (PATCH /v1/artifact/{namespace}/{name}/tag/{tag})
 	PatchV1ArtifactNamespaceNameTagTag(ctx context.Context, request PatchV1ArtifactNamespaceNameTagTagRequestObject) (PatchV1ArtifactNamespaceNameTagTagResponseObject, error)
+	// Delete RBAC Policy
+	// (DELETE /v1/rbac/policy)
+	DeleteV1RbacPolicy(ctx context.Context, request DeleteV1RbacPolicyRequestObject) (DeleteV1RbacPolicyResponseObject, error)
 	// List RBAC Policies
 	// (GET /v1/rbac/policy)
 	GetV1RbacPolicy(ctx context.Context, request GetV1RbacPolicyRequestObject) (GetV1RbacPolicyResponseObject, error)
-	// Delete RBAC Policy
-	// (DELETE /v1/rbac/policy/{name})
-	DeleteV1RbacPolicyName(ctx context.Context, request DeleteV1RbacPolicyNameRequestObject) (DeleteV1RbacPolicyNameResponseObject, error)
-	// Check RBAC Policy Existence
-	// (HEAD /v1/rbac/policy/{name})
-	HeadV1RbacPolicyName(ctx context.Context, request HeadV1RbacPolicyNameRequestObject) (HeadV1RbacPolicyNameResponseObject, error)
 	// Create or Replace RBAC Policy
-	// (PUT /v1/rbac/policy/{name})
-	PutV1RbacPolicyName(ctx context.Context, request PutV1RbacPolicyNameRequestObject) (PutV1RbacPolicyNameResponseObject, error)
+	// (PUT /v1/rbac/policy)
+	PutV1RbacPolicy(ctx context.Context, request PutV1RbacPolicyRequestObject) (PutV1RbacPolicyResponseObject, error)
 	// List All Resource Groups
 	// (GET /v1/rbac/resource-group)
 	GetV1RbacResourceGroup(ctx context.Context, request GetV1RbacResourceGroupRequestObject) (GetV1RbacResourceGroupResponseObject, error)
@@ -4740,6 +4765,39 @@ func (sh *strictHandler) PatchV1ArtifactNamespaceNameTagTag(ctx *gin.Context, na
 	}
 }
 
+// DeleteV1RbacPolicy operation middleware
+func (sh *strictHandler) DeleteV1RbacPolicy(ctx *gin.Context) {
+	var request DeleteV1RbacPolicyRequestObject
+
+	var body DeleteV1RbacPolicyJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.Status(http.StatusBadRequest)
+		ctx.Error(err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteV1RbacPolicy(ctx, request.(DeleteV1RbacPolicyRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteV1RbacPolicy")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(DeleteV1RbacPolicyResponseObject); ok {
+		if err := validResponse.VisitDeleteV1RbacPolicyResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetV1RbacPolicy operation middleware
 func (sh *strictHandler) GetV1RbacPolicy(ctx *gin.Context, params GetV1RbacPolicyParams) {
 	var request GetV1RbacPolicyRequestObject
@@ -4767,67 +4825,11 @@ func (sh *strictHandler) GetV1RbacPolicy(ctx *gin.Context, params GetV1RbacPolic
 	}
 }
 
-// DeleteV1RbacPolicyName operation middleware
-func (sh *strictHandler) DeleteV1RbacPolicyName(ctx *gin.Context, name string) {
-	var request DeleteV1RbacPolicyNameRequestObject
+// PutV1RbacPolicy operation middleware
+func (sh *strictHandler) PutV1RbacPolicy(ctx *gin.Context) {
+	var request PutV1RbacPolicyRequestObject
 
-	request.Name = name
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteV1RbacPolicyName(ctx, request.(DeleteV1RbacPolicyNameRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "DeleteV1RbacPolicyName")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(DeleteV1RbacPolicyNameResponseObject); ok {
-		if err := validResponse.VisitDeleteV1RbacPolicyNameResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// HeadV1RbacPolicyName operation middleware
-func (sh *strictHandler) HeadV1RbacPolicyName(ctx *gin.Context, name string) {
-	var request HeadV1RbacPolicyNameRequestObject
-
-	request.Name = name
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.HeadV1RbacPolicyName(ctx, request.(HeadV1RbacPolicyNameRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "HeadV1RbacPolicyName")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(HeadV1RbacPolicyNameResponseObject); ok {
-		if err := validResponse.VisitHeadV1RbacPolicyNameResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// PutV1RbacPolicyName operation middleware
-func (sh *strictHandler) PutV1RbacPolicyName(ctx *gin.Context, name string) {
-	var request PutV1RbacPolicyNameRequestObject
-
-	request.Name = name
-
-	var body PutV1RbacPolicyNameJSONRequestBody
+	var body PutV1RbacPolicyJSONRequestBody
 	if err := ctx.ShouldBindJSON(&body); err != nil {
 		ctx.Status(http.StatusBadRequest)
 		ctx.Error(err)
@@ -4836,10 +4838,10 @@ func (sh *strictHandler) PutV1RbacPolicyName(ctx *gin.Context, name string) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.PutV1RbacPolicyName(ctx, request.(PutV1RbacPolicyNameRequestObject))
+		return sh.ssi.PutV1RbacPolicy(ctx, request.(PutV1RbacPolicyRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "PutV1RbacPolicyName")
+		handler = middleware(handler, "PutV1RbacPolicy")
 	}
 
 	response, err := handler(ctx, request)
@@ -4847,8 +4849,8 @@ func (sh *strictHandler) PutV1RbacPolicyName(ctx *gin.Context, name string) {
 	if err != nil {
 		ctx.Error(err)
 		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(PutV1RbacPolicyNameResponseObject); ok {
-		if err := validResponse.VisitPutV1RbacPolicyNameResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(PutV1RbacPolicyResponseObject); ok {
+		if err := validResponse.VisitPutV1RbacPolicyResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -4857,8 +4859,10 @@ func (sh *strictHandler) PutV1RbacPolicyName(ctx *gin.Context, name string) {
 }
 
 // GetV1RbacResourceGroup operation middleware
-func (sh *strictHandler) GetV1RbacResourceGroup(ctx *gin.Context) {
+func (sh *strictHandler) GetV1RbacResourceGroup(ctx *gin.Context, params GetV1RbacResourceGroupParams) {
 	var request GetV1RbacResourceGroupRequestObject
+
+	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.GetV1RbacResourceGroup(ctx, request.(GetV1RbacResourceGroupRequestObject))
@@ -4968,6 +4972,14 @@ func (sh *strictHandler) PutV1RbacResourceGroupResourceGroup(ctx *gin.Context, r
 
 	request.ResourceGroup = resourceGroup
 
+	var body PutV1RbacResourceGroupResourceGroupJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.Status(http.StatusBadRequest)
+		ctx.Error(err)
+		return
+	}
+	request.Body = &body
+
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.PutV1RbacResourceGroupResourceGroup(ctx, request.(PutV1RbacResourceGroupResourceGroupRequestObject))
 	}
@@ -4990,8 +5002,10 @@ func (sh *strictHandler) PutV1RbacResourceGroupResourceGroup(ctx *gin.Context, r
 }
 
 // GetV1RbacRole operation middleware
-func (sh *strictHandler) GetV1RbacRole(ctx *gin.Context) {
+func (sh *strictHandler) GetV1RbacRole(ctx *gin.Context, params GetV1RbacRoleParams) {
 	var request GetV1RbacRoleRequestObject
+
+	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.GetV1RbacRole(ctx, request.(GetV1RbacRoleRequestObject))
@@ -5100,6 +5114,14 @@ func (sh *strictHandler) PutV1RbacRoleRole(ctx *gin.Context, role string) {
 	var request PutV1RbacRoleRoleRequestObject
 
 	request.Role = role
+
+	var body PutV1RbacRoleRoleJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.Status(http.StatusBadRequest)
+		ctx.Error(err)
+		return
+	}
+	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.PutV1RbacRoleRole(ctx, request.(PutV1RbacRoleRoleRequestObject))
@@ -5499,80 +5521,82 @@ func (sh *strictHandler) PatchV1UserId(ctx *gin.Context, id string) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"IAOnAAA=",
+	"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",
+	"AAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

@@ -4,7 +4,6 @@ import (
 	"api-server/orm"
 	"context"
 	"errors"
-	"strconv"
 	"strings"
 
 	"github.com/EnclaveRunner/shareddeps/auth"
@@ -18,29 +17,15 @@ func (server *Server) GetV1User(
 	request GetV1UserRequestObject,
 ) (GetV1UserResponseObject, error) {
 	users, err := server.db.ListAllUsers(ctx)
-	pageLimit := *request.Params.Limit
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to list users")
 
-		return nil, &EmptyInternalServerError{}
-	}
-
-	if *request.Params.Limit > server.paginationMaximum ||
-		*request.Params.Offset < 0 {
-		return GetV1User400JSONResponse{
-			GenericBadRequestJSONResponse{
-				Error: "Invalid limit (cannot be greater than " + strconv.Itoa(
-					server.paginationMaximum,
-				) + ") or offset (cannot be negative)",
-			},
-		}, nil
-	} else if *request.Params.Limit <= 0 {
-		pageLimit = server.paginationDefault
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
 	paginatedResult := paginate(
 		users,
-		pageLimit,
+		*request.Params.Limit,
 		*request.Params.Offset,
 		func(a, b orm.User) int {
 			return strings.Compare(a.ID.String(), b.ID.String())
@@ -57,7 +42,7 @@ func (server *Server) GetV1User(
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to get user roles")
 
-				return nil, &EmptyInternalServerError{}
+				return GenericInternalServerErrorResponse{}, nil
 			}
 			usersParsed[i] = UserResponse{
 				Id:          user.ID.String(),
@@ -71,56 +56,45 @@ func (server *Server) GetV1User(
 	return GetV1User200JSONResponse(usersParsed), nil
 }
 
-// GetV1UserID implements StrictServerInterface.
-func (server *Server) GetV1UserID(
-	ctx context.Context,
-	request GetV1UserIdRequestObject,
-) (GetV1UserIdResponseObject, error) {
-	if request.Id != "" {
-		uuidParser, err := uuid.Parse(request.Id)
-		if err != nil {
-			return GetV1UserId400JSONResponse{
-				GenericBadRequestJSONResponse{
-					"Provided uuid is invalid",
+// GetV1UserId implements StrictServerInterface.
+func (server *Server) GetV1UserId(ctx context.Context, request GetV1UserIdRequestObject) (GetV1UserIdResponseObject, error) {
+	uuidParser, err := uuid.Parse(request.Id)
+	if err != nil {
+		return GetV1UserId400JSONResponse{
+			GenericBadRequestJSONResponse{
+				"Provided uuid is invalid",
+			},
+		}, nil
+	}
+
+	user, err := server.db.GetUserByID(ctx, uuidParser)
+	if err != nil {
+		var errNotFound *orm.NotFoundError
+		if errors.As(err, &errNotFound) {
+			return GetV1UserId404JSONResponse{
+				GenericNotFoundJSONResponse{
+					"User not found",
 				},
 			}, nil
 		}
 
-		user, err := server.db.GetUserByID(ctx, uuidParser)
-		if err != nil {
-			var errNotFound *orm.NotFoundError
-			if errors.As(err, &errNotFound) {
-				return GetV1UserId404JSONResponse{
-					GenericNotFoundJSONResponse{
-						"User not found",
-					},
-				}, nil
-			}
+		log.Error().Err(err).Msg("Failed to get user by ID")
 
-			log.Error().Err(err).Msg("Failed to get user by ID")
-
-			return nil, &EmptyInternalServerError{}
-		}
-
-		roles, err := server.authModule.GetGroupsForUser(user.ID.String())
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to get user roles")
-
-			return nil, &EmptyInternalServerError{}
-		}
-
-		return GetV1UserId200JSONResponse{
-			Id:          user.ID.String(),
-			Name:        user.Username,
-			DisplayName: user.DisplayName,
-			Roles:       &roles,
-		}, nil
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
-	return GetV1UserId400JSONResponse{
-		GenericBadRequestJSONResponse{
-			"Either userId or name must be provided",
-		},
+	roles, err := server.authModule.GetGroupsForUser(user.ID.String())
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get user roles")
+
+		return GenericInternalServerErrorResponse{}, nil
+	}
+
+	return GetV1UserId200JSONResponse{
+		Id:          user.ID.String(),
+		Name:        user.Username,
+		DisplayName: user.DisplayName,
+		Roles:       &roles,
 	}, nil
 }
 
@@ -143,7 +117,7 @@ func (server *Server) HeadV1UserId(
 
 		log.Error().Err(err).Msg("Failed to get user by ID")
 
-		return nil, &EmptyInternalServerError{}
+		return HeadV1UserId500Response{}, nil
 	}
 
 	return HeadV1UserId200Response{}, nil
@@ -180,14 +154,14 @@ func (server *Server) PostV1User(
 
 		log.Error().Err(err).Msg("Failed to create user")
 
-		return nil, &EmptyInternalServerError{}
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
 	roles, err := server.authModule.GetGroupsForUser(user.ID.String())
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get user roles")
 
-		return nil, &EmptyInternalServerError{}
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
 	return PostV1User201JSONResponse{
@@ -238,14 +212,14 @@ func (server *Server) PatchV1UserId(
 
 		log.Error().Err(err).Msg("Failed to update user")
 
-		return nil, &EmptyInternalServerError{}
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
 	roles, err := server.authModule.GetGroupsForUser(user.ID.String())
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get user roles")
 
-		return nil, &EmptyInternalServerError{}
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
 	return PatchV1UserId200JSONResponse(UserResponse{
@@ -282,14 +256,14 @@ func (server *Server) DeleteV1UserId(
 
 		log.Error().Err(err).Msg("Failed to delete user")
 
-		return nil, &EmptyInternalServerError{}
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
 	roles, err := server.authModule.GetGroupsForUser(user.ID.String())
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get user roles")
 
-		return nil, &EmptyInternalServerError{}
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
 	return DeleteV1UserId200JSONResponse(UserResponse{
@@ -318,21 +292,21 @@ func (server *Server) GetV1UserMe(
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to parse user ID as UUID")
 
-		return nil, &EmptyInternalServerError{}
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
 	user, err := server.db.GetUserByID(ctx, uuidParser)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get user by ID")
 
-		return nil, &EmptyInternalServerError{}
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
 	roles, err := server.authModule.GetGroupsForUser(user.ID.String())
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get user roles")
 
-		return nil, &EmptyInternalServerError{}
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
 	return GetV1UserMe200JSONResponse(UserResponse{
@@ -357,7 +331,7 @@ func (server *Server) PatchV1UserMe(
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to parse user ID as UUID")
 
-		return nil, &EmptyInternalServerError{}
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
 	user, err := server.db.PatchUser(
@@ -377,14 +351,14 @@ func (server *Server) PatchV1UserMe(
 
 		log.Error().Err(err).Msg("Failed to update user")
 
-		return nil, &EmptyInternalServerError{}
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
 	roles, err := server.authModule.GetGroupsForUser(user.ID.String())
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get user roles")
 
-		return nil, &EmptyInternalServerError{}
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
 	return PatchV1UserMe200JSONResponse(UserResponse{
@@ -410,21 +384,21 @@ func (server *Server) DeleteV1UserMe(
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to parse user ID as UUID")
 
-		return nil, &EmptyInternalServerError{}
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
 	user, err := server.db.DeleteUserByID(ctx, uuidParser)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to delete user")
 
-		return nil, &EmptyInternalServerError{}
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
 	roles, err := server.authModule.GetGroupsForUser(user.ID.String())
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get user roles")
 
-		return nil, &EmptyInternalServerError{}
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
 	return DeleteV1UserMe200JSONResponse(UserResponse{

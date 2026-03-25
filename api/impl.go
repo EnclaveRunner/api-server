@@ -14,14 +14,12 @@ import (
 var _ StrictServerInterface = (*Server)(nil)
 
 type Server struct {
-	authModule        auth.AuthModule
-	db                orm.DB
-	maxRetries        int
-	retention         time.Duration
-	paginationMaximum int
-	paginationDefault int
-	queueClient       queue.QueueClient
-	registryClient    proto_gen.RegistryServiceClient
+	authModule     auth.AuthModule
+	db             orm.DB
+	maxRetries     int
+	retention      time.Duration
+	queueClient    queue.QueueClient
+	registryClient proto_gen.RegistryServiceClient
 }
 
 func NewServer(
@@ -40,10 +38,4 @@ func NewServer(
 		registryClient: registryClient,
 		queueClient:    queueClient,
 	}
-}
-
-type EmptyInternalServerError struct{}
-
-func (e *EmptyInternalServerError) Error() string {
-	return "internal server error"
 }

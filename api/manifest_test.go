@@ -123,14 +123,44 @@ func TestParseSource(t *testing.T) {
 				require.NotNil(t, result)
 				require.NotNil(t, result.Artifact)
 				require.NotNil(t, result.Artifact.Package)
-				assert.Equal(t, tt.expected.namespace, result.Artifact.Package.Namespace, "namespace mismatch")
-				assert.Equal(t, tt.expected.name, result.Artifact.Package.Name, "name mismatch")
-				assert.Equal(t, tt.expected.iface, result.Interface, "interface mismatch")
-				assert.Equal(t, tt.expected.funcName, result.Name, "function name mismatch")
+				assert.Equal(
+					t,
+					tt.expected.namespace,
+					result.Artifact.Package.Namespace,
+					"namespace mismatch",
+				)
+				assert.Equal(
+					t,
+					tt.expected.name,
+					result.Artifact.Package.Name,
+					"name mismatch",
+				)
+				assert.Equal(
+					t,
+					tt.expected.iface,
+					result.Interface,
+					"interface mismatch",
+				)
+				assert.Equal(
+					t,
+					tt.expected.funcName,
+					result.Name,
+					"function name mismatch",
+				)
 				if tt.expected.versionHash != "" {
-					assert.Equal(t, tt.expected.versionHash, result.Artifact.GetVersionHash(), "version hash mismatch")
+					assert.Equal(
+						t,
+						tt.expected.versionHash,
+						result.Artifact.GetVersionHash(),
+						"version hash mismatch",
+					)
 				} else {
-					assert.Equal(t, tt.expected.tag, result.Artifact.GetTag(), "tag mismatch")
+					assert.Equal(
+						t,
+						tt.expected.tag,
+						result.Artifact.GetTag(),
+						"tag mismatch",
+					)
 				}
 			}
 		})

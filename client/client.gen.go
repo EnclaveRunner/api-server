@@ -77,18 +77,6 @@ type CreateTaskRequest struct {
 	Source string `json:"source"`
 }
 
-// CreateUser defines model for CreateUser.
-type CreateUser struct {
-	// DisplayName The display name for the new user.
-	DisplayName string `json:"displayName"`
-
-	// Name The name of the user to create.
-	Name string `json:"name"`
-
-	// Password The password for the new user.
-	Password string `json:"password"`
-}
-
 // EnvironmentVariable defines model for EnvironmentVariable.
 type EnvironmentVariable struct {
 	// Key Environment variable name.
@@ -152,6 +140,18 @@ type PutResourceGroupRequest struct {
 type PutRoleRequest struct {
 	// Users Usernames assigned to this role.
 	Users []string `json:"users"`
+}
+
+// PutUserRequest defines model for PutUserRequest.
+type PutUserRequest struct {
+	// DisplayName The display name for the new user.
+	DisplayName string `json:"displayName"`
+
+	// Password The password for the new user.
+	Password string `json:"password"`
+
+	// Roles Roles assigned to the new user.
+	Roles *[]string `json:"roles,omitempty"`
 }
 
 // RBACPolicy defines model for RBACPolicy.
@@ -418,14 +418,14 @@ type PutV1RbacRoleRoleJSONRequestBody = PutRoleRequest
 // PostV1TaskJSONRequestBody defines body for PostV1Task for application/json ContentType.
 type PostV1TaskJSONRequestBody = CreateTaskRequest
 
-// PostV1UserJSONRequestBody defines body for PostV1User for application/json ContentType.
-type PostV1UserJSONRequestBody = CreateUser
-
 // PatchV1UserMeJSONRequestBody defines body for PatchV1UserMe for application/json ContentType.
 type PatchV1UserMeJSONRequestBody = PatchMe
 
 // PatchV1UserUsernameJSONRequestBody defines body for PatchV1UserUsername for application/json ContentType.
 type PatchV1UserUsernameJSONRequestBody = PatchUser
+
+// PutV1UserUsernameJSONRequestBody defines body for PutV1UserUsername for application/json ContentType.
+type PutV1UserUsernameJSONRequestBody = PutUserRequest
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -604,11 +604,6 @@ type ClientInterface interface {
 	// GetV1User request
 	GetV1User(ctx context.Context, params *GetV1UserParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PostV1UserWithBody request with any body
-	PostV1UserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	PostV1User(ctx context.Context, body PostV1UserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// DeleteV1UserMe request
 	DeleteV1UserMe(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -633,6 +628,11 @@ type ClientInterface interface {
 	PatchV1UserUsernameWithBody(ctx context.Context, username string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	PatchV1UserUsername(ctx context.Context, username string, body PatchV1UserUsernameJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutV1UserUsernameWithBody request with any body
+	PutV1UserUsernameWithBody(ctx context.Context, username string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PutV1UserUsername(ctx context.Context, username string, body PutV1UserUsernameJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) GetV1Artifact(ctx context.Context, params *GetV1ArtifactParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -1079,30 +1079,6 @@ func (c *Client) GetV1User(ctx context.Context, params *GetV1UserParams, reqEdit
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostV1UserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostV1UserRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PostV1User(ctx context.Context, body PostV1UserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostV1UserRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
 func (c *Client) DeleteV1UserMe(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDeleteV1UserMeRequest(c.Server)
 	if err != nil {
@@ -1201,6 +1177,30 @@ func (c *Client) PatchV1UserUsernameWithBody(ctx context.Context, username strin
 
 func (c *Client) PatchV1UserUsername(ctx context.Context, username string, body PatchV1UserUsernameJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPatchV1UserUsernameRequest(c.Server, username, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutV1UserUsernameWithBody(ctx context.Context, username string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutV1UserUsernameRequestWithBody(c.Server, username, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutV1UserUsername(ctx context.Context, username string, body PutV1UserUsernameJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutV1UserUsernameRequest(c.Server, username, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2889,46 +2889,6 @@ func NewGetV1UserRequest(server string, params *GetV1UserParams) (*http.Request,
 	return req, nil
 }
 
-// NewPostV1UserRequest calls the generic PostV1User builder with application/json body
-func NewPostV1UserRequest(server string, body PostV1UserJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewPostV1UserRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewPostV1UserRequestWithBody generates requests for PostV1User with any type of body
-func NewPostV1UserRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/v1/user")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
 // NewDeleteV1UserMeRequest generates requests for DeleteV1UserMe
 func NewDeleteV1UserMeRequest(server string) (*http.Request, error) {
 	var err error
@@ -3172,6 +3132,53 @@ func NewPatchV1UserUsernameRequestWithBody(server string, username string, conte
 	return req, nil
 }
 
+// NewPutV1UserUsernameRequest calls the generic PutV1UserUsername builder with application/json body
+func NewPutV1UserUsernameRequest(server string, username string, body PutV1UserUsernameJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutV1UserUsernameRequestWithBody(server, username, "application/json", bodyReader)
+}
+
+// NewPutV1UserUsernameRequestWithBody generates requests for PutV1UserUsername with any type of body
+func NewPutV1UserUsernameRequestWithBody(server string, username string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "username", runtime.ParamLocationPath, username)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/user/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
 	for _, r := range c.RequestEditors {
 		if err := r(ctx, req); err != nil {
@@ -3319,11 +3326,6 @@ type ClientWithResponsesInterface interface {
 	// GetV1UserWithResponse request
 	GetV1UserWithResponse(ctx context.Context, params *GetV1UserParams, reqEditors ...RequestEditorFn) (*GetV1UserResponse, error)
 
-	// PostV1UserWithBodyWithResponse request with any body
-	PostV1UserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostV1UserResponse, error)
-
-	PostV1UserWithResponse(ctx context.Context, body PostV1UserJSONRequestBody, reqEditors ...RequestEditorFn) (*PostV1UserResponse, error)
-
 	// DeleteV1UserMeWithResponse request
 	DeleteV1UserMeWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*DeleteV1UserMeResponse, error)
 
@@ -3348,6 +3350,11 @@ type ClientWithResponsesInterface interface {
 	PatchV1UserUsernameWithBodyWithResponse(ctx context.Context, username string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchV1UserUsernameResponse, error)
 
 	PatchV1UserUsernameWithResponse(ctx context.Context, username string, body PatchV1UserUsernameJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchV1UserUsernameResponse, error)
+
+	// PutV1UserUsernameWithBodyWithResponse request with any body
+	PutV1UserUsernameWithBodyWithResponse(ctx context.Context, username string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutV1UserUsernameResponse, error)
+
+	PutV1UserUsernameWithResponse(ctx context.Context, username string, body PutV1UserUsernameJSONRequestBody, reqEditors ...RequestEditorFn) (*PutV1UserUsernameResponse, error)
 }
 
 type GetV1ArtifactResponse struct {
@@ -4076,31 +4083,6 @@ func (r GetV1UserResponse) StatusCode() int {
 	return 0
 }
 
-type PostV1UserResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON201      *UserResponse
-	JSON400      *GenericBadRequest
-	JSON409      *ErrGeneric
-	JSON413      *GenericTooLarge
-}
-
-// Status returns HTTPResponse.Status
-func (r PostV1UserResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r PostV1UserResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
 type DeleteV1UserMeResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -4264,6 +4246,31 @@ func (r PatchV1UserUsernameResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r PatchV1UserUsernameResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PutV1UserUsernameResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *UserResponse
+	JSON400      *GenericBadRequest
+	JSON409      *ErrGeneric
+	JSON413      *GenericTooLarge
+}
+
+// Status returns HTTPResponse.Status
+func (r PutV1UserUsernameResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutV1UserUsernameResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -4596,23 +4603,6 @@ func (c *ClientWithResponses) GetV1UserWithResponse(ctx context.Context, params 
 	return ParseGetV1UserResponse(rsp)
 }
 
-// PostV1UserWithBodyWithResponse request with arbitrary body returning *PostV1UserResponse
-func (c *ClientWithResponses) PostV1UserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostV1UserResponse, error) {
-	rsp, err := c.PostV1UserWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePostV1UserResponse(rsp)
-}
-
-func (c *ClientWithResponses) PostV1UserWithResponse(ctx context.Context, body PostV1UserJSONRequestBody, reqEditors ...RequestEditorFn) (*PostV1UserResponse, error) {
-	rsp, err := c.PostV1User(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePostV1UserResponse(rsp)
-}
-
 // DeleteV1UserMeWithResponse request returning *DeleteV1UserMeResponse
 func (c *ClientWithResponses) DeleteV1UserMeWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*DeleteV1UserMeResponse, error) {
 	rsp, err := c.DeleteV1UserMe(ctx, reqEditors...)
@@ -4690,6 +4680,23 @@ func (c *ClientWithResponses) PatchV1UserUsernameWithResponse(ctx context.Contex
 		return nil, err
 	}
 	return ParsePatchV1UserUsernameResponse(rsp)
+}
+
+// PutV1UserUsernameWithBodyWithResponse request with arbitrary body returning *PutV1UserUsernameResponse
+func (c *ClientWithResponses) PutV1UserUsernameWithBodyWithResponse(ctx context.Context, username string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutV1UserUsernameResponse, error) {
+	rsp, err := c.PutV1UserUsernameWithBody(ctx, username, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutV1UserUsernameResponse(rsp)
+}
+
+func (c *ClientWithResponses) PutV1UserUsernameWithResponse(ctx context.Context, username string, body PutV1UserUsernameJSONRequestBody, reqEditors ...RequestEditorFn) (*PutV1UserUsernameResponse, error) {
+	rsp, err := c.PutV1UserUsername(ctx, username, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutV1UserUsernameResponse(rsp)
 }
 
 // ParseGetV1ArtifactResponse parses an HTTP response from a GetV1ArtifactWithResponse call
@@ -5934,53 +5941,6 @@ func ParseGetV1UserResponse(rsp *http.Response) (*GetV1UserResponse, error) {
 	return response, nil
 }
 
-// ParsePostV1UserResponse parses an HTTP response from a PostV1UserWithResponse call
-func ParsePostV1UserResponse(rsp *http.Response) (*PostV1UserResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &PostV1UserResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest UserResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON201 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest GenericBadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
-		var dest ErrGeneric
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON409 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
-		var dest GenericTooLarge
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON413 = &dest
-
-	}
-
-	return response, nil
-}
-
 // ParseDeleteV1UserMeResponse parses an HTTP response from a DeleteV1UserMeWithResponse call
 func ParseDeleteV1UserMeResponse(rsp *http.Response) (*DeleteV1UserMeResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -6248,6 +6208,53 @@ func ParsePatchV1UserUsernameResponse(rsp *http.Response) (*PatchV1UserUsernameR
 			return nil, err
 		}
 		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest ErrGeneric
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest GenericTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePutV1UserUsernameResponse parses an HTTP response from a PutV1UserUsernameWithResponse call
+func ParsePutV1UserUsernameResponse(rsp *http.Response) (*PutV1UserUsernameResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutV1UserUsernameResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest UserResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest GenericBadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
 		var dest ErrGeneric

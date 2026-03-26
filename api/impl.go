@@ -27,8 +27,6 @@ func NewServer(
 	db orm.DB,
 	maxRetries int,
 	retention time.Duration,
-	paginationMaximum int,
-	paginationDefault int,
 	queueClient queue.QueueClient,
 	registryClient proto_gen.RegistryServiceClient,
 ) *Server {
@@ -37,5 +35,7 @@ func NewServer(
 		authModule:     authModule,
 		registryClient: registryClient,
 		queueClient:    queueClient,
+		maxRetries:     maxRetries,
+		retention:      retention,
 	}
 }

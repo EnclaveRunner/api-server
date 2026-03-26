@@ -72,16 +72,21 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func createUser(t *testing.T, username, displayName, password string) {
+func createUser(t *testing.T, username, displayName, password string, roles ...string) {
 	t.Helper()
 
-	resp, err := c.PostV1UserWithResponse(
+	body := client.PutV1UserUsernameJSONRequestBody{
+		Password:    password,
+		DisplayName: displayName,
+	}
+	if len(roles) > 0 {
+		body.Roles = &roles
+	}
+
+	resp, err := c.PutV1UserUsernameWithResponse(
 		t.Context(),
-		client.PostV1UserJSONRequestBody{
-			Name:        username,
-			Password:    password,
-			DisplayName: displayName,
-		},
+		username,
+		body,
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, resp.StatusCode())
@@ -165,6 +170,26 @@ func TestPatchUserPasswordOnly(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, patchResp.StatusCode())
 	assert.Equal(t, username, patchResp.JSON200.Name)
+}
+
+func TestCreateUserWithRoles(t *testing.T) {
+	t.Parallel()
+
+	username := "test-user-with-roles"
+	role := "role-created-via-user-put"
+	createUser(t, username, "Role User", defaultPassword, role)
+	defer deleteUser(t, username)
+
+	getResp, err := c.GetV1UserUsernameWithResponse(t.Context(), username)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, getResp.StatusCode())
+	assert.NotNil(t, getResp.JSON200.Roles)
+	assert.Contains(t, *getResp.JSON200.Roles, role)
+
+	roleResp, err := c.GetV1RbacRoleRoleWithResponse(t.Context(), role)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, roleResp.StatusCode())
+	assert.Contains(t, roleResp.JSON200.Users, username)
 }
 
 func TestGetUsersMeForbiddenForRegularUser(t *testing.T) {

@@ -47,7 +47,7 @@ func main() {
 
 		//nolint:mnd // Default max retries for task
 		{Key: "retry.max_retries", Value: 3},
-		{Key: "retry.retention", Value: "1d"},
+		{Key: "retry.retention", Value: "24h"},
 	}
 
 	// load config and create server
@@ -107,8 +107,6 @@ func main() {
 		db,
 		cfg.Retry.MaxRetries,
 		retentionDuration,
-		cfg.Pagination.Maximum,
-		cfg.Pagination.Default,
 		queueClient,
 		registryClient,
 	)

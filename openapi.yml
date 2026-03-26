@@ -67,9 +67,17 @@ paths:
           $ref: "#/components/responses/GenericInternalServerError"
       security:
         - BasicAuth: []
-    post:
+  /v1/user/{username}:
+    parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Unique name of the user.
+    put:
       summary: Create User
-      description: Create a new user. The server assigns the user id.
+      description: Create a new user with the provided username.
       tags:
         - Users
       requestBody:
@@ -77,7 +85,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateUser"
+              $ref: "#/components/schemas/PutUserRequest"
       responses:
         "201":
           description: User created successfully.
@@ -103,14 +111,6 @@ paths:
           $ref: "#/components/responses/GenericInternalServerError"
       security:
         - BasicAuth: []
-  /v1/user/{username}:
-    parameters:
-      - name: username
-        in: path
-        required: true
-        schema:
-          type: string
-        description: Unique name of the user.
     get:
       summary: Get User
       description: Retrieve information about a specific user by username.
@@ -1668,22 +1668,23 @@ components:
           description: Roles assigned to the user.
           items:
             type: string
-    CreateUser:
+    PutUserRequest:
       type: object
       required:
-        - name
         - password
         - displayName
       properties:
-        name:
-          type: string
-          description: The name of the user to create.
         password:
           type: string
           description: The password for the new user.
         displayName:
           type: string
           description: The display name for the new user.
+        roles:
+          type: array
+          description: Roles assigned to the new user.
+          items:
+            type: string
     PatchUser:
       type: object
       properties:

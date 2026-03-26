@@ -3,6 +3,7 @@ package api
 import (
 	"api-server/orm"
 	pb "api-server/proto_gen"
+	"api-server/queue"
 	"cmp"
 	"context"
 	"encoding/base64"
@@ -132,7 +133,7 @@ func (server *Server) PostV1Task(
 	}
 
 	taskOptions := []asynq.Option{}
-	if request.Body.Retention != nil {
+	if request.Body.Retention != nil && *request.Body.Retention != "" {
 		retention, err := time.ParseDuration(*request.Body.Retention)
 		if err != nil {
 			return &PostV1Task400JSONResponse{
@@ -184,16 +185,18 @@ func (server *Server) GetV1TaskId(
 ) (GetV1TaskIdResponseObject, error) {
 	task, err := server.queueClient.GetTask(request.Id)
 	if err != nil {
-		if !errors.Is(err, asynq.ErrTaskNotFound) {
-			log.Error().
-				Err(err).
-				Str("id", request.Id).
-				Msg("Failed to retrieve task")
-
-			return GetV1TaskId500Response{}, nil
+		if errors.Is(err, &queue.TaskNotFoundError{}) {
+			return GetV1TaskId404JSONResponse{GenericNotFoundJSONResponse{
+				Error: err.Error(),
+			}}, nil
 		}
 
-		return GetV1TaskId404JSONResponse{}, nil
+		log.Error().
+			Err(err).
+			Str("id", request.Id).
+			Msg("Failed to retrieve task")
+
+		return GetV1TaskId500Response{}, nil
 	}
 
 	var taskPayload pb.Task
@@ -220,7 +223,7 @@ func (server *Server) GetV1TaskIdLogs(
 	request GetV1TaskIdLogsRequestObject,
 ) (GetV1TaskIdLogsResponseObject, error) {
 	if _, err := server.queueClient.GetTask(request.Id); err != nil {
-		if !errors.Is(err, asynq.ErrTaskNotFound) {
+		if !errors.Is(err, &queue.TaskNotFoundError{}) {
 			log.Error().
 				Err(err).
 				Str("id", request.Id).

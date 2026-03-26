@@ -113,15 +113,15 @@ func (server *Server) HeadV1UserUsername(
 	return HeadV1UserUsername200Response{}, nil
 }
 
-// PostV1User implements StrictServerInterface.
-func (server *Server) PostV1User(
+// PutV1UserUsername implements StrictServerInterface.
+func (server *Server) PutV1UserUsername(
 	ctx context.Context,
-	request PostV1UserRequestObject,
-) (PostV1UserResponseObject, error) {
-	if strings.TrimSpace(request.Body.Name) == "" ||
+	request PutV1UserUsernameRequestObject,
+) (PutV1UserUsernameResponseObject, error) {
+	if strings.TrimSpace(request.Username) == "" ||
 		strings.TrimSpace(request.Body.Password) == "" ||
 		strings.TrimSpace(request.Body.DisplayName) == "" {
-		return PostV1User400JSONResponse{
+		return PutV1UserUsername400JSONResponse{
 			GenericBadRequestJSONResponse{
 				"Username, password, and display name cannot be empty",
 			},
@@ -130,14 +130,14 @@ func (server *Server) PostV1User(
 
 	user, err := server.db.CreateUser(
 		ctx,
-		request.Body.Name,
+		request.Username,
 		request.Body.Password,
 		request.Body.DisplayName,
 	)
 	if err != nil {
 		var errConflict *orm.ConflictError
 		if errors.As(err, &errConflict) {
-			return PostV1User409JSONResponse{
+			return PutV1UserUsername409JSONResponse{
 				errConflict.Conflict,
 			}, nil
 		}
@@ -147,6 +147,48 @@ func (server *Server) PostV1User(
 		return GenericInternalServerErrorResponse{}, nil
 	}
 
+	if request.Body.Roles != nil {
+		seenRoles := make(map[string]struct{}, len(*request.Body.Roles))
+		for _, rawRole := range *request.Body.Roles {
+			role := strings.TrimSpace(rawRole)
+			if role == "" {
+				return PutV1UserUsername400JSONResponse{
+					GenericBadRequestJSONResponse{
+						"Roles cannot contain empty values",
+					},
+				}, nil
+			}
+
+			if _, exists := seenRoles[role]; exists {
+				continue
+			}
+			seenRoles[role] = struct{}{}
+
+			exists, err := server.authModule.UserGroupExists(role)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to check if role exists")
+
+				return GenericInternalServerErrorResponse{}, nil
+			}
+
+			if !exists {
+				err = server.authModule.CreateUserGroup(role)
+				if err != nil {
+					log.Error().Err(err).Msg("Failed to create role")
+
+					return GenericInternalServerErrorResponse{}, nil
+				}
+			}
+
+			err = server.authModule.AddUserToGroup(request.Username, role)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to assign role to user")
+
+				return GenericInternalServerErrorResponse{}, nil
+			}
+		}
+	}
+
 	roles, err := server.authModule.GetGroupsForUser(user.Username)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get user roles")
@@ -154,7 +196,7 @@ func (server *Server) PostV1User(
 		return GenericInternalServerErrorResponse{}, nil
 	}
 
-	return PostV1User201JSONResponse{
+	return PutV1UserUsername201JSONResponse{
 		Name:        user.Username,
 		DisplayName: user.DisplayName,
 		Roles:       &roles,
@@ -212,6 +254,13 @@ func (server *Server) DeleteV1UserUsername(
 	ctx context.Context,
 	request DeleteV1UserUsernameRequestObject,
 ) (DeleteV1UserUsernameResponseObject, error) {
+	assignedRoles, err := server.authModule.GetGroupsForUser(request.Username)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get user roles")
+
+		return DeleteV1UserUsername500Response{}, nil
+	}
+
 	user, err := server.db.DeleteUserByUsername(ctx, request.Username)
 	if err != nil {
 		var errNotFound *orm.NotFoundError
@@ -228,17 +277,10 @@ func (server *Server) DeleteV1UserUsername(
 		return DeleteV1UserUsername500Response{}, nil
 	}
 
-	roles, err := server.authModule.GetGroupsForUser(user.Username)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to get user roles")
-
-		return DeleteV1UserUsername500Response{}, nil
-	}
-
 	return DeleteV1UserUsername200JSONResponse(UserResponse{
 		Name:        user.Username,
 		DisplayName: user.DisplayName,
-		Roles:       &roles,
+		Roles:       &assignedRoles,
 	}), nil
 }
 

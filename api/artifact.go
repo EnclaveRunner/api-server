@@ -42,7 +42,10 @@ func (server *Server) DeleteArtifact(
 		Name:      request.Body.Package.Name,
 	}}
 
-	if after, ok := strings.CutPrefix(request.Body.Identifier, VersionHashPrefix); ok {
+	if after, ok := strings.CutPrefix(
+		request.Body.Identifier,
+		VersionHashPrefix,
+	); ok {
 		artifactIdentifier.Identifier = &pb.ArtifactIdentifier_VersionHash{
 			VersionHash: after,
 		}
@@ -113,7 +116,10 @@ func (server *Server) GetArtifact(
 		Name:      request.Params.Name,
 	}}
 
-	if after, ok := strings.CutPrefix(request.Params.Identifier, VersionHashPrefix); ok {
+	if after, ok := strings.CutPrefix(
+		request.Params.Identifier,
+		VersionHashPrefix,
+	); ok {
 		artifactIdentifier.Identifier = &pb.ArtifactIdentifier_VersionHash{
 			VersionHash: after,
 		}
@@ -183,7 +189,10 @@ func (server *Server) GetArtifactUpload(
 		},
 	}
 
-	if after, ok := strings.CutPrefix(request.Params.Identifier, VersionHashPrefix); ok {
+	if after, ok := strings.CutPrefix(
+		request.Params.Identifier,
+		VersionHashPrefix,
+	); ok {
 		pullRequest.Identifier = &pb.ArtifactIdentifier_VersionHash{
 			VersionHash: after,
 		}
@@ -245,7 +254,10 @@ func (server *Server) HeadArtifact(
 		Name:      request.Params.Name,
 	}}
 
-	if after, ok := strings.CutPrefix(request.Params.Identifier, VersionHashPrefix); ok {
+	if after, ok := strings.CutPrefix(
+		request.Params.Identifier,
+		VersionHashPrefix,
+	); ok {
 		artifactIdentifier.Identifier = &pb.ArtifactIdentifier_VersionHash{
 			VersionHash: after,
 		}

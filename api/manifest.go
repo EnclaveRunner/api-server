@@ -207,10 +207,15 @@ func anyToProtoVal(v any) *pb.Val {
 	case map[string]interface{}:
 		fields := make([]*pb.RecordField, 0, len(val))
 		for k, fv := range val {
-			fields = append(fields, &pb.RecordField{Name: k, Value: anyToProtoVal(fv)})
+			fields = append(
+				fields,
+				&pb.RecordField{Name: k, Value: anyToProtoVal(fv)},
+			)
 		}
 
-		return &pb.Val{Value: &pb.Val_RecordVal{RecordVal: &pb.RecordVal{Fields: fields}}}
+		return &pb.Val{
+			Value: &pb.Val_RecordVal{RecordVal: &pb.RecordVal{Fields: fields}},
+		}
 	default:
 		// nil or any unrecognised type → option<T> none
 		return &pb.Val{Value: &pb.Val_OptionVal{OptionVal: &pb.OptionVal{}}}

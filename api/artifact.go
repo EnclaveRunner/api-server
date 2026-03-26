@@ -1,3 +1,4 @@
+//nolint:dupl // Similar endpoints share similar code, however deduplication would reduce readability and increase complexity of the code, so it is not worth it in this case.
 package api
 
 import (
@@ -20,13 +21,26 @@ const (
 )
 
 // GetV1Artifact implements StrictServerInterface.
-func (server *Server) GetV1Artifact(ctx context.Context, request GetV1ArtifactRequestObject) (GetV1ArtifactResponseObject, error) {
-	artifactQueryResponse, err := server.registryClient.QueryArtifacts(ctx, &pb.ArtifactQuery{})
+func (server *Server) GetV1Artifact(
+	ctx context.Context,
+	request GetV1ArtifactRequestObject,
+) (GetV1ArtifactResponseObject, error) {
+	artifactQueryResponse, err := server.registryClient.QueryArtifacts(
+		ctx,
+		&pb.ArtifactQuery{},
+	)
 	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to query artifacts")
+		log.Error().Err(err).Msg("Failed to query artifacts")
+
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
-	artifactsPaginated := paginate(artifactQueryResponse.Artifacts, *request.Params.Limit, *request.Params.Offset, cmpArtifacts)
+	artifactsPaginated := paginate(
+		artifactQueryResponse.Artifacts,
+		*request.Params.Limit,
+		*request.Params.Offset,
+		cmpArtifacts,
+	)
 
 	responseArtifacts := make([]Artifact, len(artifactsPaginated))
 	for i, artifact := range artifactsPaginated {
@@ -37,15 +51,28 @@ func (server *Server) GetV1Artifact(ctx context.Context, request GetV1ArtifactRe
 }
 
 // GetV1ArtifactNamespace implements StrictServerInterface.
-func (server *Server) GetV1ArtifactNamespace(ctx context.Context, request GetV1ArtifactNamespaceRequestObject) (GetV1ArtifactNamespaceResponseObject, error) {
-	artifactQueryResponse, err := server.registryClient.QueryArtifacts(ctx, &pb.ArtifactQuery{
-		Namespace: &request.Namespace,
-	})
+func (server *Server) GetV1ArtifactNamespace(
+	ctx context.Context,
+	request GetV1ArtifactNamespaceRequestObject,
+) (GetV1ArtifactNamespaceResponseObject, error) {
+	artifactQueryResponse, err := server.registryClient.QueryArtifacts(
+		ctx,
+		&pb.ArtifactQuery{
+			Namespace: &request.Namespace,
+		},
+	)
 	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to query artifacts")
+		log.Error().Err(err).Msg("Failed to query artifacts")
+
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
-	artifactsPaginated := paginate(artifactQueryResponse.Artifacts, *request.Params.Limit, *request.Params.Offset, cmpArtifacts)
+	artifactsPaginated := paginate(
+		artifactQueryResponse.Artifacts,
+		*request.Params.Limit,
+		*request.Params.Offset,
+		cmpArtifacts,
+	)
 
 	responseArtifacts := make([]Artifact, len(artifactsPaginated))
 	for i, artifact := range artifactsPaginated {
@@ -56,16 +83,29 @@ func (server *Server) GetV1ArtifactNamespace(ctx context.Context, request GetV1A
 }
 
 // GetV1ArtifactNamespaceName implements StrictServerInterface.
-func (server *Server) GetV1ArtifactNamespaceName(ctx context.Context, request GetV1ArtifactNamespaceNameRequestObject) (GetV1ArtifactNamespaceNameResponseObject, error) {
-	artifactQueryResponse, err := server.registryClient.QueryArtifacts(ctx, &pb.ArtifactQuery{
-		Namespace: &request.Namespace,
-		Name:      &request.Name,
-	})
+func (server *Server) GetV1ArtifactNamespaceName(
+	ctx context.Context,
+	request GetV1ArtifactNamespaceNameRequestObject,
+) (GetV1ArtifactNamespaceNameResponseObject, error) {
+	artifactQueryResponse, err := server.registryClient.QueryArtifacts(
+		ctx,
+		&pb.ArtifactQuery{
+			Namespace: &request.Namespace,
+			Name:      &request.Name,
+		},
+	)
 	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to query artifacts")
+		log.Error().Err(err).Msg("Failed to query artifacts")
+
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
-	artifactsPaginated := paginate(artifactQueryResponse.Artifacts, *request.Params.Limit, *request.Params.Offset, cmpArtifacts)
+	artifactsPaginated := paginate(
+		artifactQueryResponse.Artifacts,
+		*request.Params.Limit,
+		*request.Params.Offset,
+		cmpArtifacts,
+	)
 
 	responseArtifacts := make([]Artifact, len(artifactsPaginated))
 	for i, artifact := range artifactsPaginated {
@@ -80,15 +120,18 @@ func (server *Server) GetV1ArtifactNamespaceNameHashHash(
 	ctx context.Context,
 	request GetV1ArtifactNamespaceNameHashHashRequestObject,
 ) (GetV1ArtifactNamespaceNameHashHashResponseObject, error) {
-	artifactResponse, err := server.registryClient.GetArtifact(ctx, &pb.ArtifactIdentifier{
-		Package: &pb.PackageName{
-			Namespace: request.Namespace,
-			Name:      request.Name,
+	artifactResponse, err := server.registryClient.GetArtifact(
+		ctx,
+		&pb.ArtifactIdentifier{
+			Package: &pb.PackageName{
+				Namespace: request.Namespace,
+				Name:      request.Name,
+			},
+			Identifier: &pb.ArtifactIdentifier_VersionHash{
+				VersionHash: request.Hash,
+			},
 		},
-		Identifier: &pb.ArtifactIdentifier_VersionHash{
-			VersionHash: request.Hash,
-		},
-	})
+	)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			return GetV1ArtifactNamespaceNameHashHash404JSONResponse{
@@ -103,7 +146,9 @@ func (server *Server) GetV1ArtifactNamespaceNameHashHash(
 		return &GetV1ArtifactNamespaceNameHashHash500Response{}, nil
 	}
 
-	return GetV1ArtifactNamespaceNameHashHash200JSONResponse(artifactToArtifact(artifactResponse)), nil
+	return GetV1ArtifactNamespaceNameHashHash200JSONResponse(
+		artifactToArtifact(artifactResponse),
+	), nil
 }
 
 // GetV1ArtifactNamespaceNameTagTag implements [StrictServerInterface].
@@ -111,15 +156,18 @@ func (server *Server) GetV1ArtifactNamespaceNameTagTag(
 	ctx context.Context,
 	request GetV1ArtifactNamespaceNameTagTagRequestObject,
 ) (GetV1ArtifactNamespaceNameTagTagResponseObject, error) {
-	artifactResponse, err := server.registryClient.GetArtifact(ctx, &pb.ArtifactIdentifier{
-		Package: &pb.PackageName{
-			Namespace: request.Namespace,
-			Name:      request.Name,
+	artifactResponse, err := server.registryClient.GetArtifact(
+		ctx,
+		&pb.ArtifactIdentifier{
+			Package: &pb.PackageName{
+				Namespace: request.Namespace,
+				Name:      request.Name,
+			},
+			Identifier: &pb.ArtifactIdentifier_Tag{
+				Tag: request.Tag,
+			},
 		},
-		Identifier: &pb.ArtifactIdentifier_Tag{
-			Tag: request.Tag,
-		},
-	})
+	)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			return GetV1ArtifactNamespaceNameTagTag404JSONResponse{
@@ -134,7 +182,9 @@ func (server *Server) GetV1ArtifactNamespaceNameTagTag(
 		return &GetV1ArtifactNamespaceNameTagTag500Response{}, nil
 	}
 
-	return GetV1ArtifactNamespaceNameTagTag200JSONResponse(artifactToArtifact(artifactResponse)), nil
+	return GetV1ArtifactNamespaceNameTagTag200JSONResponse(
+		artifactToArtifact(artifactResponse),
+	), nil
 }
 
 // GetV1ArtifactRawNamespaceNameHashHash implements [StrictServerInterface].
@@ -380,11 +430,14 @@ func (server *Server) PatchV1ArtifactNamespaceNameHashHash(
 			}, nil
 		default:
 			log.Error().Err(err).Msg("Failed to set artifact tags")
+
 			return &GenericInternalServerErrorResponse{}, nil
 		}
 	}
 
-	return PatchV1ArtifactNamespaceNameHashHash200JSONResponse(artifactToArtifact(artifactResponse)), nil
+	return PatchV1ArtifactNamespaceNameHashHash200JSONResponse(
+		artifactToArtifact(artifactResponse),
+	), nil
 }
 
 // PatchV1ArtifactNamespaceNameTagTag implements [StrictServerInterface].
@@ -427,11 +480,14 @@ func (server *Server) PatchV1ArtifactNamespaceNameTagTag(
 			}, nil
 		default:
 			log.Error().Err(err).Msg("Failed to set artifact tags")
+
 			return &GenericInternalServerErrorResponse{}, nil
 		}
 	}
 
-	return PatchV1ArtifactNamespaceNameTagTag200JSONResponse(artifactToArtifact(artifactResponse)), nil
+	return PatchV1ArtifactNamespaceNameTagTag200JSONResponse(
+		artifactToArtifact(artifactResponse),
+	), nil
 }
 
 // DeleteV1ArtifactNamespaceNameHashHash implements [StrictServerInterface].
@@ -439,15 +495,18 @@ func (server *Server) DeleteV1ArtifactNamespaceNameHashHash(
 	ctx context.Context,
 	request DeleteV1ArtifactNamespaceNameHashHashRequestObject,
 ) (DeleteV1ArtifactNamespaceNameHashHashResponseObject, error) {
-	artifactResponse, err := server.registryClient.DeleteArtifact(ctx, &pb.ArtifactIdentifier{
-		Package: &pb.PackageName{
-			Namespace: request.Namespace,
-			Name:      request.Name,
+	artifactResponse, err := server.registryClient.DeleteArtifact(
+		ctx,
+		&pb.ArtifactIdentifier{
+			Package: &pb.PackageName{
+				Namespace: request.Namespace,
+				Name:      request.Name,
+			},
+			Identifier: &pb.ArtifactIdentifier_VersionHash{
+				VersionHash: request.Hash,
+			},
 		},
-		Identifier: &pb.ArtifactIdentifier_VersionHash{
-			VersionHash: request.Hash,
-		},
-	})
+	)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			return DeleteV1ArtifactNamespaceNameHashHash404JSONResponse{
@@ -462,7 +521,9 @@ func (server *Server) DeleteV1ArtifactNamespaceNameHashHash(
 		return &DeleteV1ArtifactNamespaceNameHashHash500Response{}, nil
 	}
 
-	return DeleteV1ArtifactNamespaceNameHashHash200JSONResponse(artifactToArtifact(artifactResponse)), nil
+	return DeleteV1ArtifactNamespaceNameHashHash200JSONResponse(
+		artifactToArtifact(artifactResponse),
+	), nil
 }
 
 // DeleteV1ArtifactNamespaceNameTagTag implements [StrictServerInterface].
@@ -470,15 +531,18 @@ func (server *Server) DeleteV1ArtifactNamespaceNameTagTag(
 	ctx context.Context,
 	request DeleteV1ArtifactNamespaceNameTagTagRequestObject,
 ) (DeleteV1ArtifactNamespaceNameTagTagResponseObject, error) {
-	artifactResponse, err := server.registryClient.DeleteArtifact(ctx, &pb.ArtifactIdentifier{
-		Package: &pb.PackageName{
-			Namespace: request.Namespace,
-			Name:      request.Name,
+	artifactResponse, err := server.registryClient.DeleteArtifact(
+		ctx,
+		&pb.ArtifactIdentifier{
+			Package: &pb.PackageName{
+				Namespace: request.Namespace,
+				Name:      request.Name,
+			},
+			Identifier: &pb.ArtifactIdentifier_Tag{
+				Tag: request.Tag,
+			},
 		},
-		Identifier: &pb.ArtifactIdentifier_Tag{
-			Tag: request.Tag,
-		},
-	})
+	)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			return DeleteV1ArtifactNamespaceNameTagTag404JSONResponse{
@@ -493,7 +557,9 @@ func (server *Server) DeleteV1ArtifactNamespaceNameTagTag(
 		return &DeleteV1ArtifactNamespaceNameTagTag500Response{}, nil
 	}
 
-	return DeleteV1ArtifactNamespaceNameTagTag200JSONResponse(artifactToArtifact(artifactResponse)), nil
+	return DeleteV1ArtifactNamespaceNameTagTag200JSONResponse(
+		artifactToArtifact(artifactResponse),
+	), nil
 }
 
 func cmpArtifacts(a, b *pb.Artifact) int {

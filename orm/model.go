@@ -8,7 +8,7 @@ import (
 
 type User struct {
 	Username    string `gorm:"primaryKey;not null" json:"username"`
-	DisplayName string `gorm:"not null"         json:"displayName"`
+	DisplayName string `gorm:"not null"            json:"displayName"`
 }
 
 type Auth_Basic struct {

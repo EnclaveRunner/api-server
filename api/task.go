@@ -56,15 +56,21 @@ func (server *Server) GetV1Task(
 		})
 	}
 
-	taskPage := paginate(tasks, *request.Params.Limit, *request.Params.Offset, func(a, b *asynq.TaskInfo) int {
-		return cmp.Compare(a.ID, b.ID)
-	})
+	taskPage := paginate(
+		tasks,
+		*request.Params.Limit,
+		*request.Params.Offset,
+		func(a, b *asynq.TaskInfo) int {
+			return cmp.Compare(a.ID, b.ID)
+		},
+	)
 
 	taskPageTransformed := make([]Task, len(taskPage))
 	for i, task := range taskPage {
 		state, err := taskToTaskResponse(task)
 		if err != nil {
 			log.Error().Err(err).Str("id", task.ID).Msg("Failed to transform task")
+
 			return GetV1Task500Response{}, nil
 		}
 
@@ -241,6 +247,7 @@ func (server *Server) GetV1TaskIdLogs(
 			Err(err).
 			Str("id", request.Id).
 			Msg("Failed to retrieve logs of task")
+
 		return GetV1TaskIdLogs500Response{}, nil
 	}
 
@@ -250,6 +257,7 @@ func (server *Server) GetV1TaskIdLogs(
 func taskToTaskResponse(task *asynq.TaskInfo) (Task, error) {
 	var taskPayload pb.Task
 	if err := proto.Unmarshal(task.Payload, &taskPayload); err != nil {
+		//nolint:wrapcheck // Error is not used but only logged later on, no error wrap needed
 		return Task{}, err
 	}
 
@@ -320,6 +328,7 @@ func serializeSource(source *pb.FunctionIdentifier) string {
 		serialized += tag.Tag
 	} else {
 		serialized += "hash:"
+		//nolint:forcetypeassert // The only other option for the oneof is VersionHash, so this type assertion is safe
 		serialized += source.Artifact.Identifier.(*pb.ArtifactIdentifier_VersionHash).VersionHash
 	}
 
@@ -375,10 +384,15 @@ func anyToProtoVal(v any) *pb.Val {
 	case map[string]interface{}:
 		fields := make([]*pb.RecordField, 0, len(val))
 		for k, fv := range val {
-			fields = append(fields, &pb.RecordField{Name: k, Value: anyToProtoVal(fv)})
+			fields = append(
+				fields,
+				&pb.RecordField{Name: k, Value: anyToProtoVal(fv)},
+			)
 		}
 
-		return &pb.Val{Value: &pb.Val_RecordVal{RecordVal: &pb.RecordVal{Fields: fields}}}
+		return &pb.Val{
+			Value: &pb.Val_RecordVal{RecordVal: &pb.RecordVal{Fields: fields}},
+		}
 	default:
 		// nil or any unrecognised type → option<T> none
 		return &pb.Val{Value: &pb.Val_OptionVal{OptionVal: &pb.OptionVal{}}}

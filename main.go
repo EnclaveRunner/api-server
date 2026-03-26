@@ -62,7 +62,12 @@ func main() {
 	}
 
 	ginServer := shareddeps.InitRESTServer(cfg)
-	ginServer.Use(paginationValidationMiddleware(cfg.Pagination.Default, cfg.Pagination.Maximum))
+	ginServer.Use(
+		paginationValidationMiddleware(
+			cfg.Pagination.Default,
+			cfg.Pagination.Maximum,
+		),
+	)
 
 	dbGorm := orm.InitDB(cfg)
 	policyAdapter := orm.NewCasbinAdapter(dbGorm)
@@ -120,14 +125,18 @@ func main() {
 func MigrateRBAC(authModule auth.AuthModule) {
 	resourceGroups := []string{
 		"self_INTERNAL",
-		"user_management",
-		"rbac_management",
+		"users",
+		"rbac",
+		"artifacts",
+		"tasks",
 	}
 
 	userGroups := []string{
 		"read_only",
-		"user_management",
-		"rbac_management",
+		"users",
+		"rbac",
+		"artifacts",
+		"tasks",
 	}
 
 	// Define resource to group mappings
@@ -136,16 +145,25 @@ func MigrateRBAC(authModule auth.AuthModule) {
 		Group    string
 	}
 	resourceMappings := []ResourceMapping{
-		{"/users/me", "self_INTERNAL"},
-		{"/users/user", "user_management"},
-		{"/users/list", "user_management"},
-		{"/rbac/list-roles", "rbac_management"},
-		{"/rbac/role", "rbac_management"},
-		{"/rbac/user", "rbac_management"},
-		{"/rbac/list-resource-groups", "rbac_management"},
-		{"/rbac/resource-group", "rbac_management"},
-		{"/rbac/endpoint", "rbac_management"},
-		{"/rbac/policy", "rbac_management"},
+		{"/v1/user/me", "self_INTERNAL"},
+		{"/v1/user", "users"},
+		{"/v1/user/:username", "users"},
+		{"/v1/rbac/role", "rbac"},
+		{"/v1/rbac/role/:role", "rbac"},
+		{"/v1/rbac/resource-group", "rbac"},
+		{"/v1/rbac/resource-group/:resourceGroup", "rbac"},
+		{"/v1/rbac/policy", "rbac"},
+		{"/v1/artifact", "artifacts"},
+		{"/v1/artifact/:namespace", "artifacts"},
+		{"/v1/artifact/:namespace/:name", "artifacts"},
+		{"/v1/artifact/:namespace/:name/tag/:tag", "artifacts"},
+		{"/v1/artifact/:namespace/:name/hash/:hash", "artifacts"},
+		{"/v1/artifact/raw/:namespace/:name", "artifacts"},
+		{"/v1/artifact/raw/:namespace/:name/tag/:tag", "artifacts"},
+		{"/v1/artifact/raw/:namespace/:name/hash/:hash", "artifacts"},
+		{"/v1/task", "tasks"},
+		{"/v1/task/:id", "tasks"},
+		{"/v1/task/:id/logs", "tasks"},
 	}
 
 	// Define policies
@@ -158,8 +176,10 @@ func MigrateRBAC(authModule auth.AuthModule) {
 		{"*", "self_INTERNAL", "*"},
 		{"read_only", "*", "GET"},
 		{"read_only", "*", "HEAD"},
-		{"user_management", "user_management", "*"},
-		{"rbac_management", "rbac_management", "*"},
+		{"users", "users", "*"},
+		{"rbac", "rbac", "*"},
+		{"artifacts", "artifacts", "*"},
+		{"tasks", "tasks", "*"},
 	}
 
 	// Create resource groups
@@ -203,7 +223,9 @@ func MigrateRBAC(authModule auth.AuthModule) {
 	}
 }
 
-func paginationValidationMiddleware(defaultLimit, maxLimit int) gin.HandlerFunc {
+func paginationValidationMiddleware(
+	defaultLimit, maxLimit int,
+) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		limitStr := ctx.Query("limit")
 		offsetStr := ctx.Query("offset")
@@ -215,8 +237,12 @@ func paginationValidationMiddleware(defaultLimit, maxLimit int) gin.HandlerFunc 
 			parsedLimit, err := strconv.Atoi(limitStr)
 			if err != nil || parsedLimit < 1 || parsedLimit > maxLimit {
 				ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-					"error": fmt.Sprintf("Invalid limit parameter. Must be an integer between 1 and %d", maxLimit),
+					"error": fmt.Sprintf(
+						"Invalid limit parameter. Must be an integer between 1 and %d",
+						maxLimit,
+					),
 				})
+
 				return
 			}
 			limit = parsedLimit
@@ -230,6 +256,7 @@ func paginationValidationMiddleware(defaultLimit, maxLimit int) gin.HandlerFunc 
 				ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 					"error": "Invalid offset parameter. Must be a non-negative integer.",
 				})
+
 				return
 			}
 			offset = parsedOffset
@@ -239,10 +266,12 @@ func paginationValidationMiddleware(defaultLimit, maxLimit int) gin.HandlerFunc 
 			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"error": fmt.Sprintf("Limit parameter cannot exceed %d", maxLimit),
 			})
+
 			return
 		}
 
-		// Insert validated pagination parameters back into the query for handlers to use
+		// Insert validated pagination parameters back into the query for handlers
+		// to use
 		params := ctx.Request.URL.Query()
 		params.Set("limit", strconv.Itoa(limit))
 		params.Set("offset", strconv.Itoa(offset))

@@ -1,4 +1,3 @@
-//nolint:dupl
 package main
 
 import (
@@ -72,7 +71,11 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func createUser(t *testing.T, username, displayName, password string, roles ...string) {
+func createUser(
+	t *testing.T,
+	username, displayName, password string,
+	roles ...string,
+) {
 	t.Helper()
 
 	body := client.PutV1UserUsernameJSONRequestBody{
@@ -109,7 +112,8 @@ func TestAdminUserExists(t *testing.T) {
 	adminExists := slices.ContainsFunc(
 		*resp.JSON200,
 		func(element client.UserResponse) bool {
-			return element.Name == adminUsername && element.DisplayName == adminDisplayName
+			return element.Name == adminUsername &&
+				element.DisplayName == adminDisplayName
 		},
 	)
 	assert.True(t, adminExists)
@@ -149,7 +153,10 @@ func TestUserCRUDByUsername(t *testing.T) {
 	assert.Equal(t, http.StatusOK, deleteResp.StatusCode())
 	assert.Equal(t, username, deleteResp.JSON200.Name)
 
-	headAfterDelete, err := c.HeadV1UserUsernameWithResponse(t.Context(), username)
+	headAfterDelete, err := c.HeadV1UserUsernameWithResponse(
+		t.Context(),
+		username,
+	)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusNotFound, headAfterDelete.StatusCode())
 }
@@ -208,9 +215,11 @@ func TestGetUsersMeForbiddenForRegularUser(t *testing.T) {
 					if !ok {
 						req.SetBasicAuth(username, password)
 					}
+
 					return nil
 				},
 			}
+
 			return nil
 		},
 	)
@@ -287,7 +296,10 @@ func TestRbacPolicyCRUD(t *testing.T) {
 
 	defer func() {
 		_, _ = c.DeleteV1RbacRoleRoleWithResponse(t.Context(), role)
-		_, _ = c.DeleteV1RbacResourceGroupResourceGroupWithResponse(t.Context(), resourceGroup)
+		_, _ = c.DeleteV1RbacResourceGroupResourceGroupWithResponse(
+			t.Context(),
+			resourceGroup,
+		)
 	}()
 
 	_, err := c.PutV1RbacRoleRoleWithResponse(
@@ -300,7 +312,9 @@ func TestRbacPolicyCRUD(t *testing.T) {
 	_, err = c.PutV1RbacResourceGroupResourceGroupWithResponse(
 		t.Context(),
 		resourceGroup,
-		client.PutV1RbacResourceGroupResourceGroupJSONRequestBody{Endpoints: []string{"/v1/user"}},
+		client.PutV1RbacResourceGroupResourceGroupJSONRequestBody{
+			Endpoints: []string{"/v1/user"},
+		},
 	)
 	assert.NoError(t, err)
 
@@ -320,9 +334,13 @@ func TestRbacPolicyCRUD(t *testing.T) {
 	assert.Equal(t, http.StatusOK, listResp.StatusCode())
 	assert.NotNil(t, listResp.JSON200)
 
-	exists := slices.ContainsFunc(*listResp.JSON200, func(p client.RBACPolicy) bool {
-		return p.Role == role && p.ResourceGroup == resourceGroup && p.Method == method
-	})
+	exists := slices.ContainsFunc(
+		*listResp.JSON200,
+		func(p client.RBACPolicy) bool {
+			return p.Role == role && p.ResourceGroup == resourceGroup &&
+				p.Method == method
+		},
+	)
 	assert.True(t, exists)
 
 	deleteResp, err := c.DeleteV1RbacPolicyWithResponse(

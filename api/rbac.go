@@ -1,3 +1,4 @@
+//nolint:dupl // Similar endpoints share similar code, however deduplication would reduce readability and increase complexity of the code, so it is not worth it in this case.
 package api
 
 import (
@@ -14,7 +15,10 @@ import (
 const internalKeyword = "_INTERNAL"
 
 // DeleteV1RbacPolicy implements StrictServerInterface.
-func (server *Server) DeleteV1RbacPolicy(ctx context.Context, request DeleteV1RbacPolicyRequestObject) (DeleteV1RbacPolicyResponseObject, error) {
+func (server *Server) DeleteV1RbacPolicy(
+	ctx context.Context,
+	request DeleteV1RbacPolicyRequestObject,
+) (DeleteV1RbacPolicyResponseObject, error) {
 	err := server.authModule.RemovePolicy(
 		request.Body.Role,
 		request.Body.ResourceGroup,
@@ -36,8 +40,13 @@ func (server *Server) DeleteV1RbacPolicy(ctx context.Context, request DeleteV1Rb
 }
 
 // DeleteV1RbacResourceGroupResourceGroup implements StrictServerInterface.
-func (server *Server) DeleteV1RbacResourceGroupResourceGroup(ctx context.Context, request DeleteV1RbacResourceGroupResourceGroupRequestObject) (DeleteV1RbacResourceGroupResourceGroupResponseObject, error) {
-	resourceGroup, err := server.authModule.GetResourceGroup(request.ResourceGroup)
+func (server *Server) DeleteV1RbacResourceGroupResourceGroup(
+	ctx context.Context,
+	request DeleteV1RbacResourceGroupResourceGroupRequestObject,
+) (DeleteV1RbacResourceGroupResourceGroupResponseObject, error) {
+	resourceGroup, err := server.authModule.GetResourceGroup(
+		request.ResourceGroup,
+	)
 	if err != nil {
 		if errors.Is(err, &auth.NotFoundError{}) {
 			return DeleteV1RbacResourceGroupResourceGroup404JSONResponse{
@@ -56,14 +65,19 @@ func (server *Server) DeleteV1RbacResourceGroupResourceGroup(ctx context.Context
 		return GenericInternalServerErrorResponse{}, nil
 	}
 
-	return DeleteV1RbacResourceGroupResourceGroup200JSONResponse(ResourceGroupResource{
-		Name:      request.ResourceGroup,
-		Endpoints: resourceGroup,
-	}), nil
+	return DeleteV1RbacResourceGroupResourceGroup200JSONResponse(
+		ResourceGroupResource{
+			Name:      request.ResourceGroup,
+			Endpoints: resourceGroup,
+		},
+	), nil
 }
 
 // DeleteV1RbacRoleRole implements StrictServerInterface.
-func (server *Server) DeleteV1RbacRoleRole(ctx context.Context, request DeleteV1RbacRoleRoleRequestObject) (DeleteV1RbacRoleRoleResponseObject, error) {
+func (server *Server) DeleteV1RbacRoleRole(
+	ctx context.Context,
+	request DeleteV1RbacRoleRoleRequestObject,
+) (DeleteV1RbacRoleRoleResponseObject, error) {
 	role, err := server.authModule.GetUserGroup(request.Role)
 	if err != nil {
 		var errNotFound *auth.NotFoundError
@@ -98,7 +112,10 @@ func (server *Server) DeleteV1RbacRoleRole(ctx context.Context, request DeleteV1
 }
 
 // GetV1RbacPolicy implements StrictServerInterface.
-func (server *Server) GetV1RbacPolicy(ctx context.Context, request GetV1RbacPolicyRequestObject) (GetV1RbacPolicyResponseObject, error) {
+func (server *Server) GetV1RbacPolicy(
+	ctx context.Context,
+	request GetV1RbacPolicyRequestObject,
+) (GetV1RbacPolicyResponseObject, error) {
 	policies, err := server.authModule.ListPolicies()
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to list policies")
@@ -117,17 +134,22 @@ func (server *Server) GetV1RbacPolicy(ctx context.Context, request GetV1RbacPoli
 		}
 	})
 
-	rolesPaginated := paginate(policies, *request.Params.Limit, *request.Params.Offset, func(a, b auth.Policy) int {
-		if a.UserGroup != b.UserGroup {
-			return cmp.Compare(a.UserGroup, b.UserGroup)
-		}
+	rolesPaginated := paginate(
+		policies,
+		*request.Params.Limit,
+		*request.Params.Offset,
+		func(a, b auth.Policy) int {
+			if a.UserGroup != b.UserGroup {
+				return cmp.Compare(a.UserGroup, b.UserGroup)
+			}
 
-		if a.ResourceGroup != b.ResourceGroup {
-			return cmp.Compare(a.ResourceGroup, b.ResourceGroup)
-		}
+			if a.ResourceGroup != b.ResourceGroup {
+				return cmp.Compare(a.ResourceGroup, b.ResourceGroup)
+			}
 
-		return cmp.Compare(a.Permission, b.Permission)
-	})
+			return cmp.Compare(a.Permission, b.Permission)
+		},
+	)
 
 	rolesTransformed := make([]RBACPolicy, len(rolesPaginated))
 	for i, role := range rolesPaginated {
@@ -142,7 +164,10 @@ func (server *Server) GetV1RbacPolicy(ctx context.Context, request GetV1RbacPoli
 }
 
 // GetV1RbacResourceGroup implements StrictServerInterface.
-func (server *Server) GetV1RbacResourceGroup(ctx context.Context, request GetV1RbacResourceGroupRequestObject) (GetV1RbacResourceGroupResponseObject, error) {
+func (server *Server) GetV1RbacResourceGroup(
+	ctx context.Context,
+	request GetV1RbacResourceGroupRequestObject,
+) (GetV1RbacResourceGroupResponseObject, error) {
 	resourceGroups, err := server.authModule.GetResourceGroups()
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get resource groups")
@@ -159,26 +184,44 @@ func (server *Server) GetV1RbacResourceGroup(ctx context.Context, request GetV1R
 		if resourceGroupsMap[rg.GroupName] == nil {
 			resourceGroupsMap[rg.GroupName] = []string{}
 		}
-		resourceGroupsMap[rg.GroupName] = append(resourceGroupsMap[rg.GroupName], rg.ResourceName)
+		resourceGroupsMap[rg.GroupName] = append(
+			resourceGroupsMap[rg.GroupName],
+			rg.ResourceName,
+		)
 	}
 
-	resourceGroupsTransformed := make([]ResourceGroupResource, 0, len(resourceGroupsMap))
+	resourceGroupsTransformed := make(
+		[]ResourceGroupResource,
+		0,
+		len(resourceGroupsMap),
+	)
 	for groupName, endpoints := range resourceGroupsMap {
-		resourceGroupsTransformed = append(resourceGroupsTransformed, ResourceGroupResource{
-			Name:      groupName,
-			Endpoints: endpoints,
-		})
+		resourceGroupsTransformed = append(
+			resourceGroupsTransformed,
+			ResourceGroupResource{
+				Name:      groupName,
+				Endpoints: endpoints,
+			},
+		)
 	}
 
-	resourceGroupsPaginated := paginate(resourceGroupsTransformed, *request.Params.Limit, *request.Params.Offset, func(a, b ResourceGroupResource) int {
-		return cmp.Compare(a.Name, b.Name)
-	})
+	resourceGroupsPaginated := paginate(
+		resourceGroupsTransformed,
+		*request.Params.Limit,
+		*request.Params.Offset,
+		func(a, b ResourceGroupResource) int {
+			return cmp.Compare(a.Name, b.Name)
+		},
+	)
 
 	return GetV1RbacResourceGroup200JSONResponse(resourceGroupsPaginated), nil
 }
 
 // GetV1RbacResourceGroupResourceGroup implements StrictServerInterface.
-func (server *Server) GetV1RbacResourceGroupResourceGroup(ctx context.Context, request GetV1RbacResourceGroupResourceGroupRequestObject) (GetV1RbacResourceGroupResourceGroupResponseObject, error) {
+func (server *Server) GetV1RbacResourceGroupResourceGroup(
+	ctx context.Context,
+	request GetV1RbacResourceGroupResourceGroupRequestObject,
+) (GetV1RbacResourceGroupResourceGroupResponseObject, error) {
 	endpoints, err := server.authModule.GetResourceGroup(request.ResourceGroup)
 	if err != nil {
 		var errNotFound *auth.NotFoundError
@@ -193,14 +236,19 @@ func (server *Server) GetV1RbacResourceGroupResourceGroup(ctx context.Context, r
 		return GenericInternalServerErrorResponse{}, nil
 	}
 
-	return GetV1RbacResourceGroupResourceGroup200JSONResponse(ResourceGroupResource{
-		Name:      request.ResourceGroup,
-		Endpoints: endpoints,
-	}), nil
+	return GetV1RbacResourceGroupResourceGroup200JSONResponse(
+		ResourceGroupResource{
+			Name:      request.ResourceGroup,
+			Endpoints: endpoints,
+		},
+	), nil
 }
 
 // GetV1RbacRole implements StrictServerInterface.
-func (server *Server) GetV1RbacRole(ctx context.Context, request GetV1RbacRoleRequestObject) (GetV1RbacRoleResponseObject, error) {
+func (server *Server) GetV1RbacRole(
+	ctx context.Context,
+	request GetV1RbacRoleRequestObject,
+) (GetV1RbacRoleResponseObject, error) {
 	roles, err := server.authModule.GetUserGroups()
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get user groups")
@@ -227,15 +275,23 @@ func (server *Server) GetV1RbacRole(ctx context.Context, request GetV1RbacRoleRe
 		})
 	}
 
-	rolesPaginated := paginate(rolesTransformed, *request.Params.Limit, *request.Params.Offset, func(a, b RoleResource) int {
-		return cmp.Compare(a.Name, b.Name)
-	})
+	rolesPaginated := paginate(
+		rolesTransformed,
+		*request.Params.Limit,
+		*request.Params.Offset,
+		func(a, b RoleResource) int {
+			return cmp.Compare(a.Name, b.Name)
+		},
+	)
 
 	return GetV1RbacRole200JSONResponse(rolesPaginated), nil
 }
 
 // GetV1RbacRoleRole implements StrictServerInterface.
-func (server *Server) GetV1RbacRoleRole(ctx context.Context, request GetV1RbacRoleRoleRequestObject) (GetV1RbacRoleRoleResponseObject, error) {
+func (server *Server) GetV1RbacRoleRole(
+	ctx context.Context,
+	request GetV1RbacRoleRoleRequestObject,
+) (GetV1RbacRoleRoleResponseObject, error) {
 	users, err := server.authModule.GetUserGroup(request.Role)
 	if err != nil {
 		var errNotFound *auth.NotFoundError
@@ -257,7 +313,10 @@ func (server *Server) GetV1RbacRoleRole(ctx context.Context, request GetV1RbacRo
 }
 
 // HeadV1RbacResourceGroupResourceGroup implements StrictServerInterface.
-func (server *Server) HeadV1RbacResourceGroupResourceGroup(ctx context.Context, request HeadV1RbacResourceGroupResourceGroupRequestObject) (HeadV1RbacResourceGroupResourceGroupResponseObject, error) {
+func (server *Server) HeadV1RbacResourceGroupResourceGroup(
+	ctx context.Context,
+	request HeadV1RbacResourceGroupResourceGroupRequestObject,
+) (HeadV1RbacResourceGroupResourceGroupResponseObject, error) {
 	exists, err := server.authModule.ResourceGroupExists(request.ResourceGroup)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to check if resource group exists")
@@ -273,7 +332,10 @@ func (server *Server) HeadV1RbacResourceGroupResourceGroup(ctx context.Context, 
 }
 
 // HeadV1RbacRoleRole implements StrictServerInterface.
-func (server *Server) HeadV1RbacRoleRole(ctx context.Context, request HeadV1RbacRoleRoleRequestObject) (HeadV1RbacRoleRoleResponseObject, error) {
+func (server *Server) HeadV1RbacRoleRole(
+	ctx context.Context,
+	request HeadV1RbacRoleRoleRequestObject,
+) (HeadV1RbacRoleRoleResponseObject, error) {
 	exists, err := server.authModule.UserGroupExists(request.Role)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to check if role exists")
@@ -289,9 +351,14 @@ func (server *Server) HeadV1RbacRoleRole(ctx context.Context, request HeadV1Rbac
 }
 
 // PutV1RbacPolicy implements StrictServerInterface.
-func (server *Server) PutV1RbacPolicy(ctx context.Context, request PutV1RbacPolicyRequestObject) (PutV1RbacPolicyResponseObject, error) {
+func (server *Server) PutV1RbacPolicy(
+	ctx context.Context,
+	request PutV1RbacPolicyRequestObject,
+) (PutV1RbacPolicyResponseObject, error) {
 	if request.Body.ResourceGroup != string(Asterisk) {
-		resourceGroupExists, err := server.authModule.ResourceGroupExists(request.Body.ResourceGroup)
+		resourceGroupExists, err := server.authModule.ResourceGroupExists(
+			request.Body.ResourceGroup,
+		)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to check if resource group exists")
 
@@ -349,8 +416,13 @@ func (server *Server) PutV1RbacPolicy(ctx context.Context, request PutV1RbacPoli
 }
 
 // PutV1RbacResourceGroupResourceGroup implements StrictServerInterface.
-func (server *Server) PutV1RbacResourceGroupResourceGroup(ctx context.Context, request PutV1RbacResourceGroupResourceGroupRequestObject) (PutV1RbacResourceGroupResourceGroupResponseObject, error) {
-	currentEndpoints, err := server.authModule.GetResourceGroup(request.ResourceGroup)
+func (server *Server) PutV1RbacResourceGroupResourceGroup(
+	ctx context.Context,
+	request PutV1RbacResourceGroupResourceGroupRequestObject,
+) (PutV1RbacResourceGroupResourceGroupResponseObject, error) {
+	currentEndpoints, err := server.authModule.GetResourceGroup(
+		request.ResourceGroup,
+	)
 	if err != nil {
 		var errNotFound *auth.NotFoundError
 		if errors.As(err, &errNotFound) {
@@ -374,9 +446,14 @@ func (server *Server) PutV1RbacResourceGroupResourceGroup(ctx context.Context, r
 			continue
 		}
 
-		err = server.authModule.RemoveResourceFromGroup(endpoint, request.ResourceGroup)
+		err = server.authModule.RemoveResourceFromGroup(
+			endpoint,
+			request.ResourceGroup,
+		)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to remove endpoint %s from resource group %s", endpoint, request.ResourceGroup)
+			log.Error().
+				Err(err).
+				Msgf("Failed to remove endpoint %s from resource group %s", endpoint, request.ResourceGroup)
 
 			return GenericInternalServerErrorResponse{}, nil
 		}
@@ -389,20 +466,27 @@ func (server *Server) PutV1RbacResourceGroupResourceGroup(ctx context.Context, r
 
 		err = server.authModule.AddResourceToGroup(endpoint, request.ResourceGroup)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to add endpoint %s to resource group %s", endpoint, request.ResourceGroup)
+			log.Error().
+				Err(err).
+				Msgf("Failed to add endpoint %s to resource group %s", endpoint, request.ResourceGroup)
 
 			return GenericInternalServerErrorResponse{}, nil
 		}
 	}
 
-	return PutV1RbacResourceGroupResourceGroup201JSONResponse(ResourceGroupResource{
-		Name:      request.ResourceGroup,
-		Endpoints: request.Body.Endpoints,
-	}), nil
+	return PutV1RbacResourceGroupResourceGroup201JSONResponse(
+		ResourceGroupResource{
+			Name:      request.ResourceGroup,
+			Endpoints: request.Body.Endpoints,
+		},
+	), nil
 }
 
 // PutV1RbacRoleRole implements StrictServerInterface.
-func (server *Server) PutV1RbacRoleRole(ctx context.Context, request PutV1RbacRoleRoleRequestObject) (PutV1RbacRoleRoleResponseObject, error) {
+func (server *Server) PutV1RbacRoleRole(
+	ctx context.Context,
+	request PutV1RbacRoleRoleRequestObject,
+) (PutV1RbacRoleRoleResponseObject, error) {
 	currentUsers, err := server.authModule.GetUserGroup(request.Role)
 	if err != nil {
 		var errNotFound *auth.NotFoundError
@@ -429,7 +513,9 @@ func (server *Server) PutV1RbacRoleRole(ctx context.Context, request PutV1RbacRo
 
 		err = server.authModule.RemoveUserFromGroup(user, request.Role)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to remove user %s from role %s", user, request.Role)
+			log.Error().
+				Err(err).
+				Msgf("Failed to remove user %s from role %s", user, request.Role)
 
 			return GenericInternalServerErrorResponse{}, nil
 		}
@@ -442,7 +528,9 @@ func (server *Server) PutV1RbacRoleRole(ctx context.Context, request PutV1RbacRo
 
 		err = server.authModule.AddUserToGroup(user, request.Role)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to add user %s to role %s", user, request.Role)
+			log.Error().
+				Err(err).
+				Msgf("Failed to add user %s to role %s", user, request.Role)
 
 			return GenericInternalServerErrorResponse{}, nil
 		}

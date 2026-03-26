@@ -8,6 +8,7 @@ import (
 )
 
 func TestPaginate(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		list     []int
@@ -54,6 +55,7 @@ func TestPaginate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := paginate(tt.list, tt.limit, tt.offset, cmp.Compare[int])
 
 			assert.Equal(t, tt.expected, result)

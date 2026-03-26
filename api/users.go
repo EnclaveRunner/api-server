@@ -62,7 +62,10 @@ func (server *Server) GetV1User(
 }
 
 // GetV1UserUsername implements StrictServerInterface.
-func (server *Server) GetV1UserUsername(ctx context.Context, request GetV1UserUsernameRequestObject) (GetV1UserUsernameResponseObject, error) {
+func (server *Server) GetV1UserUsername(
+	ctx context.Context,
+	request GetV1UserUsernameRequestObject,
+) (GetV1UserUsernameResponseObject, error) {
 	user, err := server.db.GetUserByUsername(ctx, request.Username)
 	if err != nil {
 		var errNotFound *orm.NotFoundError

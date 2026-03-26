@@ -28,7 +28,7 @@ jobs:
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.5.0
+          version: v2.11.4
 
   build:
     name: Build
@@ -112,7 +112,7 @@ jobs:
             > - **Commit:** [`${{ github.sha }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
             > - **Branch:** `${{ github.head_ref || github.ref_name }}`
             > - **Triggered by:** @${{ github.actor }}
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v3
         with:
           GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
           header: CI-MONITOR
@@ -130,7 +130,7 @@ jobs:
 
             > **Details:**
             > - **Commit:** (https://github.com/${{ github.repository }}/commit/${{ github.sha }})
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v3
         with:
           GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
           header: CI-MONITOR

@@ -4,6 +4,8 @@ import (
 	"api-server/orm"
 	"context"
 	"errors"
+	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/EnclaveRunner/shareddeps/auth"
@@ -211,6 +213,25 @@ func (server *Server) PatchV1UserUsername(
 	ctx context.Context,
 	request PatchV1UserUsernameRequestObject,
 ) (PatchV1UserUsernameResponseObject, error) {
+	if request.Body.Roles != nil {
+		for _, role := range *request.Body.Roles {
+			exists, err := server.authModule.UserGroupExists(role)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to check role existence")
+
+				return GenericInternalServerErrorResponse{}, nil
+			}
+
+			if !exists {
+				return PatchV1UserUsername400JSONResponse{
+					GenericBadRequestJSONResponse{
+						Error: fmt.Sprintf("Role %s does not exist", role),
+					},
+				}, nil
+			}
+		}
+	}
+
 	user, err := server.db.PatchUser(
 		ctx,
 		request.Username,
@@ -244,6 +265,31 @@ func (server *Server) PatchV1UserUsername(
 		log.Error().Err(err).Msg("Failed to get user roles")
 
 		return PatchV1UserUsername500Response{}, nil
+	}
+
+	if request.Body.Roles != nil {
+		for _, role := range *request.Body.Roles {
+			if !slices.Contains(roles, role) {
+				err := server.authModule.AddUserToGroup(request.Username, role)
+				if err != nil {
+					log.Error().Err(err).Msg("Failed to add user to group")
+
+					return GenericInternalServerErrorResponse{}, nil
+				}
+			}
+		}
+		for _, role := range roles {
+			if !slices.Contains(*request.Body.Roles, role) {
+				err := server.authModule.RemoveUserFromGroup(request.Username, role)
+				if err != nil {
+					log.Error().Err(err).Msg("Failed to remove user from role")
+
+					return GenericInternalServerErrorResponse{}, nil
+				}
+			}
+		}
+		
+		roles = *request.Body.Roles
 	}
 
 	return PatchV1UserUsername200JSONResponse(UserResponse{

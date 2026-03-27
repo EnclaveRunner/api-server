@@ -179,6 +179,26 @@ func TestPatchUserPasswordOnly(t *testing.T) {
 	assert.Equal(t, username, patchResp.JSON200.Name)
 }
 
+func TestPatchUserRolesOnly(t *testing.T) {
+	t.Parallel()
+
+	username := "test-user-roles-only"
+	createUser(t, username, "Roles User", defaultPassword)
+	defer deleteUser(t, username)
+
+	role := "enclave_admin"
+	patchResp, err := c.PatchV1UserUsernameWithResponse(
+		t.Context(),
+		username,
+		client.PatchV1UserUsernameJSONRequestBody{Roles: &[]string{role}},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, patchResp.StatusCode())
+	assert.Equal(t, username, patchResp.JSON200.Name)
+	assert.NotNil(t, patchResp.JSON200.Roles)
+	assert.Contains(t, *patchResp.JSON200.Roles, role)
+}
+
 func TestCreateUserWithRoles(t *testing.T) {
 	t.Parallel()
 
@@ -199,7 +219,7 @@ func TestCreateUserWithRoles(t *testing.T) {
 	assert.Contains(t, roleResp.JSON200.Users, username)
 }
 
-func TestGetUsersMeForbiddenForRegularUser(t *testing.T) {
+func TestGetUsersMeAllowedForRegularUser(t *testing.T) {
 	t.Parallel()
 
 	username := "test-user-me"
@@ -227,7 +247,7 @@ func TestGetUsersMeForbiddenForRegularUser(t *testing.T) {
 
 	meResp, err := userClient.GetV1UserMeWithResponse(t.Context())
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusForbidden, meResp.StatusCode())
+	assert.Equal(t, http.StatusOK, meResp.StatusCode())
 
 	newDisplayName := "Updated Me User"
 	patchResp, err := userClient.PatchV1UserMeWithResponse(
@@ -235,7 +255,7 @@ func TestGetUsersMeForbiddenForRegularUser(t *testing.T) {
 		client.PatchV1UserMeJSONRequestBody{DisplayName: &newDisplayName},
 	)
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusForbidden, patchResp.StatusCode())
+	assert.Equal(t, http.StatusOK, patchResp.StatusCode())
 }
 
 func TestDeleteUsersMeUnauthenticated(t *testing.T) {
@@ -246,7 +266,7 @@ func TestDeleteUsersMeUnauthenticated(t *testing.T) {
 
 	resp, err := noAuthClient.DeleteV1UserMeWithResponse(t.Context())
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusForbidden, resp.StatusCode())
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode())
 }
 
 func TestRbacRoleUserAssignmentByUsername(t *testing.T) {

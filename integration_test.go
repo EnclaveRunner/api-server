@@ -203,7 +203,7 @@ func TestCreateUserWithRoles(t *testing.T) {
 	t.Parallel()
 
 	username := "test-user-with-roles"
-	role := "role-created-via-user-put"
+	role := "enclave_admin"
 	createUser(t, username, "Role User", defaultPassword, role)
 	defer deleteUser(t, username)
 

@@ -133,6 +133,25 @@ func (server *Server) PutV1UserUsername(
 		}, nil
 	}
 
+	if request.Body.Roles != nil {
+		for _, role := range *request.Body.Roles {
+			exists, err := server.authModule.UserGroupExists(role)
+			if err != nil {
+				log.Error().Err(err).Msg("Checking wether role exists failed")
+
+				return GenericInternalServerErrorResponse{}, nil
+			}
+
+			if !exists {
+				return PutV1UserUsername400JSONResponse{
+					GenericBadRequestJSONResponse{
+						Error: fmt.Sprintf("Role %s does not exist", role),
+					},
+				}, nil
+			}
+		}
+	}
+
 	user, err := server.db.CreateUser(
 		ctx,
 		request.Username,
@@ -153,58 +172,18 @@ func (server *Server) PutV1UserUsername(
 	}
 
 	if request.Body.Roles != nil {
-		seenRoles := make(map[string]struct{}, len(*request.Body.Roles))
-		for _, rawRole := range *request.Body.Roles {
-			role := strings.TrimSpace(rawRole)
-			if role == "" {
-				return PutV1UserUsername400JSONResponse{
-					GenericBadRequestJSONResponse{
-						"Roles cannot contain empty values",
-					},
-				}, nil
-			}
-
-			if _, exists := seenRoles[role]; exists {
-				continue
-			}
-			seenRoles[role] = struct{}{}
-
-			exists, err := server.authModule.UserGroupExists(role)
+		for _, role := range *request.Body.Roles {
+			err := server.authModule.AddUserToGroup(request.Username, role)
 			if err != nil {
-				log.Error().Err(err).Msg("Failed to check if role exists")
-
-				return GenericInternalServerErrorResponse{}, nil
-			}
-
-			if !exists {
-				err = server.authModule.CreateUserGroup(role)
-				if err != nil {
-					log.Error().Err(err).Msg("Failed to create role")
-
-					return GenericInternalServerErrorResponse{}, nil
-				}
-			}
-
-			err = server.authModule.AddUserToGroup(request.Username, role)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to assign role to user")
-
-				return GenericInternalServerErrorResponse{}, nil
+				log.Error().Err(err).Msg("Failed to add user to group")
 			}
 		}
-	}
-
-	roles, err := server.authModule.GetGroupsForUser(user.Username)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to get user roles")
-
-		return GenericInternalServerErrorResponse{}, nil
 	}
 
 	return PutV1UserUsername201JSONResponse{
 		Name:        user.Username,
 		DisplayName: user.DisplayName,
-		Roles:       &roles,
+		Roles:       request.Body.Roles,
 	}, nil
 }
 
@@ -288,7 +267,7 @@ func (server *Server) PatchV1UserUsername(
 				}
 			}
 		}
-		
+
 		roles = *request.Body.Roles
 	}
 

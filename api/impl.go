@@ -4,6 +4,7 @@ import (
 	"api-server/orm"
 	"api-server/proto_gen"
 	"api-server/queue"
+	"time"
 
 	"github.com/EnclaveRunner/shareddeps/auth"
 )
@@ -13,28 +14,28 @@ import (
 var _ StrictServerInterface = (*Server)(nil)
 
 type Server struct {
-	db             orm.DB
 	authModule     auth.AuthModule
-	registryClient proto_gen.RegistryServiceClient
+	db             orm.DB
+	maxRetries     int
+	retention      time.Duration
 	queueClient    queue.QueueClient
+	registryClient proto_gen.RegistryServiceClient
 }
 
 func NewServer(
-	db orm.DB,
 	authModule auth.AuthModule,
-	registryClient proto_gen.RegistryServiceClient,
+	db orm.DB,
+	maxRetries int,
+	retention time.Duration,
 	queueClient queue.QueueClient,
+	registryClient proto_gen.RegistryServiceClient,
 ) *Server {
 	return &Server{
 		db:             db,
 		authModule:     authModule,
 		registryClient: registryClient,
 		queueClient:    queueClient,
+		maxRetries:     maxRetries,
+		retention:      retention,
 	}
-}
-
-type EmptyInternalServerError struct{}
-
-func (e *EmptyInternalServerError) Error() string {
-	return "internal server error"
 }

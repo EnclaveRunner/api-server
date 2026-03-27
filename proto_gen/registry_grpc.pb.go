@@ -24,8 +24,7 @@ const (
 	RegistryService_UploadArtifact_FullMethodName = "/registry.RegistryService/UploadArtifact"
 	RegistryService_DeleteArtifact_FullMethodName = "/registry.RegistryService/DeleteArtifact"
 	RegistryService_GetArtifact_FullMethodName    = "/registry.RegistryService/GetArtifact"
-	RegistryService_AddTag_FullMethodName         = "/registry.RegistryService/AddTag"
-	RegistryService_RemoveTag_FullMethodName      = "/registry.RegistryService/RemoveTag"
+	RegistryService_SetTags_FullMethodName        = "/registry.RegistryService/SetTags"
 )
 
 // RegistryServiceClient is the client API for RegistryService service.
@@ -37,8 +36,7 @@ type RegistryServiceClient interface {
 	UploadArtifact(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadArtifactRequest, Artifact], error)
 	DeleteArtifact(ctx context.Context, in *ArtifactIdentifier, opts ...grpc.CallOption) (*Artifact, error)
 	GetArtifact(ctx context.Context, in *ArtifactIdentifier, opts ...grpc.CallOption) (*Artifact, error)
-	AddTag(ctx context.Context, in *AddRemoveTagRequest, opts ...grpc.CallOption) (*Artifact, error)
-	RemoveTag(ctx context.Context, in *AddRemoveTagRequest, opts ...grpc.CallOption) (*Artifact, error)
+	SetTags(ctx context.Context, in *SetTagsRequest, opts ...grpc.CallOption) (*Artifact, error)
 }
 
 type registryServiceClient struct {
@@ -111,20 +109,10 @@ func (c *registryServiceClient) GetArtifact(ctx context.Context, in *ArtifactIde
 	return out, nil
 }
 
-func (c *registryServiceClient) AddTag(ctx context.Context, in *AddRemoveTagRequest, opts ...grpc.CallOption) (*Artifact, error) {
+func (c *registryServiceClient) SetTags(ctx context.Context, in *SetTagsRequest, opts ...grpc.CallOption) (*Artifact, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Artifact)
-	err := c.cc.Invoke(ctx, RegistryService_AddTag_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *registryServiceClient) RemoveTag(ctx context.Context, in *AddRemoveTagRequest, opts ...grpc.CallOption) (*Artifact, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Artifact)
-	err := c.cc.Invoke(ctx, RegistryService_RemoveTag_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, RegistryService_SetTags_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -140,8 +128,7 @@ type RegistryServiceServer interface {
 	UploadArtifact(grpc.ClientStreamingServer[UploadArtifactRequest, Artifact]) error
 	DeleteArtifact(context.Context, *ArtifactIdentifier) (*Artifact, error)
 	GetArtifact(context.Context, *ArtifactIdentifier) (*Artifact, error)
-	AddTag(context.Context, *AddRemoveTagRequest) (*Artifact, error)
-	RemoveTag(context.Context, *AddRemoveTagRequest) (*Artifact, error)
+	SetTags(context.Context, *SetTagsRequest) (*Artifact, error)
 	mustEmbedUnimplementedRegistryServiceServer()
 }
 
@@ -167,11 +154,8 @@ func (UnimplementedRegistryServiceServer) DeleteArtifact(context.Context, *Artif
 func (UnimplementedRegistryServiceServer) GetArtifact(context.Context, *ArtifactIdentifier) (*Artifact, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetArtifact not implemented")
 }
-func (UnimplementedRegistryServiceServer) AddTag(context.Context, *AddRemoveTagRequest) (*Artifact, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddTag not implemented")
-}
-func (UnimplementedRegistryServiceServer) RemoveTag(context.Context, *AddRemoveTagRequest) (*Artifact, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RemoveTag not implemented")
+func (UnimplementedRegistryServiceServer) SetTags(context.Context, *SetTagsRequest) (*Artifact, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetTags not implemented")
 }
 func (UnimplementedRegistryServiceServer) mustEmbedUnimplementedRegistryServiceServer() {}
 func (UnimplementedRegistryServiceServer) testEmbeddedByValue()                         {}
@@ -266,38 +250,20 @@ func _RegistryService_GetArtifact_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RegistryService_AddTag_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddRemoveTagRequest)
+func _RegistryService_SetTags_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetTagsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RegistryServiceServer).AddTag(ctx, in)
+		return srv.(RegistryServiceServer).SetTags(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RegistryService_AddTag_FullMethodName,
+		FullMethod: RegistryService_SetTags_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RegistryServiceServer).AddTag(ctx, req.(*AddRemoveTagRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RegistryService_RemoveTag_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddRemoveTagRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RegistryServiceServer).RemoveTag(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RegistryService_RemoveTag_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RegistryServiceServer).RemoveTag(ctx, req.(*AddRemoveTagRequest))
+		return srv.(RegistryServiceServer).SetTags(ctx, req.(*SetTagsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -322,12 +288,8 @@ var RegistryService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RegistryService_GetArtifact_Handler,
 		},
 		{
-			MethodName: "AddTag",
-			Handler:    _RegistryService_AddTag_Handler,
-		},
-		{
-			MethodName: "RemoveTag",
-			Handler:    _RegistryService_RemoveTag_Handler,
+			MethodName: "SetTags",
+			Handler:    _RegistryService_SetTags_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

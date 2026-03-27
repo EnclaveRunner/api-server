@@ -4,195 +4,223 @@ import (
 	"api-server/orm"
 	"context"
 	"errors"
+	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/EnclaveRunner/shareddeps/auth"
-	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 )
 
-// GetUsersList implements StrictServerInterface.
-func (server *Server) GetUsersList(
+// GetV1User implements StrictServerInterface.
+func (server *Server) GetV1User(
 	ctx context.Context,
-	request GetUsersListRequestObject,
-) (GetUsersListResponseObject, error) {
+	request GetV1UserRequestObject,
+) (GetV1UserResponseObject, error) {
 	users, err := server.db.ListAllUsers(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to list users")
 
-		return nil, &EmptyInternalServerError{}
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
-	usersParsed := make([]UserResponse, len(users))
-	for i, user := range users {
-		usersParsed[i] = UserResponse{
-			Id:          user.ID.String(),
-			Name:        user.Username,
-			DisplayName: user.DisplayName,
+	paginatedResult := paginate(
+		users,
+		*request.Params.Limit,
+		*request.Params.Offset,
+		func(a, b orm.User) int {
+			return strings.Compare(a.Username, b.Username)
+		},
+	)
+
+	usersParsed := make([]UserResponse, len(paginatedResult))
+	for i, user := range paginatedResult {
+		if (request.Params.Name == nil && request.Params.DisplayName == nil) ||
+			(request.Params.Name != nil && *request.Params.Name == user.Username) ||
+			(request.Params.DisplayName != nil && *request.Params.DisplayName == user.DisplayName) {
+
+			roles, err := server.authModule.GetGroupsForUser(user.Username)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to get user roles")
+
+				return GenericInternalServerErrorResponse{}, nil
+			}
+			usersParsed[i] = UserResponse{
+				Name:        user.Username,
+				DisplayName: user.DisplayName,
+				Roles:       &roles,
+			}
 		}
 	}
 
-	return GetUsersList200JSONResponse(usersParsed), nil
+	filteredUsers := make([]UserResponse, 0, len(usersParsed))
+	for _, user := range usersParsed {
+		if user.Name != "" {
+			filteredUsers = append(filteredUsers, user)
+		}
+	}
+
+	return GetV1User200JSONResponse(filteredUsers), nil
 }
 
-// GetUsersUser implements StrictServerInterface.
-func (server *Server) GetUsersUser(
+// GetV1UserUsername implements StrictServerInterface.
+func (server *Server) GetV1UserUsername(
 	ctx context.Context,
-	request GetUsersUserRequestObject,
-) (GetUsersUserResponseObject, error) {
-	if request.Params.UserId != nil {
-		uuidParser, err := uuid.Parse(*request.Params.UserId)
-		if err != nil {
-			return GetUsersUser400JSONResponse{
-				GenericBadRequestJSONResponse{
-					"Provided uuid is invalid",
+	request GetV1UserUsernameRequestObject,
+) (GetV1UserUsernameResponseObject, error) {
+	user, err := server.db.GetUserByUsername(ctx, request.Username)
+	if err != nil {
+		var errNotFound *orm.NotFoundError
+		if errors.As(err, &errNotFound) {
+			return GetV1UserUsername404JSONResponse{
+				GenericNotFoundJSONResponse{
+					"User not found",
 				},
 			}, nil
 		}
 
-		user, err := server.db.GetUserByID(ctx, uuidParser)
-		if err != nil {
-			var errNotFound *orm.NotFoundError
-			if errors.As(err, &errNotFound) {
-				return GetUsersUser404JSONResponse{
-					GenericNotFoundJSONResponse{
-						"User not found",
-					},
-				}, nil
-			}
+		log.Error().Err(err).Msg("Failed to get user by username")
 
-			log.Error().Err(err).Msg("Failed to get user by ID")
-
-			return nil, &EmptyInternalServerError{}
-		}
-
-		return GetUsersUser200JSONResponse(UserResponse{
-			Id:          user.ID.String(),
-			Name:        user.Username,
-			DisplayName: user.DisplayName,
-		}), nil
-	} else if request.Params.Name != nil {
-		user, err := server.db.GetUserByUsername(ctx, *request.Params.Name)
-		if err != nil {
-			var errNotFound *orm.NotFoundError
-			if errors.As(err, &errNotFound) {
-				return GetUsersUser404JSONResponse{
-					GenericNotFoundJSONResponse{
-						"User not found",
-					},
-				}, nil
-			}
-
-			log.Error().Err(err).Msg("Failed to get user by name")
-
-			return nil, &EmptyInternalServerError{}
-		}
-
-		return GetUsersUser200JSONResponse(UserResponse{
-			Id:          user.ID.String(),
-			Name:        user.Username,
-			DisplayName: user.DisplayName,
-		}), nil
+		return GetV1UserUsername500Response{}, nil
 	}
 
-	return GetUsersUser400JSONResponse{
-		GenericBadRequestJSONResponse{
-			"Either userId or name must be provided",
-		},
+	roles, err := server.authModule.GetGroupsForUser(user.Username)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get user roles")
+
+		return GetV1UserUsername500Response{}, nil
+	}
+
+	return GetV1UserUsername200JSONResponse{
+		Name:        user.Username,
+		DisplayName: user.DisplayName,
+		Roles:       &roles,
 	}, nil
 }
 
-// HeadUsersUser implements StrictServerInterface.
-func (server *Server) HeadUsersUser(
+// HeadV1UserUsername implements StrictServerInterface.
+func (server *Server) HeadV1UserUsername(
 	ctx context.Context,
-	request HeadUsersUserRequestObject,
-) (HeadUsersUserResponseObject, error) {
-	uuidParser, err := uuid.Parse(request.Body.Id)
-	if err != nil {
-		return HeadUsersUser400Response{}, nil
-	}
-
-	_, err = server.db.GetUserByID(ctx, uuidParser)
+	request HeadV1UserUsernameRequestObject,
+) (HeadV1UserUsernameResponseObject, error) {
+	_, err := server.db.GetUserByUsername(ctx, request.Username)
 	if err != nil {
 		var errNotFound *orm.NotFoundError
 		if errors.As(err, &errNotFound) {
-			return HeadUsersUser404Response{}, nil
+			return HeadV1UserUsername404Response{}, nil
 		}
 
-		log.Error().Err(err).Msg("Failed to get user by ID")
+		log.Error().Err(err).Msg("Failed to get user by username")
 
-		return nil, &EmptyInternalServerError{}
+		return HeadV1UserUsername500Response{}, nil
 	}
 
-	return HeadUsersUser200Response{}, nil
+	return HeadV1UserUsername200Response{}, nil
 }
 
-// PostUsersUser implements StrictServerInterface.
-func (server *Server) PostUsersUser(
+// PutV1UserUsername implements StrictServerInterface.
+func (server *Server) PutV1UserUsername(
 	ctx context.Context,
-	request PostUsersUserRequestObject,
-) (PostUsersUserResponseObject, error) {
-	if strings.TrimSpace(request.Body.Name) == "" ||
+	request PutV1UserUsernameRequestObject,
+) (PutV1UserUsernameResponseObject, error) {
+	if strings.TrimSpace(request.Username) == "" ||
 		strings.TrimSpace(request.Body.Password) == "" ||
 		strings.TrimSpace(request.Body.DisplayName) == "" {
-		return PostUsersUser400JSONResponse{
+		return PutV1UserUsername400JSONResponse{
 			GenericBadRequestJSONResponse{
 				"Username, password, and display name cannot be empty",
 			},
 		}, nil
 	}
 
+	if request.Body.Roles != nil {
+		for _, role := range *request.Body.Roles {
+			exists, err := server.authModule.UserGroupExists(role)
+			if err != nil {
+				log.Error().Err(err).Msg("Checking wether role exists failed")
+
+				return GenericInternalServerErrorResponse{}, nil
+			}
+
+			if !exists {
+				return PutV1UserUsername400JSONResponse{
+					GenericBadRequestJSONResponse{
+						Error: fmt.Sprintf("Role %s does not exist", role),
+					},
+				}, nil
+			}
+		}
+	}
+
 	user, err := server.db.CreateUser(
 		ctx,
-		request.Body.Name,
+		request.Username,
 		request.Body.Password,
 		request.Body.DisplayName,
 	)
 	if err != nil {
 		var errConflict *orm.ConflictError
 		if errors.As(err, &errConflict) {
-			return PostUsersUser409JSONResponse{
+			return PutV1UserUsername409JSONResponse{
 				errConflict.Conflict,
 			}, nil
 		}
 
 		log.Error().Err(err).Msg("Failed to create user")
 
-		return nil, &EmptyInternalServerError{}
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
-	return PostUsersUser201JSONResponse(UserResponse{
-		Id:          user.ID.String(),
+	if request.Body.Roles != nil {
+		for _, role := range *request.Body.Roles {
+			err := server.authModule.AddUserToGroup(request.Username, role)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to add user to group")
+			}
+		}
+	}
+
+	return PutV1UserUsername201JSONResponse{
 		Name:        user.Username,
 		DisplayName: user.DisplayName,
-	}), nil
+		Roles:       request.Body.Roles,
+	}, nil
 }
 
-// PatchUsersUser implements StrictServerInterface.
-func (server *Server) PatchUsersUser(
+// PatchV1UserUsername implements StrictServerInterface.
+func (server *Server) PatchV1UserUsername(
 	ctx context.Context,
-	request PatchUsersUserRequestObject,
-) (PatchUsersUserResponseObject, error) {
-	uuidParser, err := uuid.Parse(request.Body.Id)
-	if err != nil {
-		return PatchUsersUser400JSONResponse{
-			GenericBadRequestJSONResponse{
-				"Provided uuid is invalid",
-			},
-		}, nil
+	request PatchV1UserUsernameRequestObject,
+) (PatchV1UserUsernameResponseObject, error) {
+	if request.Body.Roles != nil {
+		for _, role := range *request.Body.Roles {
+			exists, err := server.authModule.UserGroupExists(role)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to check role existence")
+
+				return GenericInternalServerErrorResponse{}, nil
+			}
+
+			if !exists {
+				return PatchV1UserUsername400JSONResponse{
+					GenericBadRequestJSONResponse{
+						Error: fmt.Sprintf("Role %s does not exist", role),
+					},
+				}, nil
+			}
+		}
 	}
 
 	user, err := server.db.PatchUser(
 		ctx,
-		uuidParser,
-		request.Body.NewName,
-		request.Body.NewPassword,
-		request.Body.NewDisplayName,
+		request.Username,
+		request.Body.Password,
+		request.Body.DisplayName,
 	)
 	if err != nil {
 		var errNotFound *orm.NotFoundError
 		if errors.As(err, &errNotFound) {
-			return PatchUsersUser404JSONResponse{
+			return PatchV1UserUsername404JSONResponse{
 				GenericNotFoundJSONResponse{
 					"User not found",
 				},
@@ -201,41 +229,71 @@ func (server *Server) PatchUsersUser(
 
 		var errConflict *orm.ConflictError
 		if errors.As(err, &errConflict) {
-			return PatchUsersUser409JSONResponse{
+			return PatchV1UserUsername409JSONResponse{
 				errConflict.Conflict,
 			}, nil
 		}
 
 		log.Error().Err(err).Msg("Failed to update user")
 
-		return nil, &EmptyInternalServerError{}
+		return PatchV1UserUsername500Response{}, nil
 	}
 
-	return PatchUsersUser200JSONResponse(UserResponse{
-		Id:          user.ID.String(),
+	roles, err := server.authModule.GetGroupsForUser(user.Username)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get user roles")
+
+		return PatchV1UserUsername500Response{}, nil
+	}
+
+	if request.Body.Roles != nil {
+		for _, role := range *request.Body.Roles {
+			if !slices.Contains(roles, role) {
+				err := server.authModule.AddUserToGroup(request.Username, role)
+				if err != nil {
+					log.Error().Err(err).Msg("Failed to add user to group")
+
+					return GenericInternalServerErrorResponse{}, nil
+				}
+			}
+		}
+		for _, role := range roles {
+			if !slices.Contains(*request.Body.Roles, role) {
+				err := server.authModule.RemoveUserFromGroup(request.Username, role)
+				if err != nil {
+					log.Error().Err(err).Msg("Failed to remove user from role")
+
+					return GenericInternalServerErrorResponse{}, nil
+				}
+			}
+		}
+
+		roles = *request.Body.Roles
+	}
+
+	return PatchV1UserUsername200JSONResponse(UserResponse{
 		Name:        user.Username,
 		DisplayName: user.DisplayName,
+		Roles:       &roles,
 	}), nil
 }
 
-func (server *Server) DeleteUsersUser(
+func (server *Server) DeleteV1UserUsername(
 	ctx context.Context,
-	request DeleteUsersUserRequestObject,
-) (DeleteUsersUserResponseObject, error) {
-	uuidParser, err := uuid.Parse(request.Body.Id)
+	request DeleteV1UserUsernameRequestObject,
+) (DeleteV1UserUsernameResponseObject, error) {
+	assignedRoles, err := server.authModule.GetGroupsForUser(request.Username)
 	if err != nil {
-		return DeleteUsersUser400JSONResponse{
-			GenericBadRequestJSONResponse{
-				"Provided uuid is invalid",
-			},
-		}, nil
+		log.Error().Err(err).Msg("Failed to get user roles")
+
+		return DeleteV1UserUsername500Response{}, nil
 	}
 
-	user, err := server.db.DeleteUserByID(ctx, uuidParser)
+	user, err := server.db.DeleteUserByUsername(ctx, request.Username)
 	if err != nil {
 		var errNotFound *orm.NotFoundError
 		if errors.As(err, &errNotFound) {
-			return DeleteUsersUser404JSONResponse{
+			return DeleteV1UserUsername404JSONResponse{
 				GenericNotFoundJSONResponse{
 					"User not found",
 				},
@@ -244,123 +302,122 @@ func (server *Server) DeleteUsersUser(
 
 		log.Error().Err(err).Msg("Failed to delete user")
 
-		return nil, &EmptyInternalServerError{}
+		return DeleteV1UserUsername500Response{}, nil
 	}
 
-	return DeleteUsersUser200JSONResponse(UserResponse{
-		Id:          user.ID.String(),
+	return DeleteV1UserUsername200JSONResponse(UserResponse{
 		Name:        user.Username,
 		DisplayName: user.DisplayName,
+		Roles:       &assignedRoles,
 	}), nil
 }
 
-// GetUsersMe implements StrictServerInterface.
-func (server *Server) GetUsersMe(
+// GetV1UserMe implements StrictServerInterface.
+func (server *Server) GetV1UserMe(
 	ctx context.Context,
-	request GetUsersMeRequestObject,
-) (GetUsersMeResponseObject, error) {
+	request GetV1UserMeRequestObject,
+) (GetV1UserMeResponseObject, error) {
 	authenticatedUser := auth.GetAuthenticatedUser(ctx)
 	if authenticatedUser == auth.UnauthenticatedUser {
 		log.Debug().
 			Any("userContext", authenticatedUser).
 			Msg("Unauthenticated user tried to access /users/me endpoint")
 
-		return GetUsersMe401Response{}, nil
+		return GetV1UserMe401Response{}, nil
 	}
 
-	uuidParser, err := uuid.Parse(authenticatedUser)
+	user, err := server.db.GetUserByUsername(ctx, authenticatedUser)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to parse user ID as UUID")
+		log.Error().Err(err).Msg("Failed to get user by username")
 
-		return nil, &EmptyInternalServerError{}
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
-	user, err := server.db.GetUserByID(ctx, uuidParser)
+	roles, err := server.authModule.GetGroupsForUser(user.Username)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get user by ID")
+		log.Error().Err(err).Msg("Failed to get user roles")
 
-		return nil, &EmptyInternalServerError{}
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
-	return GetUsersMe200JSONResponse(UserResponse{
-		Id:          user.ID.String(),
+	return GetV1UserMe200JSONResponse(UserResponse{
 		Name:        user.Username,
 		DisplayName: user.DisplayName,
+		Roles:       &roles,
 	}), nil
 }
 
 // PatchUsersMe implements StrictServerInterface.
-func (server *Server) PatchUsersMe(
+func (server *Server) PatchV1UserMe(
 	ctx context.Context,
-	request PatchUsersMeRequestObject,
-) (PatchUsersMeResponseObject, error) {
+	request PatchV1UserMeRequestObject,
+) (PatchV1UserMeResponseObject, error) {
 	authenticatedUser := auth.GetAuthenticatedUser(ctx)
 	if authenticatedUser == auth.UnauthenticatedUser {
-		return PatchUsersMe401Response{}, nil
-	}
-
-	uuidParser, err := uuid.Parse(authenticatedUser)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to parse user ID as UUID")
-
-		return nil, &EmptyInternalServerError{}
+		return PatchV1UserMe401Response{}, nil
 	}
 
 	user, err := server.db.PatchUser(
 		ctx,
-		uuidParser,
-		request.Body.NewName,
-		request.Body.NewPassword,
-		request.Body.NewDisplayName,
+		authenticatedUser,
+		request.Body.Password,
+		request.Body.DisplayName,
 	)
 	if err != nil {
 		var errConflict *orm.ConflictError
 		if errors.As(err, &errConflict) {
-			return PatchUsersMe409JSONResponse{
+			return PatchV1UserMe409JSONResponse{
 				errConflict.Conflict,
 			}, nil
 		}
 
 		log.Error().Err(err).Msg("Failed to update user")
 
-		return nil, &EmptyInternalServerError{}
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
-	return PatchUsersMe200JSONResponse(UserResponse{
-		Id:          user.ID.String(),
+	roles, err := server.authModule.GetGroupsForUser(user.Username)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get user roles")
+
+		return GenericInternalServerErrorResponse{}, nil
+	}
+
+	return PatchV1UserMe200JSONResponse(UserResponse{
 		Name:        user.Username,
 		DisplayName: user.DisplayName,
+		Roles:       &roles,
 	}), nil
 }
 
-// DeleteUsersMe implements StrictServerInterface.
-func (server *Server) DeleteUsersMe(
+// DeleteV1UserMe implements StrictServerInterface.
+func (server *Server) DeleteV1UserMe(
 	ctx context.Context,
-	request DeleteUsersMeRequestObject,
-) (DeleteUsersMeResponseObject, error) {
+	request DeleteV1UserMeRequestObject,
+) (DeleteV1UserMeResponseObject, error) {
 	authenticatedUser := auth.GetAuthenticatedUser(ctx)
 
 	if authenticatedUser == auth.UnauthenticatedUser {
-		return DeleteUsersMe401Response{}, nil
+		return DeleteV1UserMe401Response{}, nil
 	}
 
-	uuidParser, err := uuid.Parse(authenticatedUser)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to parse user ID as UUID")
-
-		return nil, &EmptyInternalServerError{}
-	}
-
-	user, err := server.db.DeleteUserByID(ctx, uuidParser)
+	user, err := server.db.DeleteUserByUsername(ctx, authenticatedUser)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to delete user")
 
-		return nil, &EmptyInternalServerError{}
+		return GenericInternalServerErrorResponse{}, nil
 	}
 
-	return DeleteUsersMe200JSONResponse(UserResponse{
-		Id:          user.ID.String(),
+	roles, err := server.authModule.GetGroupsForUser(user.Username)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get user roles")
+
+		return GenericInternalServerErrorResponse{}, nil
+	}
+
+	return DeleteV1UserMe200JSONResponse(UserResponse{
 		Name:        user.Username,
 		DisplayName: user.DisplayName,
+		Roles:       &roles,
 	}), nil
 }

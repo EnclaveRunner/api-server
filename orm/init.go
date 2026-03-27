@@ -102,12 +102,14 @@ func (db *DB) InitAdminUser(cfg *config.AppConfig) {
 	).Where(&User{Username: cfg.Admin.Username}).
 		First(context.Background())
 
-	err = db.dbGorm.Save(&Auth_Basic{UserID: adminUser.ID, Password: hash}).Error
+	err = db.dbGorm.Save(
+		&Auth_Basic{Username: adminUser.Username, Password: hash},
+	).Error
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create admin auth record")
 	}
 
-	err = db.authModule.AddUserToGroup(adminUser.ID.String(), "enclave_admin")
+	err = db.authModule.AddUserToGroup(adminUser.Username, "enclave_admin")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to add admin user to enclave_admin group")
 	}

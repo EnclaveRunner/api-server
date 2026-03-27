@@ -74,8 +74,8 @@ func (q *QueueClient) GetTask(id string) (*asynq.TaskInfo, error) {
 
 func (q *QueueClient) GetAllTasks() ([]*asynq.TaskInfo, error) {
 	allTasks := []*asynq.TaskInfo{}
-	//nolint:mnd // For now just retrieve all tasks
-	pageSize := asynq.PageSize(999)
+	// Int max
+	pageSize := asynq.PageSize(int(^uint(0) >> 1))
 
 	tasks, err := q.inspector.ListActiveTasks(TaskQueueDefault, pageSize)
 	if err != nil {

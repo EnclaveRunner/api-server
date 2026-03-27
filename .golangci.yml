@@ -89,3 +89,5 @@ linters:
       config:
         G302: "0644"
         G306: "0644"
+    exhaustive:
+      default-signifies-exhaustive: true

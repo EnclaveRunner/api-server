@@ -8,6 +8,12 @@ func (e *TaskNotFoundError) Error() string {
 	return "Task not found: " + e.Id
 }
 
+func (e *TaskNotFoundError) Is(target error) bool {
+	_, ok := target.(*TaskNotFoundError)
+
+	return ok
+}
+
 type GenericError struct {
 	Inner error
 }

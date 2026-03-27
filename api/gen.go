@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"mime/multipart"
 	"net/http"
 	"net/url"
 	"path"
@@ -22,51 +21,75 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/oapi-codegen/runtime"
 	strictgin "github.com/oapi-codegen/runtime/strictmiddleware/gin"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 const (
 	BasicAuthScopes = "BasicAuth.Scopes"
 )
 
-// Defines values for RBACPolicyPermission.
+// Defines values for RBACPolicyMethod.
 const (
-	Asterisk RBACPolicyPermission = "*"
-	DELETE   RBACPolicyPermission = "DELETE"
-	GET      RBACPolicyPermission = "GET"
-	HEAD     RBACPolicyPermission = "HEAD"
-	PATCH    RBACPolicyPermission = "PATCH"
-	POST     RBACPolicyPermission = "POST"
+	Asterisk RBACPolicyMethod = "*"
+	DELETE   RBACPolicyMethod = "DELETE"
+	GET      RBACPolicyMethod = "GET"
+	HEAD     RBACPolicyMethod = "HEAD"
+	PATCH    RBACPolicyMethod = "PATCH"
+	POST     RBACPolicyMethod = "POST"
+	PUT      RBACPolicyMethod = "PUT"
 )
 
-// Artifact Metadata of an artifact.
+// Artifact Metadata of an artifact version.
 type Artifact struct {
-	// CreatedAt The creation timestamp of the artifact.
+	// CreatedAt Creation timestamp of the artifact.
 	CreatedAt time.Time `json:"createdAt"`
 
-	// Package Package name of an artifact.
-	Package PackageName `json:"package"`
+	// Name Name of the artifact.
+	Name string `json:"name"`
 
-	// Pulls The number of times the artifact has been pulled.
+	// Namespace Namespace of the artifact.
+	Namespace string `json:"namespace"`
+
+	// Pulls Number of times the artifact has been pulled.
 	Pulls int `json:"pulls"`
 
 	// Tags Tags associated with the artifact.
 	Tags []string `json:"tags"`
 
-	// VersionHash The version hash of the artifact.
+	// VersionHash Version hash of the artifact.
 	VersionHash string `json:"versionHash"`
 }
 
-// CreateUser defines model for CreateUser.
-type CreateUser struct {
-	// DisplayName The display name for the new user.
-	DisplayName string `json:"displayName"`
+// CreateTaskRequest defines model for CreateTaskRequest.
+type CreateTaskRequest struct {
+	// Args Argument list used to invoke the task.
+	Args *[]string `json:"args,omitempty"`
 
-	// Name The name of the user to create.
-	Name string `json:"name"`
+	// Callback Callback URL invoked on task completion.
+	Callback *string `json:"callback,omitempty"`
 
-	// Password The password for the new user.
-	Password string `json:"password"`
+	// Env Environment variables supplied to the task.
+	Env *[]EnvironmentVariable `json:"env,omitempty"`
+
+	// Params Parameters passed to the task.
+	Params *[]interface{} `json:"params,omitempty"`
+
+	// Retention Duration to retain the task after completion.
+	Retention *string `json:"retention,omitempty"`
+
+	// Retries Maximum number of retries before the task is moved to state archived
+	Retries *int `json:"retries,omitempty"`
+
+	// Source Task source in the form namespace:name/interface/function@<hash|tag>.
+	Source string `json:"source"`
+}
+
+// EnvironmentVariable defines model for EnvironmentVariable.
+type EnvironmentVariable struct {
+	// Key Environment variable name.
+	Key string `json:"key"`
+
+	// Value Environment variable value.
+	Value string `json:"value"`
 }
 
 // ErrField defines model for ErrField.
@@ -83,46 +106,64 @@ type ErrGeneric struct {
 	Error string `json:"error"`
 }
 
-// PackageName Package name of an artifact.
-type PackageName struct {
-	// Name The name of the artifact.
-	Name string `json:"name"`
-
-	// Namespace The namespace of the artifact.
-	Namespace string `json:"namespace"`
+// PatchArtifact defines model for PatchArtifact.
+type PatchArtifact struct {
+	// Tags Tags to assign to the artifact version. When set, replaces the existing tags.
+	Tags *[]string `json:"tags,omitempty"`
 }
 
 // PatchMe defines model for PatchMe.
 type PatchMe struct {
-	// NewDisplayName The new display name for the current user.
-	NewDisplayName *string `json:"newDisplayName,omitempty"`
+	// DisplayName The display name for the current user.
+	DisplayName *string `json:"displayName,omitempty"`
 
-	// NewName The new name for the current user.
-	NewName *string `json:"newName,omitempty"`
+	// Password The password for the current user.
+	Password *string `json:"password,omitempty"`
 
-	// NewPassword The new password for the current user.
-	NewPassword *string `json:"newPassword,omitempty"`
+	// Roles Roles assigned to the current user.
+	Roles *[]string `json:"roles,omitempty"`
 }
 
 // PatchUser defines model for PatchUser.
 type PatchUser struct {
-	// Id The uuid of the user to update.
-	Id string `json:"id"`
+	// DisplayName The display name for the user.
+	DisplayName *string `json:"displayName,omitempty"`
 
-	// NewDisplayName The new display name for the user.
-	NewDisplayName *string `json:"newDisplayName,omitempty"`
+	// Password The password for the user.
+	Password *string `json:"password,omitempty"`
 
-	// NewName The new name for the user.
-	NewName *string `json:"newName,omitempty"`
+	// Roles Roles assigned to the user.
+	Roles *[]string `json:"roles,omitempty"`
+}
 
-	// NewPassword The new password for the user.
-	NewPassword *string `json:"newPassword,omitempty"`
+// PutResourceGroupRequest defines model for PutResourceGroupRequest.
+type PutResourceGroupRequest struct {
+	// Endpoints Endpoints assigned to this resource group.
+	Endpoints []string `json:"endpoints"`
+}
+
+// PutRoleRequest defines model for PutRoleRequest.
+type PutRoleRequest struct {
+	// Users Usernames assigned to this role.
+	Users []string `json:"users"`
+}
+
+// PutUserRequest defines model for PutUserRequest.
+type PutUserRequest struct {
+	// DisplayName The display name for the new user.
+	DisplayName string `json:"displayName"`
+
+	// Password The password for the new user.
+	Password string `json:"password"`
+
+	// Roles Roles assigned to the new user.
+	Roles *[]string `json:"roles,omitempty"`
 }
 
 // RBACPolicy defines model for RBACPolicy.
 type RBACPolicy struct {
-	// Permission The allowed permission (e.g., "GET", "POST", "*").
-	Permission RBACPolicyPermission `json:"permission"`
+	// Method The allowed HTTP method (e.g., "GET", "POST", "*").
+	Method RBACPolicyMethod `json:"method"`
 
 	// ResourceGroup The name of the resource group. (or "*" for all resource groups)
 	ResourceGroup string `json:"resourceGroup"`
@@ -131,68 +172,98 @@ type RBACPolicy struct {
 	Role string `json:"role"`
 }
 
-// RBACPolicyPermission The allowed permission (e.g., "GET", "POST", "*").
-type RBACPolicyPermission string
+// RBACPolicyMethod The allowed HTTP method (e.g., "GET", "POST", "*").
+type RBACPolicyMethod string
 
-// RBACRole defines model for RBACRole.
-type RBACRole struct {
-	// Role The name of the role.
-	Role string `json:"role"`
+// ResourceGroupResource defines model for ResourceGroupResource.
+type ResourceGroupResource struct {
+	// Endpoints Endpoints assigned to this resource group.
+	Endpoints []string `json:"endpoints"`
+
+	// Name The resource group name.
+	Name string `json:"name"`
+}
+
+// RoleResource defines model for RoleResource.
+type RoleResource struct {
+	// Name The role name.
+	Name string `json:"name"`
+
+	// Users Usernames assigned to this role.
+	Users []string `json:"users"`
+}
+
+// Task defines model for Task.
+type Task struct {
+	// Args Argument list used to invoke the task.
+	Args *[]string `json:"args,omitempty"`
+
+	// Callback Callback URL invoked on task completion.
+	Callback *string `json:"callback,omitempty"`
+
+	// Env Environment variables supplied to the task.
+	Env *[]EnvironmentVariable `json:"env,omitempty"`
+
+	// Id Unique identifier for the task.
+	Id string `json:"id"`
+
+	// Params Parameters passed to the task.
+	Params *[]interface{} `json:"params,omitempty"`
+
+	// Retention Duration to retain the task after completion.
+	Retention *string `json:"retention,omitempty"`
+
+	// Retries Maximum number of retries before the task is moved to state archived
+	Retries *int `json:"retries,omitempty"`
+
+	// Source Task source in the form namespace:name/interface/function@<hash|tag>.
+	Source string     `json:"source"`
+	Status TaskStatus `json:"status"`
 }
 
 // TaskLog defines model for TaskLog.
 type TaskLog struct {
-	// Issuer The component that issued the log entry (SYSTEM, ARTIFACT).
+	// Issuer Component that issued the log entry.
 	Issuer string `json:"issuer"`
 
-	// Level The log level (DEBUG, INFO, WARN, ERROR, FATAL).
+	// Level Log level (e.g., debug, info, warn, error, fatal).
 	Level string `json:"level"`
 
-	// Message The log message content.
+	// Message Log message content.
 	Message string `json:"message"`
 
-	// Timestamp The time the log entry was created. RFC 3339 format.
-	Timestamp string `json:"timestamp"`
+	// Timestamp Time the log entry was created.
+	Timestamp time.Time `json:"timestamp"`
 }
 
-// TaskState defines model for TaskState.
-type TaskState struct {
-	// CompletedAt Time the task sucessfully finished processing.
-	CompletedAt *string `json:"completed_at,omitempty"`
+// TaskStatus defines model for TaskStatus.
+type TaskStatus struct {
+	// CompletedAt Time the task finished processing.
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
 
-	// Id The unique identifier for the task.
-	Id string `json:"id"`
-
-	// LastError The error message from the last failure
+	// LastError Error message from the last failure.
 	LastError *string `json:"last_error,omitempty"`
 
-	// LastFailedAt Time of the last failure. RFC 3339 format.
-	LastFailedAt *string    `json:"last_failed_at,omitempty"`
-	Logs         *[]TaskLog `json:"logs,omitempty"`
+	// LastFailedAt Time of the last failure.
+	LastFailedAt *time.Time `json:"last_failed_at,omitempty"`
 
-	// MaxRetries The maximum number of retries allowed.
-	MaxRetries int `json:"max_retries"`
+	// NextProcessAt Time the task is scheduled for processing next.
+	NextProcessAt *time.Time `json:"next_process_at,omitempty"`
 
-	// NextProcessAt Time the task will be scheduled to be processed. RFC 3339 format.
-	NextProcessAt *string `json:"next_process_at,omitempty"`
-
-	// ResultPayload The result payload of the task.
+	// ResultPayload Result payload of the task.
 	ResultPayload *string `json:"result_payload,omitempty"`
 
-	// Retention Duration the task will be retained after succeeding. Golang duration string.
-	Retention string `json:"retention"`
-
-	// Retries The current number of retries.
+	// Retries Current retry count.
 	Retries int `json:"retries"`
 
-	// State The current status of the task. See https://github.com/hibiken/asynq/wiki/Life-of-a-Task
+	// State Current status of the task.
 	State string `json:"state"`
 }
 
-// UserRequest defines model for UserRequest.
-type UserRequest struct {
-	// Id The uuid of the user to retrieve.
-	Id string `json:"id"`
+// UploadArtifactResponse defines model for UploadArtifactResponse.
+type UploadArtifactResponse struct {
+	// VersionHash Created version hash.
+	VersionHash string `json:"versionHash"`
 }
 
 // UserResponse defines model for UserResponse.
@@ -200,11 +271,11 @@ type UserResponse struct {
 	// DisplayName The display name of the user.
 	DisplayName string `json:"displayName"`
 
-	// Id The uuid of the user.
-	Id string `json:"id"`
-
 	// Name The name of the user.
 	Name string `json:"name"`
+
+	// Roles Roles assigned to the user.
+	Roles *[]string `json:"roles,omitempty"`
 }
 
 // FieldError defines model for FieldError.
@@ -221,374 +292,263 @@ type GenericNotFound = ErrGeneric
 // GenericTooLarge defines model for GenericTooLarge.
 type GenericTooLarge = ErrGeneric
 
-// DeleteArtifactJSONBody defines parameters for DeleteArtifact.
-type DeleteArtifactJSONBody struct {
-	// Identifier Either the version hash or tag of the artifact.
-	Identifier string `json:"identifier"`
+// GetV1ArtifactParams defines parameters for GetV1Artifact.
+type GetV1ArtifactParams struct {
+	// Limit Maximum number of namespaces to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Package Package name of an artifact.
-	Package PackageName `json:"package"`
+	// Offset Offset into the namespace list.
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
 }
 
-// GetArtifactParams defines parameters for GetArtifact.
-type GetArtifactParams struct {
-	// Namespace The namespace of the artifact.
-	Namespace string `form:"namespace" json:"namespace"`
+// GetV1ArtifactNamespaceParams defines parameters for GetV1ArtifactNamespace.
+type GetV1ArtifactNamespaceParams struct {
+	// Limit Maximum number of artifacts to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Name The name of the artifact.
-	Name string `form:"name" json:"name"`
-
-	// Identifier Either the version hash or tag of the artifact.
-	Identifier string `form:"identifier" json:"identifier"`
+	// Offset Offset into the artifact list.
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
 }
 
-// HeadArtifactParams defines parameters for HeadArtifact.
-type HeadArtifactParams struct {
-	// Namespace The namespace of the artifact.
-	Namespace string `form:"namespace" json:"namespace"`
+// GetV1ArtifactNamespaceNameParams defines parameters for GetV1ArtifactNamespaceName.
+type GetV1ArtifactNamespaceNameParams struct {
+	// Limit Maximum number of versions to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Name The name of the artifact.
-	Name string `form:"name" json:"name"`
-
-	// Identifier Either the version hash or tag of the artifact.
-	Identifier string `form:"identifier" json:"identifier"`
+	// Offset Offset into the version list.
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
 }
 
-// GetArtifactListParams defines parameters for GetArtifactList.
-type GetArtifactListParams struct {
-	// Namespace The namespace of the artifact.
-	Namespace *string `form:"namespace,omitempty" json:"namespace,omitempty"`
+// GetV1RbacPolicyParams defines parameters for GetV1RbacPolicy.
+type GetV1RbacPolicyParams struct {
+	// Limit Maximum number of policies to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Name The name of the artifact.
+	// Offset Offset into the policy list.
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Role Filter policies by role.
+	Role *string `form:"role,omitempty" json:"role,omitempty"`
+
+	// ResourceGroup Filter policies by resource group.
+	ResourceGroup *string `form:"resource-group,omitempty" json:"resource-group,omitempty"`
+
+	// Method Filter policies by HTTP method.
+	Method *string `form:"method,omitempty" json:"method,omitempty"`
+}
+
+// GetV1RbacResourceGroupParams defines parameters for GetV1RbacResourceGroup.
+type GetV1RbacResourceGroupParams struct {
+	// Limit Maximum number of policies to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Offset into the policy list.
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Role Filter policies by role.
+	Role *string `form:"role,omitempty" json:"role,omitempty"`
+}
+
+// GetV1RbacRoleParams defines parameters for GetV1RbacRole.
+type GetV1RbacRoleParams struct {
+	// Limit Maximum number of policies to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Offset into the policy list.
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Role Filter policies by role.
+	Role *string `form:"role,omitempty" json:"role,omitempty"`
+}
+
+// GetV1TaskParams defines parameters for GetV1Task.
+type GetV1TaskParams struct {
+	// Limit Maximum number of tasks to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Offset for pagination.
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// State Filter tasks by state (e.g., ACTIVE).
+	State *string `form:"state,omitempty" json:"state,omitempty"`
+}
+
+// GetV1TaskIdLogsParams defines parameters for GetV1TaskIdLogs.
+type GetV1TaskIdLogsParams struct {
+	// Level Filter logs by level.
+	Level *string `form:"level,omitempty" json:"level,omitempty"`
+
+	// Issuer Filter logs by issuer.
+	Issuer *string `form:"issuer,omitempty" json:"issuer,omitempty"`
+
+	// TimeRangeFrom Start of the time range filter. Must be used with time-range-to and be more recent.
+	TimeRangeFrom *time.Time `form:"time-range-from,omitempty" json:"time-range-from,omitempty"`
+
+	// TimeRangeTo End of the time range filter. Must be used with time-range-from and be less recent.
+	TimeRangeTo *time.Time `form:"time-range-to,omitempty" json:"time-range-to,omitempty"`
+}
+
+// GetV1UserParams defines parameters for GetV1User.
+type GetV1UserParams struct {
+	// Limit Maximum number of users to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Offset into the user list.
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Name Filter by exact username.
 	Name *string `form:"name,omitempty" json:"name,omitempty"`
+
+	// DisplayName Filter by display name.
+	DisplayName *string `form:"display-name,omitempty" json:"display-name,omitempty"`
 }
 
-// DeleteArtifactTagJSONBody defines parameters for DeleteArtifactTag.
-type DeleteArtifactTagJSONBody struct {
-	// Package Package name of an artifact.
-	Package PackageName `json:"package"`
+// PatchV1ArtifactNamespaceNameHashHashJSONRequestBody defines body for PatchV1ArtifactNamespaceNameHashHash for application/json ContentType.
+type PatchV1ArtifactNamespaceNameHashHashJSONRequestBody = PatchArtifact
 
-	// Tag The tag to remove from the artifact.
-	Tag string `json:"tag"`
+// PatchV1ArtifactNamespaceNameTagTagJSONRequestBody defines body for PatchV1ArtifactNamespaceNameTagTag for application/json ContentType.
+type PatchV1ArtifactNamespaceNameTagTagJSONRequestBody = PatchArtifact
 
-	// VersionHash The version hash of the artifact to untag.
-	VersionHash string `json:"versionHash"`
-}
+// DeleteV1RbacPolicyJSONRequestBody defines body for DeleteV1RbacPolicy for application/json ContentType.
+type DeleteV1RbacPolicyJSONRequestBody = RBACPolicy
 
-// PostArtifactTagJSONBody defines parameters for PostArtifactTag.
-type PostArtifactTagJSONBody struct {
-	// NewTag The new tag to assign to the artifact version.
-	NewTag string `json:"newTag"`
+// PutV1RbacPolicyJSONRequestBody defines body for PutV1RbacPolicy for application/json ContentType.
+type PutV1RbacPolicyJSONRequestBody = RBACPolicy
 
-	// Package Package name of an artifact.
-	Package PackageName `json:"package"`
+// PutV1RbacResourceGroupResourceGroupJSONRequestBody defines body for PutV1RbacResourceGroupResourceGroup for application/json ContentType.
+type PutV1RbacResourceGroupResourceGroupJSONRequestBody = PutResourceGroupRequest
 
-	// VersionHash The version hash of the artifact to tag.
-	VersionHash string `json:"versionHash"`
-}
+// PutV1RbacRoleRoleJSONRequestBody defines body for PutV1RbacRoleRole for application/json ContentType.
+type PutV1RbacRoleRoleJSONRequestBody = PutRoleRequest
 
-// GetArtifactUploadParams defines parameters for GetArtifactUpload.
-type GetArtifactUploadParams struct {
-	// Namespace The namespace of the artifact.
-	Namespace string `form:"namespace" json:"namespace"`
+// PostV1TaskJSONRequestBody defines body for PostV1Task for application/json ContentType.
+type PostV1TaskJSONRequestBody = CreateTaskRequest
 
-	// Name The name of the artifact.
-	Name string `form:"name" json:"name"`
+// PatchV1UserMeJSONRequestBody defines body for PatchV1UserMe for application/json ContentType.
+type PatchV1UserMeJSONRequestBody = PatchMe
 
-	// Identifier Either the version hash or tag of the artifact.
-	Identifier string `form:"identifier" json:"identifier"`
-}
+// PatchV1UserUsernameJSONRequestBody defines body for PatchV1UserUsername for application/json ContentType.
+type PatchV1UserUsernameJSONRequestBody = PatchUser
 
-// PostArtifactUploadMultipartBody defines parameters for PostArtifactUpload.
-type PostArtifactUploadMultipartBody struct {
-	// File The artifact file to upload.
-	File openapi_types.File `json:"file"`
-
-	// Name The name of the artifact.
-	Name string `json:"name"`
-
-	// Namespace The namespace of the artifact.
-	Namespace string `json:"namespace"`
-
-	// Tag Tags to assign to the artifact.
-	Tag *[]string `json:"tag,omitempty"`
-}
-
-// DeleteRbacEndpointJSONBody defines parameters for DeleteRbacEndpoint.
-type DeleteRbacEndpointJSONBody struct {
-	// Endpoint The endpoint to remove from its resource group.
-	Endpoint string `json:"endpoint"`
-
-	// ResourceGroup The name of the resource group.
-	ResourceGroup string `json:"resourceGroup"`
-}
-
-// GetRbacEndpointParams defines parameters for GetRbacEndpoint.
-type GetRbacEndpointParams struct {
-	// Endpoint The endpoint to query.
-	Endpoint string `form:"endpoint" json:"endpoint"`
-}
-
-// PostRbacEndpointJSONBody defines parameters for PostRbacEndpoint.
-type PostRbacEndpointJSONBody struct {
-	// Endpoint The endpoint to assign to the resource group.
-	Endpoint string `json:"endpoint"`
-
-	// ResourceGroup The name of the resource group.
-	ResourceGroup string `json:"resourceGroup"`
-}
-
-// DeleteRbacResourceGroupJSONBody defines parameters for DeleteRbacResourceGroup.
-type DeleteRbacResourceGroupJSONBody struct {
-	// ResourceGroup The name of the resource group.
-	ResourceGroup string `json:"resourceGroup"`
-}
-
-// GetRbacResourceGroupParams defines parameters for GetRbacResourceGroup.
-type GetRbacResourceGroupParams struct {
-	// ResourceGroup The name of the resource group.
-	ResourceGroup string `form:"resourceGroup" json:"resourceGroup"`
-}
-
-// HeadRbacResourceGroupJSONBody defines parameters for HeadRbacResourceGroup.
-type HeadRbacResourceGroupJSONBody struct {
-	// ResourceGroup The name of the resource group.
-	ResourceGroup string `json:"resourceGroup"`
-}
-
-// PostRbacResourceGroupJSONBody defines parameters for PostRbacResourceGroup.
-type PostRbacResourceGroupJSONBody struct {
-	// ResourceGroup The name of the resource group.
-	ResourceGroup string `json:"resourceGroup"`
-}
-
-// GetRbacRoleParams defines parameters for GetRbacRole.
-type GetRbacRoleParams struct {
-	// Role The name of the role.
-	Role string `form:"role" json:"role"`
-}
-
-// DeleteRbacUserJSONBody defines parameters for DeleteRbacUser.
-type DeleteRbacUserJSONBody struct {
-	// Role The name of the role to remove from the user.
-	Role string `json:"role"`
-
-	// UserId The uuid of the user.
-	UserId string `json:"userId"`
-}
-
-// GetRbacUserParams defines parameters for GetRbacUser.
-type GetRbacUserParams struct {
-	// UserId The uuid of the user.
-	UserId string `form:"userId" json:"userId"`
-}
-
-// PostRbacUserJSONBody defines parameters for PostRbacUser.
-type PostRbacUserJSONBody struct {
-	// Role The name of the role to assign to the user.
-	Role string `json:"role"`
-
-	// UserId The uuid of the user.
-	UserId string `json:"userId"`
-}
-
-// GetTasksTaskParams defines parameters for GetTasksTask.
-type GetTasksTaskParams struct {
-	// Id The unique identifier for the task to retrieve.
-	Id string `form:"id" json:"id"`
-}
-
-// GetUsersUserParams defines parameters for GetUsersUser.
-type GetUsersUserParams struct {
-	// UserId The uuid of the user to retrieve.
-	UserId *string `form:"userId,omitempty" json:"userId,omitempty"`
-
-	// Name The name of the user to retrieve.
-	Name *string `form:"name,omitempty" json:"name,omitempty"`
-}
-
-// DeleteArtifactJSONRequestBody defines body for DeleteArtifact for application/json ContentType.
-type DeleteArtifactJSONRequestBody DeleteArtifactJSONBody
-
-// DeleteArtifactTagJSONRequestBody defines body for DeleteArtifactTag for application/json ContentType.
-type DeleteArtifactTagJSONRequestBody DeleteArtifactTagJSONBody
-
-// PostArtifactTagJSONRequestBody defines body for PostArtifactTag for application/json ContentType.
-type PostArtifactTagJSONRequestBody PostArtifactTagJSONBody
-
-// PostArtifactUploadMultipartRequestBody defines body for PostArtifactUpload for multipart/form-data ContentType.
-type PostArtifactUploadMultipartRequestBody PostArtifactUploadMultipartBody
-
-// DeleteRbacEndpointJSONRequestBody defines body for DeleteRbacEndpoint for application/json ContentType.
-type DeleteRbacEndpointJSONRequestBody DeleteRbacEndpointJSONBody
-
-// PostRbacEndpointJSONRequestBody defines body for PostRbacEndpoint for application/json ContentType.
-type PostRbacEndpointJSONRequestBody PostRbacEndpointJSONBody
-
-// DeleteRbacPolicyJSONRequestBody defines body for DeleteRbacPolicy for application/json ContentType.
-type DeleteRbacPolicyJSONRequestBody = RBACPolicy
-
-// PostRbacPolicyJSONRequestBody defines body for PostRbacPolicy for application/json ContentType.
-type PostRbacPolicyJSONRequestBody = RBACPolicy
-
-// DeleteRbacResourceGroupJSONRequestBody defines body for DeleteRbacResourceGroup for application/json ContentType.
-type DeleteRbacResourceGroupJSONRequestBody DeleteRbacResourceGroupJSONBody
-
-// HeadRbacResourceGroupJSONRequestBody defines body for HeadRbacResourceGroup for application/json ContentType.
-type HeadRbacResourceGroupJSONRequestBody HeadRbacResourceGroupJSONBody
-
-// PostRbacResourceGroupJSONRequestBody defines body for PostRbacResourceGroup for application/json ContentType.
-type PostRbacResourceGroupJSONRequestBody PostRbacResourceGroupJSONBody
-
-// DeleteRbacRoleJSONRequestBody defines body for DeleteRbacRole for application/json ContentType.
-type DeleteRbacRoleJSONRequestBody = RBACRole
-
-// HeadRbacRoleJSONRequestBody defines body for HeadRbacRole for application/json ContentType.
-type HeadRbacRoleJSONRequestBody = RBACRole
-
-// PostRbacRoleJSONRequestBody defines body for PostRbacRole for application/json ContentType.
-type PostRbacRoleJSONRequestBody = RBACRole
-
-// DeleteRbacUserJSONRequestBody defines body for DeleteRbacUser for application/json ContentType.
-type DeleteRbacUserJSONRequestBody DeleteRbacUserJSONBody
-
-// PostRbacUserJSONRequestBody defines body for PostRbacUser for application/json ContentType.
-type PostRbacUserJSONRequestBody PostRbacUserJSONBody
-
-// PatchUsersMeJSONRequestBody defines body for PatchUsersMe for application/json ContentType.
-type PatchUsersMeJSONRequestBody = PatchMe
-
-// DeleteUsersUserJSONRequestBody defines body for DeleteUsersUser for application/json ContentType.
-type DeleteUsersUserJSONRequestBody = UserRequest
-
-// HeadUsersUserJSONRequestBody defines body for HeadUsersUser for application/json ContentType.
-type HeadUsersUserJSONRequestBody = UserRequest
-
-// PatchUsersUserJSONRequestBody defines body for PatchUsersUser for application/json ContentType.
-type PatchUsersUserJSONRequestBody = PatchUser
-
-// PostUsersUserJSONRequestBody defines body for PostUsersUser for application/json ContentType.
-type PostUsersUserJSONRequestBody = CreateUser
+// PutV1UserUsernameJSONRequestBody defines body for PutV1UserUsername for application/json ContentType.
+type PutV1UserUsernameJSONRequestBody = PutUserRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Delete Artifact
-	// (DELETE /artifact)
-	DeleteArtifact(c *gin.Context)
-	// Retrieve Artifact Metadata
-	// (GET /artifact)
-	GetArtifact(c *gin.Context, params GetArtifactParams)
-	// Check Artifact Existence
-	// (HEAD /artifact)
-	HeadArtifact(c *gin.Context, params HeadArtifactParams)
-	// Query Artifact Metadata
-	// (GET /artifact/list)
-	GetArtifactList(c *gin.Context, params GetArtifactListParams)
-	// Remove Tag from Artifact
-	// (DELETE /artifact/tag)
-	DeleteArtifactTag(c *gin.Context)
-	// Tag Artifact Version
-	// (POST /artifact/tag)
-	PostArtifactTag(c *gin.Context)
-	// Download Artifact
-	// (GET /artifact/upload)
-	GetArtifactUpload(c *gin.Context, params GetArtifactUploadParams)
+	// List Artifact Namespaces
+	// (GET /v1/artifact)
+	GetV1Artifact(c *gin.Context, params GetV1ArtifactParams)
 	// Upload Artifact
-	// (POST /artifact/upload)
-	PostArtifactUpload(c *gin.Context)
-	// Create Manifest
-	// (POST /manifest)
-	PostManifest(c *gin.Context)
-	// Remove Endpoint from Resource Group
-	// (DELETE /rbac/endpoint)
-	DeleteRbacEndpoint(c *gin.Context)
-	// Get Resource Group Assigned to Endpoint
-	// (GET /rbac/endpoint)
-	GetRbacEndpoint(c *gin.Context, params GetRbacEndpointParams)
-	// Assign Endpoint to Resource Group
-	// (POST /rbac/endpoint)
-	PostRbacEndpoint(c *gin.Context)
-	// List All Resource Groups
-	// (GET /rbac/list-resource-groups)
-	GetRbacListResourceGroups(c *gin.Context)
-	// List All Roles
-	// (GET /rbac/list-roles)
-	GetRbacListRoles(c *gin.Context)
+	// (POST /v1/artifact/raw/{namespace}/{name})
+	PostV1ArtifactRawNamespaceName(c *gin.Context, namespace string, name string)
+	// Download Artifact by Hash
+	// (GET /v1/artifact/raw/{namespace}/{name}/hash/{hash})
+	GetV1ArtifactRawNamespaceNameHashHash(c *gin.Context, namespace string, name string, hash string)
+	// Download Artifact by Tag
+	// (GET /v1/artifact/raw/{namespace}/{name}/tag/{tag})
+	GetV1ArtifactRawNamespaceNameTagTag(c *gin.Context, namespace string, name string, tag string)
+	// List Artifacts in Namespace
+	// (GET /v1/artifact/{namespace})
+	GetV1ArtifactNamespace(c *gin.Context, namespace string, params GetV1ArtifactNamespaceParams)
+	// List Artifact Versions
+	// (GET /v1/artifact/{namespace}/{name})
+	GetV1ArtifactNamespaceName(c *gin.Context, namespace string, name string, params GetV1ArtifactNamespaceNameParams)
+	// Delete Artifact by Hash
+	// (DELETE /v1/artifact/{namespace}/{name}/hash/{hash})
+	DeleteV1ArtifactNamespaceNameHashHash(c *gin.Context, namespace string, name string, hash string)
+	// Retrieve Artifact Metadata by Hash
+	// (GET /v1/artifact/{namespace}/{name}/hash/{hash})
+	GetV1ArtifactNamespaceNameHashHash(c *gin.Context, namespace string, name string, hash string)
+	// Patch Artifact Metadata by Hash
+	// (PATCH /v1/artifact/{namespace}/{name}/hash/{hash})
+	PatchV1ArtifactNamespaceNameHashHash(c *gin.Context, namespace string, name string, hash string)
+	// Delete Artifact by Tag
+	// (DELETE /v1/artifact/{namespace}/{name}/tag/{tag})
+	DeleteV1ArtifactNamespaceNameTagTag(c *gin.Context, namespace string, name string, tag string)
+	// Retrieve Artifact Metadata by Tag
+	// (GET /v1/artifact/{namespace}/{name}/tag/{tag})
+	GetV1ArtifactNamespaceNameTagTag(c *gin.Context, namespace string, name string, tag string)
+	// Patch Artifact Metadata by Tag
+	// (PATCH /v1/artifact/{namespace}/{name}/tag/{tag})
+	PatchV1ArtifactNamespaceNameTagTag(c *gin.Context, namespace string, name string, tag string)
 	// Delete RBAC Policy
-	// (DELETE /rbac/policy)
-	DeleteRbacPolicy(c *gin.Context)
-	// List All RBAC Policies
-	// (GET /rbac/policy)
-	GetRbacPolicy(c *gin.Context)
-	// Create New RBAC Policy
-	// (POST /rbac/policy)
-	PostRbacPolicy(c *gin.Context)
+	// (DELETE /v1/rbac/policy)
+	DeleteV1RbacPolicy(c *gin.Context)
+	// List RBAC Policies
+	// (GET /v1/rbac/policy)
+	GetV1RbacPolicy(c *gin.Context, params GetV1RbacPolicyParams)
+	// Create or Replace RBAC Policy
+	// (PUT /v1/rbac/policy)
+	PutV1RbacPolicy(c *gin.Context)
+	// List All Resource Groups
+	// (GET /v1/rbac/resource-group)
+	GetV1RbacResourceGroup(c *gin.Context, params GetV1RbacResourceGroupParams)
 	// Delete Resource Group
-	// (DELETE /rbac/resource-group)
-	DeleteRbacResourceGroup(c *gin.Context)
+	// (DELETE /v1/rbac/resource-group/{resourceGroup})
+	DeleteV1RbacResourceGroupResourceGroup(c *gin.Context, resourceGroup string)
 	// Get Endpoints Assigned to Resource Group
-	// (GET /rbac/resource-group)
-	GetRbacResourceGroup(c *gin.Context, params GetRbacResourceGroupParams)
+	// (GET /v1/rbac/resource-group/{resourceGroup})
+	GetV1RbacResourceGroupResourceGroup(c *gin.Context, resourceGroup string)
 	// Check Resource Group Existence
-	// (HEAD /rbac/resource-group)
-	HeadRbacResourceGroup(c *gin.Context)
-	// Create New Resource Group
-	// (POST /rbac/resource-group)
-	PostRbacResourceGroup(c *gin.Context)
+	// (HEAD /v1/rbac/resource-group/{resourceGroup})
+	HeadV1RbacResourceGroupResourceGroup(c *gin.Context, resourceGroup string)
+	// Create or Replace Resource Group
+	// (PUT /v1/rbac/resource-group/{resourceGroup})
+	PutV1RbacResourceGroupResourceGroup(c *gin.Context, resourceGroup string)
+	// List All Roles
+	// (GET /v1/rbac/role)
+	GetV1RbacRole(c *gin.Context, params GetV1RbacRoleParams)
 	// Delete Role
-	// (DELETE /rbac/role)
-	DeleteRbacRole(c *gin.Context)
+	// (DELETE /v1/rbac/role/{role})
+	DeleteV1RbacRoleRole(c *gin.Context, role string)
 	// Get assigned users for role
-	// (GET /rbac/role)
-	GetRbacRole(c *gin.Context, params GetRbacRoleParams)
+	// (GET /v1/rbac/role/{role})
+	GetV1RbacRoleRole(c *gin.Context, role string)
 	// Check Role Existence
-	// (HEAD /rbac/role)
-	HeadRbacRole(c *gin.Context)
-	// Create New Role
-	// (POST /rbac/role)
-	PostRbacRole(c *gin.Context)
-	// Remove Role from User
-	// (DELETE /rbac/user)
-	DeleteRbacUser(c *gin.Context)
-	// Get Roles Assigned to User
-	// (GET /rbac/user)
-	GetRbacUser(c *gin.Context, params GetRbacUserParams)
-	// Assign Roles to User
-	// (POST /rbac/user)
-	PostRbacUser(c *gin.Context)
-	// Get Task list
-	// (GET /tasks/list)
-	GetTasksList(c *gin.Context)
-	// Get Single Task
-	// (GET /tasks/task)
-	GetTasksTask(c *gin.Context, params GetTasksTaskParams)
-	// List All Users
-	// (GET /users/list)
-	GetUsersList(c *gin.Context)
+	// (HEAD /v1/rbac/role/{role})
+	HeadV1RbacRoleRole(c *gin.Context, role string)
+	// Create or Replace Role
+	// (PUT /v1/rbac/role/{role})
+	PutV1RbacRoleRole(c *gin.Context, role string)
+	// List Tasks
+	// (GET /v1/task)
+	GetV1Task(c *gin.Context, params GetV1TaskParams)
+	// Create Task
+	// (POST /v1/task)
+	PostV1Task(c *gin.Context)
+	// Get Task
+	// (GET /v1/task/{id})
+	GetV1TaskId(c *gin.Context, id string)
+	// Get Task Logs
+	// (GET /v1/task/{id}/logs)
+	GetV1TaskIdLogs(c *gin.Context, id string, params GetV1TaskIdLogsParams)
+	// List Users
+	// (GET /v1/user)
+	GetV1User(c *gin.Context, params GetV1UserParams)
 	// Delete Current User
-	// (DELETE /users/me)
-	DeleteUsersMe(c *gin.Context)
-	// Get Current User Information
-	// (GET /users/me)
-	GetUsersMe(c *gin.Context)
-	// Update Current User Information
-	// (PATCH /users/me)
-	PatchUsersMe(c *gin.Context)
+	// (DELETE /v1/user/me)
+	DeleteV1UserMe(c *gin.Context)
+	// Get Current User
+	// (GET /v1/user/me)
+	GetV1UserMe(c *gin.Context)
+	// Update Current User
+	// (PATCH /v1/user/me)
+	PatchV1UserMe(c *gin.Context)
 	// Delete User
-	// (DELETE /users/user)
-	DeleteUsersUser(c *gin.Context)
-	// Get User Information
-	// (GET /users/user)
-	GetUsersUser(c *gin.Context, params GetUsersUserParams)
+	// (DELETE /v1/user/{username})
+	DeleteV1UserUsername(c *gin.Context, username string)
+	// Get User
+	// (GET /v1/user/{username})
+	GetV1UserUsername(c *gin.Context, username string)
 	// Check User Existence
-	// (HEAD /users/user)
-	HeadUsersUser(c *gin.Context)
-	// Update User Information
-	// (PATCH /users/user)
-	PatchUsersUser(c *gin.Context)
-	// Create New User
-	// (POST /users/user)
-	PostUsersUser(c *gin.Context)
+	// (HEAD /v1/user/{username})
+	HeadV1UserUsername(c *gin.Context, username string)
+	// Update User
+	// (PATCH /v1/user/{username})
+	PatchV1UserUsername(c *gin.Context, username string)
+	// Create User
+	// (PUT /v1/user/{username})
+	PutV1UserUsername(c *gin.Context, username string)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -600,10 +560,31 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(c *gin.Context)
 
-// DeleteArtifact operation middleware
-func (siw *ServerInterfaceWrapper) DeleteArtifact(c *gin.Context) {
+// GetV1Artifact operation middleware
+func (siw *ServerInterfaceWrapper) GetV1Artifact(c *gin.Context) {
+
+	var err error
 
 	c.Set(BasicAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetV1ArtifactParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", c.Request.URL.Query(), &params.Limit)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", c.Request.URL.Query(), &params.Offset)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter offset: %w", err), http.StatusBadRequest)
+		return
+	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -612,63 +593,33 @@ func (siw *ServerInterfaceWrapper) DeleteArtifact(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.DeleteArtifact(c)
+	siw.Handler.GetV1Artifact(c, params)
 }
 
-// GetArtifact operation middleware
-func (siw *ServerInterfaceWrapper) GetArtifact(c *gin.Context) {
+// PostV1ArtifactRawNamespaceName operation middleware
+func (siw *ServerInterfaceWrapper) PostV1ArtifactRawNamespaceName(c *gin.Context) {
 
 	var err error
 
-	c.Set(BasicAuthScopes, []string{})
+	// ------------- Path parameter "namespace" -------------
+	var namespace string
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params GetArtifactParams
-
-	// ------------- Required query parameter "namespace" -------------
-
-	if paramValue := c.Query("namespace"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandler(c, fmt.Errorf("Query argument namespace is required, but not found"), http.StatusBadRequest)
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "namespace", c.Request.URL.Query(), &params.Namespace)
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", c.Param("namespace"), &namespace, runtime.BindStyledParameterOptions{Explode: false, Required: true})
 	if err != nil {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter namespace: %w", err), http.StatusBadRequest)
 		return
 	}
 
-	// ------------- Required query parameter "name" -------------
+	// ------------- Path parameter "name" -------------
+	var name string
 
-	if paramValue := c.Query("name"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandler(c, fmt.Errorf("Query argument name is required, but not found"), http.StatusBadRequest)
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "name", c.Request.URL.Query(), &params.Name)
+	err = runtime.BindStyledParameterWithOptions("simple", "name", c.Param("name"), &name, runtime.BindStyledParameterOptions{Explode: false, Required: true})
 	if err != nil {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter name: %w", err), http.StatusBadRequest)
 		return
 	}
 
-	// ------------- Required query parameter "identifier" -------------
-
-	if paramValue := c.Query("identifier"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandler(c, fmt.Errorf("Query argument identifier is required, but not found"), http.StatusBadRequest)
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "identifier", c.Request.URL.Query(), &params.Identifier)
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter identifier: %w", err), http.StatusBadRequest)
-		return
-	}
+	c.Set(BasicAuthScopes, []string{})
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -677,63 +628,42 @@ func (siw *ServerInterfaceWrapper) GetArtifact(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.GetArtifact(c, params)
+	siw.Handler.PostV1ArtifactRawNamespaceName(c, namespace, name)
 }
 
-// HeadArtifact operation middleware
-func (siw *ServerInterfaceWrapper) HeadArtifact(c *gin.Context) {
+// GetV1ArtifactRawNamespaceNameHashHash operation middleware
+func (siw *ServerInterfaceWrapper) GetV1ArtifactRawNamespaceNameHashHash(c *gin.Context) {
 
 	var err error
 
-	c.Set(BasicAuthScopes, []string{})
+	// ------------- Path parameter "namespace" -------------
+	var namespace string
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params HeadArtifactParams
-
-	// ------------- Required query parameter "namespace" -------------
-
-	if paramValue := c.Query("namespace"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandler(c, fmt.Errorf("Query argument namespace is required, but not found"), http.StatusBadRequest)
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "namespace", c.Request.URL.Query(), &params.Namespace)
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", c.Param("namespace"), &namespace, runtime.BindStyledParameterOptions{Explode: false, Required: true})
 	if err != nil {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter namespace: %w", err), http.StatusBadRequest)
 		return
 	}
 
-	// ------------- Required query parameter "name" -------------
+	// ------------- Path parameter "name" -------------
+	var name string
 
-	if paramValue := c.Query("name"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandler(c, fmt.Errorf("Query argument name is required, but not found"), http.StatusBadRequest)
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "name", c.Request.URL.Query(), &params.Name)
+	err = runtime.BindStyledParameterWithOptions("simple", "name", c.Param("name"), &name, runtime.BindStyledParameterOptions{Explode: false, Required: true})
 	if err != nil {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter name: %w", err), http.StatusBadRequest)
 		return
 	}
 
-	// ------------- Required query parameter "identifier" -------------
+	// ------------- Path parameter "hash" -------------
+	var hash string
 
-	if paramValue := c.Query("identifier"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandler(c, fmt.Errorf("Query argument identifier is required, but not found"), http.StatusBadRequest)
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "identifier", c.Request.URL.Query(), &params.Identifier)
+	err = runtime.BindStyledParameterWithOptions("simple", "hash", c.Param("hash"), &hash, runtime.BindStyledParameterOptions{Explode: false, Required: true})
 	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter identifier: %w", err), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter hash: %w", err), http.StatusBadRequest)
 		return
 	}
+
+	c.Set(BasicAuthScopes, []string{})
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -742,127 +672,139 @@ func (siw *ServerInterfaceWrapper) HeadArtifact(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.HeadArtifact(c, params)
+	siw.Handler.GetV1ArtifactRawNamespaceNameHashHash(c, namespace, name, hash)
 }
 
-// GetArtifactList operation middleware
-func (siw *ServerInterfaceWrapper) GetArtifactList(c *gin.Context) {
+// GetV1ArtifactRawNamespaceNameTagTag operation middleware
+func (siw *ServerInterfaceWrapper) GetV1ArtifactRawNamespaceNameTagTag(c *gin.Context) {
 
 	var err error
 
-	c.Set(BasicAuthScopes, []string{})
+	// ------------- Path parameter "namespace" -------------
+	var namespace string
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params GetArtifactListParams
-
-	// ------------- Optional query parameter "namespace" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "namespace", c.Request.URL.Query(), &params.Namespace)
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", c.Param("namespace"), &namespace, runtime.BindStyledParameterOptions{Explode: false, Required: true})
 	if err != nil {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter namespace: %w", err), http.StatusBadRequest)
 		return
 	}
 
-	// ------------- Optional query parameter "name" -------------
+	// ------------- Path parameter "name" -------------
+	var name string
 
-	err = runtime.BindQueryParameter("form", true, false, "name", c.Request.URL.Query(), &params.Name)
+	err = runtime.BindStyledParameterWithOptions("simple", "name", c.Param("name"), &name, runtime.BindStyledParameterOptions{Explode: false, Required: true})
 	if err != nil {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter name: %w", err), http.StatusBadRequest)
 		return
 	}
 
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
+	// ------------- Path parameter "tag" -------------
+	var tag string
 
-	siw.Handler.GetArtifactList(c, params)
-}
-
-// DeleteArtifactTag operation middleware
-func (siw *ServerInterfaceWrapper) DeleteArtifactTag(c *gin.Context) {
-
-	c.Set(BasicAuthScopes, []string{})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.DeleteArtifactTag(c)
-}
-
-// PostArtifactTag operation middleware
-func (siw *ServerInterfaceWrapper) PostArtifactTag(c *gin.Context) {
-
-	c.Set(BasicAuthScopes, []string{})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.PostArtifactTag(c)
-}
-
-// GetArtifactUpload operation middleware
-func (siw *ServerInterfaceWrapper) GetArtifactUpload(c *gin.Context) {
-
-	var err error
-
-	c.Set(BasicAuthScopes, []string{})
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params GetArtifactUploadParams
-
-	// ------------- Required query parameter "namespace" -------------
-
-	if paramValue := c.Query("namespace"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandler(c, fmt.Errorf("Query argument namespace is required, but not found"), http.StatusBadRequest)
+	err = runtime.BindStyledParameterWithOptions("simple", "tag", c.Param("tag"), &tag, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter tag: %w", err), http.StatusBadRequest)
 		return
 	}
 
-	err = runtime.BindQueryParameter("form", true, true, "namespace", c.Request.URL.Query(), &params.Namespace)
+	c.Set(BasicAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetV1ArtifactRawNamespaceNameTagTag(c, namespace, name, tag)
+}
+
+// GetV1ArtifactNamespace operation middleware
+func (siw *ServerInterfaceWrapper) GetV1ArtifactNamespace(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", c.Param("namespace"), &namespace, runtime.BindStyledParameterOptions{Explode: false, Required: true})
 	if err != nil {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter namespace: %w", err), http.StatusBadRequest)
 		return
 	}
 
-	// ------------- Required query parameter "name" -------------
+	c.Set(BasicAuthScopes, []string{})
 
-	if paramValue := c.Query("name"); paramValue != "" {
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetV1ArtifactNamespaceParams
 
-	} else {
-		siw.ErrorHandler(c, fmt.Errorf("Query argument name is required, but not found"), http.StatusBadRequest)
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", c.Request.URL.Query(), &params.Limit)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
 		return
 	}
 
-	err = runtime.BindQueryParameter("form", true, true, "name", c.Request.URL.Query(), &params.Name)
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", c.Request.URL.Query(), &params.Offset)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter offset: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetV1ArtifactNamespace(c, namespace, params)
+}
+
+// GetV1ArtifactNamespaceName operation middleware
+func (siw *ServerInterfaceWrapper) GetV1ArtifactNamespaceName(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", c.Param("namespace"), &namespace, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter namespace: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Path parameter "name" -------------
+	var name string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "name", c.Param("name"), &name, runtime.BindStyledParameterOptions{Explode: false, Required: true})
 	if err != nil {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter name: %w", err), http.StatusBadRequest)
 		return
 	}
 
-	// ------------- Required query parameter "identifier" -------------
+	c.Set(BasicAuthScopes, []string{})
 
-	if paramValue := c.Query("identifier"); paramValue != "" {
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetV1ArtifactNamespaceNameParams
 
-	} else {
-		siw.ErrorHandler(c, fmt.Errorf("Query argument identifier is required, but not found"), http.StatusBadRequest)
-		return
-	}
+	// ------------- Optional query parameter "limit" -------------
 
-	err = runtime.BindQueryParameter("form", true, true, "identifier", c.Request.URL.Query(), &params.Identifier)
+	err = runtime.BindQueryParameter("form", true, false, "limit", c.Request.URL.Query(), &params.Limit)
 	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter identifier: %w", err), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", c.Request.URL.Query(), &params.Offset)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter offset: %w", err), http.StatusBadRequest)
 		return
 	}
 
@@ -873,11 +815,40 @@ func (siw *ServerInterfaceWrapper) GetArtifactUpload(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.GetArtifactUpload(c, params)
+	siw.Handler.GetV1ArtifactNamespaceName(c, namespace, name, params)
 }
 
-// PostArtifactUpload operation middleware
-func (siw *ServerInterfaceWrapper) PostArtifactUpload(c *gin.Context) {
+// DeleteV1ArtifactNamespaceNameHashHash operation middleware
+func (siw *ServerInterfaceWrapper) DeleteV1ArtifactNamespaceNameHashHash(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", c.Param("namespace"), &namespace, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter namespace: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Path parameter "name" -------------
+	var name string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "name", c.Param("name"), &name, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter name: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Path parameter "hash" -------------
+	var hash string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "hash", c.Param("hash"), &hash, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter hash: %w", err), http.StatusBadRequest)
+		return
+	}
 
 	c.Set(BasicAuthScopes, []string{})
 
@@ -888,11 +859,40 @@ func (siw *ServerInterfaceWrapper) PostArtifactUpload(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.PostArtifactUpload(c)
+	siw.Handler.DeleteV1ArtifactNamespaceNameHashHash(c, namespace, name, hash)
 }
 
-// PostManifest operation middleware
-func (siw *ServerInterfaceWrapper) PostManifest(c *gin.Context) {
+// GetV1ArtifactNamespaceNameHashHash operation middleware
+func (siw *ServerInterfaceWrapper) GetV1ArtifactNamespaceNameHashHash(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", c.Param("namespace"), &namespace, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter namespace: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Path parameter "name" -------------
+	var name string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "name", c.Param("name"), &name, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter name: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Path parameter "hash" -------------
+	var hash string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "hash", c.Param("hash"), &hash, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter hash: %w", err), http.StatusBadRequest)
+		return
+	}
 
 	c.Set(BasicAuthScopes, []string{})
 
@@ -903,11 +903,40 @@ func (siw *ServerInterfaceWrapper) PostManifest(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.PostManifest(c)
+	siw.Handler.GetV1ArtifactNamespaceNameHashHash(c, namespace, name, hash)
 }
 
-// DeleteRbacEndpoint operation middleware
-func (siw *ServerInterfaceWrapper) DeleteRbacEndpoint(c *gin.Context) {
+// PatchV1ArtifactNamespaceNameHashHash operation middleware
+func (siw *ServerInterfaceWrapper) PatchV1ArtifactNamespaceNameHashHash(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", c.Param("namespace"), &namespace, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter namespace: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Path parameter "name" -------------
+	var name string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "name", c.Param("name"), &name, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter name: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Path parameter "hash" -------------
+	var hash string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "hash", c.Param("hash"), &hash, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter hash: %w", err), http.StatusBadRequest)
+		return
+	}
 
 	c.Set(BasicAuthScopes, []string{})
 
@@ -918,31 +947,203 @@ func (siw *ServerInterfaceWrapper) DeleteRbacEndpoint(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.DeleteRbacEndpoint(c)
+	siw.Handler.PatchV1ArtifactNamespaceNameHashHash(c, namespace, name, hash)
 }
 
-// GetRbacEndpoint operation middleware
-func (siw *ServerInterfaceWrapper) GetRbacEndpoint(c *gin.Context) {
+// DeleteV1ArtifactNamespaceNameTagTag operation middleware
+func (siw *ServerInterfaceWrapper) DeleteV1ArtifactNamespaceNameTagTag(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", c.Param("namespace"), &namespace, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter namespace: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Path parameter "name" -------------
+	var name string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "name", c.Param("name"), &name, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter name: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Path parameter "tag" -------------
+	var tag string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tag", c.Param("tag"), &tag, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter tag: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(BasicAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.DeleteV1ArtifactNamespaceNameTagTag(c, namespace, name, tag)
+}
+
+// GetV1ArtifactNamespaceNameTagTag operation middleware
+func (siw *ServerInterfaceWrapper) GetV1ArtifactNamespaceNameTagTag(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", c.Param("namespace"), &namespace, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter namespace: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Path parameter "name" -------------
+	var name string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "name", c.Param("name"), &name, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter name: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Path parameter "tag" -------------
+	var tag string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tag", c.Param("tag"), &tag, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter tag: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(BasicAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetV1ArtifactNamespaceNameTagTag(c, namespace, name, tag)
+}
+
+// PatchV1ArtifactNamespaceNameTagTag operation middleware
+func (siw *ServerInterfaceWrapper) PatchV1ArtifactNamespaceNameTagTag(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", c.Param("namespace"), &namespace, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter namespace: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Path parameter "name" -------------
+	var name string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "name", c.Param("name"), &name, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter name: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Path parameter "tag" -------------
+	var tag string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tag", c.Param("tag"), &tag, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter tag: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(BasicAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.PatchV1ArtifactNamespaceNameTagTag(c, namespace, name, tag)
+}
+
+// DeleteV1RbacPolicy operation middleware
+func (siw *ServerInterfaceWrapper) DeleteV1RbacPolicy(c *gin.Context) {
+
+	c.Set(BasicAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.DeleteV1RbacPolicy(c)
+}
+
+// GetV1RbacPolicy operation middleware
+func (siw *ServerInterfaceWrapper) GetV1RbacPolicy(c *gin.Context) {
 
 	var err error
 
 	c.Set(BasicAuthScopes, []string{})
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params GetRbacEndpointParams
+	var params GetV1RbacPolicyParams
 
-	// ------------- Required query parameter "endpoint" -------------
+	// ------------- Optional query parameter "limit" -------------
 
-	if paramValue := c.Query("endpoint"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandler(c, fmt.Errorf("Query argument endpoint is required, but not found"), http.StatusBadRequest)
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "endpoint", c.Request.URL.Query(), &params.Endpoint)
+	err = runtime.BindQueryParameter("form", true, false, "limit", c.Request.URL.Query(), &params.Limit)
 	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter endpoint: %w", err), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", c.Request.URL.Query(), &params.Offset)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter offset: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "role" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "role", c.Request.URL.Query(), &params.Role)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter role: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "resource-group" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "resource-group", c.Request.URL.Query(), &params.ResourceGroup)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter resource-group: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "method" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "method", c.Request.URL.Query(), &params.Method)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter method: %w", err), http.StatusBadRequest)
 		return
 	}
 
@@ -953,11 +1154,11 @@ func (siw *ServerInterfaceWrapper) GetRbacEndpoint(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.GetRbacEndpoint(c, params)
+	siw.Handler.GetV1RbacPolicy(c, params)
 }
 
-// PostRbacEndpoint operation middleware
-func (siw *ServerInterfaceWrapper) PostRbacEndpoint(c *gin.Context) {
+// PutV1RbacPolicy operation middleware
+func (siw *ServerInterfaceWrapper) PutV1RbacPolicy(c *gin.Context) {
 
 	c.Set(BasicAuthScopes, []string{})
 
@@ -968,199 +1169,38 @@ func (siw *ServerInterfaceWrapper) PostRbacEndpoint(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.PostRbacEndpoint(c)
+	siw.Handler.PutV1RbacPolicy(c)
 }
 
-// GetRbacListResourceGroups operation middleware
-func (siw *ServerInterfaceWrapper) GetRbacListResourceGroups(c *gin.Context) {
-
-	c.Set(BasicAuthScopes, []string{})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.GetRbacListResourceGroups(c)
-}
-
-// GetRbacListRoles operation middleware
-func (siw *ServerInterfaceWrapper) GetRbacListRoles(c *gin.Context) {
-
-	c.Set(BasicAuthScopes, []string{})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.GetRbacListRoles(c)
-}
-
-// DeleteRbacPolicy operation middleware
-func (siw *ServerInterfaceWrapper) DeleteRbacPolicy(c *gin.Context) {
-
-	c.Set(BasicAuthScopes, []string{})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.DeleteRbacPolicy(c)
-}
-
-// GetRbacPolicy operation middleware
-func (siw *ServerInterfaceWrapper) GetRbacPolicy(c *gin.Context) {
-
-	c.Set(BasicAuthScopes, []string{})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.GetRbacPolicy(c)
-}
-
-// PostRbacPolicy operation middleware
-func (siw *ServerInterfaceWrapper) PostRbacPolicy(c *gin.Context) {
-
-	c.Set(BasicAuthScopes, []string{})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.PostRbacPolicy(c)
-}
-
-// DeleteRbacResourceGroup operation middleware
-func (siw *ServerInterfaceWrapper) DeleteRbacResourceGroup(c *gin.Context) {
-
-	c.Set(BasicAuthScopes, []string{})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.DeleteRbacResourceGroup(c)
-}
-
-// GetRbacResourceGroup operation middleware
-func (siw *ServerInterfaceWrapper) GetRbacResourceGroup(c *gin.Context) {
+// GetV1RbacResourceGroup operation middleware
+func (siw *ServerInterfaceWrapper) GetV1RbacResourceGroup(c *gin.Context) {
 
 	var err error
 
 	c.Set(BasicAuthScopes, []string{})
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params GetRbacResourceGroupParams
+	var params GetV1RbacResourceGroupParams
 
-	// ------------- Required query parameter "resourceGroup" -------------
+	// ------------- Optional query parameter "limit" -------------
 
-	if paramValue := c.Query("resourceGroup"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandler(c, fmt.Errorf("Query argument resourceGroup is required, but not found"), http.StatusBadRequest)
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "resourceGroup", c.Request.URL.Query(), &params.ResourceGroup)
+	err = runtime.BindQueryParameter("form", true, false, "limit", c.Request.URL.Query(), &params.Limit)
 	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter resourceGroup: %w", err), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
 		return
 	}
 
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
+	// ------------- Optional query parameter "offset" -------------
 
-	siw.Handler.GetRbacResourceGroup(c, params)
-}
-
-// HeadRbacResourceGroup operation middleware
-func (siw *ServerInterfaceWrapper) HeadRbacResourceGroup(c *gin.Context) {
-
-	c.Set(BasicAuthScopes, []string{})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.HeadRbacResourceGroup(c)
-}
-
-// PostRbacResourceGroup operation middleware
-func (siw *ServerInterfaceWrapper) PostRbacResourceGroup(c *gin.Context) {
-
-	c.Set(BasicAuthScopes, []string{})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.PostRbacResourceGroup(c)
-}
-
-// DeleteRbacRole operation middleware
-func (siw *ServerInterfaceWrapper) DeleteRbacRole(c *gin.Context) {
-
-	c.Set(BasicAuthScopes, []string{})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.DeleteRbacRole(c)
-}
-
-// GetRbacRole operation middleware
-func (siw *ServerInterfaceWrapper) GetRbacRole(c *gin.Context) {
-
-	var err error
-
-	c.Set(BasicAuthScopes, []string{})
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params GetRbacRoleParams
-
-	// ------------- Required query parameter "role" -------------
-
-	if paramValue := c.Query("role"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandler(c, fmt.Errorf("Query argument role is required, but not found"), http.StatusBadRequest)
+	err = runtime.BindQueryParameter("form", true, false, "offset", c.Request.URL.Query(), &params.Offset)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter offset: %w", err), http.StatusBadRequest)
 		return
 	}
 
-	err = runtime.BindQueryParameter("form", true, true, "role", c.Request.URL.Query(), &params.Role)
+	// ------------- Optional query parameter "role" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "role", c.Request.URL.Query(), &params.Role)
 	if err != nil {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter role: %w", err), http.StatusBadRequest)
 		return
@@ -1173,79 +1213,25 @@ func (siw *ServerInterfaceWrapper) GetRbacRole(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.GetRbacRole(c, params)
+	siw.Handler.GetV1RbacResourceGroup(c, params)
 }
 
-// HeadRbacRole operation middleware
-func (siw *ServerInterfaceWrapper) HeadRbacRole(c *gin.Context) {
-
-	c.Set(BasicAuthScopes, []string{})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.HeadRbacRole(c)
-}
-
-// PostRbacRole operation middleware
-func (siw *ServerInterfaceWrapper) PostRbacRole(c *gin.Context) {
-
-	c.Set(BasicAuthScopes, []string{})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.PostRbacRole(c)
-}
-
-// DeleteRbacUser operation middleware
-func (siw *ServerInterfaceWrapper) DeleteRbacUser(c *gin.Context) {
-
-	c.Set(BasicAuthScopes, []string{})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.DeleteRbacUser(c)
-}
-
-// GetRbacUser operation middleware
-func (siw *ServerInterfaceWrapper) GetRbacUser(c *gin.Context) {
+// DeleteV1RbacResourceGroupResourceGroup operation middleware
+func (siw *ServerInterfaceWrapper) DeleteV1RbacResourceGroupResourceGroup(c *gin.Context) {
 
 	var err error
 
-	c.Set(BasicAuthScopes, []string{})
+	// ------------- Path parameter "resourceGroup" -------------
+	var resourceGroup string
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params GetRbacUserParams
-
-	// ------------- Required query parameter "userId" -------------
-
-	if paramValue := c.Query("userId"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandler(c, fmt.Errorf("Query argument userId is required, but not found"), http.StatusBadRequest)
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "userId", c.Request.URL.Query(), &params.UserId)
+	err = runtime.BindStyledParameterWithOptions("simple", "resourceGroup", c.Param("resourceGroup"), &resourceGroup, runtime.BindStyledParameterOptions{Explode: false, Required: true})
 	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter userId: %w", err), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter resourceGroup: %w", err), http.StatusBadRequest)
 		return
 	}
 
+	c.Set(BasicAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -1253,11 +1239,22 @@ func (siw *ServerInterfaceWrapper) GetRbacUser(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.GetRbacUser(c, params)
+	siw.Handler.DeleteV1RbacResourceGroupResourceGroup(c, resourceGroup)
 }
 
-// PostRbacUser operation middleware
-func (siw *ServerInterfaceWrapper) PostRbacUser(c *gin.Context) {
+// GetV1RbacResourceGroupResourceGroup operation middleware
+func (siw *ServerInterfaceWrapper) GetV1RbacResourceGroupResourceGroup(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "resourceGroup" -------------
+	var resourceGroup string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "resourceGroup", c.Param("resourceGroup"), &resourceGroup, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter resourceGroup: %w", err), http.StatusBadRequest)
+		return
+	}
 
 	c.Set(BasicAuthScopes, []string{})
 
@@ -1268,11 +1265,22 @@ func (siw *ServerInterfaceWrapper) PostRbacUser(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.PostRbacUser(c)
+	siw.Handler.GetV1RbacResourceGroupResourceGroup(c, resourceGroup)
 }
 
-// GetTasksList operation middleware
-func (siw *ServerInterfaceWrapper) GetTasksList(c *gin.Context) {
+// HeadV1RbacResourceGroupResourceGroup operation middleware
+func (siw *ServerInterfaceWrapper) HeadV1RbacResourceGroupResourceGroup(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "resourceGroup" -------------
+	var resourceGroup string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "resourceGroup", c.Param("resourceGroup"), &resourceGroup, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter resourceGroup: %w", err), http.StatusBadRequest)
+		return
+	}
 
 	c.Set(BasicAuthScopes, []string{})
 
@@ -1283,47 +1291,256 @@ func (siw *ServerInterfaceWrapper) GetTasksList(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.GetTasksList(c)
+	siw.Handler.HeadV1RbacResourceGroupResourceGroup(c, resourceGroup)
 }
 
-// GetTasksTask operation middleware
-func (siw *ServerInterfaceWrapper) GetTasksTask(c *gin.Context) {
+// PutV1RbacResourceGroupResourceGroup operation middleware
+func (siw *ServerInterfaceWrapper) PutV1RbacResourceGroupResourceGroup(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "resourceGroup" -------------
+	var resourceGroup string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "resourceGroup", c.Param("resourceGroup"), &resourceGroup, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter resourceGroup: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(BasicAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.PutV1RbacResourceGroupResourceGroup(c, resourceGroup)
+}
+
+// GetV1RbacRole operation middleware
+func (siw *ServerInterfaceWrapper) GetV1RbacRole(c *gin.Context) {
 
 	var err error
 
 	c.Set(BasicAuthScopes, []string{})
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params GetTasksTaskParams
+	var params GetV1RbacRoleParams
 
-	// ------------- Required query parameter "id" -------------
+	// ------------- Optional query parameter "limit" -------------
 
-	if paramValue := c.Query("id"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandler(c, fmt.Errorf("Query argument id is required, but not found"), http.StatusBadRequest)
+	err = runtime.BindQueryParameter("form", true, false, "limit", c.Request.URL.Query(), &params.Limit)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
 		return
 	}
 
-	err = runtime.BindQueryParameter("form", true, true, "id", c.Request.URL.Query(), &params.Id)
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", c.Request.URL.Query(), &params.Offset)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter offset: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "role" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "role", c.Request.URL.Query(), &params.Role)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter role: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetV1RbacRole(c, params)
+}
+
+// DeleteV1RbacRoleRole operation middleware
+func (siw *ServerInterfaceWrapper) DeleteV1RbacRoleRole(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "role" -------------
+	var role string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "role", c.Param("role"), &role, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter role: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(BasicAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.DeleteV1RbacRoleRole(c, role)
+}
+
+// GetV1RbacRoleRole operation middleware
+func (siw *ServerInterfaceWrapper) GetV1RbacRoleRole(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "role" -------------
+	var role string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "role", c.Param("role"), &role, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter role: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(BasicAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetV1RbacRoleRole(c, role)
+}
+
+// HeadV1RbacRoleRole operation middleware
+func (siw *ServerInterfaceWrapper) HeadV1RbacRoleRole(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "role" -------------
+	var role string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "role", c.Param("role"), &role, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter role: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(BasicAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.HeadV1RbacRoleRole(c, role)
+}
+
+// PutV1RbacRoleRole operation middleware
+func (siw *ServerInterfaceWrapper) PutV1RbacRoleRole(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "role" -------------
+	var role string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "role", c.Param("role"), &role, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter role: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(BasicAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.PutV1RbacRoleRole(c, role)
+}
+
+// GetV1Task operation middleware
+func (siw *ServerInterfaceWrapper) GetV1Task(c *gin.Context) {
+
+	var err error
+
+	c.Set(BasicAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetV1TaskParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", c.Request.URL.Query(), &params.Limit)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", c.Request.URL.Query(), &params.Offset)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter offset: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "state", c.Request.URL.Query(), &params.State)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter state: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetV1Task(c, params)
+}
+
+// PostV1Task operation middleware
+func (siw *ServerInterfaceWrapper) PostV1Task(c *gin.Context) {
+
+	c.Set(BasicAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.PostV1Task(c)
+}
+
+// GetV1TaskId operation middleware
+func (siw *ServerInterfaceWrapper) GetV1TaskId(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
 	if err != nil {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
 		return
 	}
 
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.GetTasksTask(c, params)
-}
-
-// GetUsersList operation middleware
-func (siw *ServerInterfaceWrapper) GetUsersList(c *gin.Context) {
-
 	c.Set(BasicAuthScopes, []string{})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1333,13 +1550,59 @@ func (siw *ServerInterfaceWrapper) GetUsersList(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.GetUsersList(c)
+	siw.Handler.GetV1TaskId(c, id)
 }
 
-// DeleteUsersMe operation middleware
-func (siw *ServerInterfaceWrapper) DeleteUsersMe(c *gin.Context) {
+// GetV1TaskIdLogs operation middleware
+func (siw *ServerInterfaceWrapper) GetV1TaskIdLogs(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
 
 	c.Set(BasicAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetV1TaskIdLogsParams
+
+	// ------------- Optional query parameter "level" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "level", c.Request.URL.Query(), &params.Level)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter level: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "issuer" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "issuer", c.Request.URL.Query(), &params.Issuer)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter issuer: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "time-range-from" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "time-range-from", c.Request.URL.Query(), &params.TimeRangeFrom)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter time-range-from: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "time-range-to" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "time-range-to", c.Request.URL.Query(), &params.TimeRangeTo)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter time-range-to: %w", err), http.StatusBadRequest)
+		return
+	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -1348,69 +1611,32 @@ func (siw *ServerInterfaceWrapper) DeleteUsersMe(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.DeleteUsersMe(c)
+	siw.Handler.GetV1TaskIdLogs(c, id, params)
 }
 
-// GetUsersMe operation middleware
-func (siw *ServerInterfaceWrapper) GetUsersMe(c *gin.Context) {
-
-	c.Set(BasicAuthScopes, []string{})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.GetUsersMe(c)
-}
-
-// PatchUsersMe operation middleware
-func (siw *ServerInterfaceWrapper) PatchUsersMe(c *gin.Context) {
-
-	c.Set(BasicAuthScopes, []string{})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.PatchUsersMe(c)
-}
-
-// DeleteUsersUser operation middleware
-func (siw *ServerInterfaceWrapper) DeleteUsersUser(c *gin.Context) {
-
-	c.Set(BasicAuthScopes, []string{})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.DeleteUsersUser(c)
-}
-
-// GetUsersUser operation middleware
-func (siw *ServerInterfaceWrapper) GetUsersUser(c *gin.Context) {
+// GetV1User operation middleware
+func (siw *ServerInterfaceWrapper) GetV1User(c *gin.Context) {
 
 	var err error
 
 	c.Set(BasicAuthScopes, []string{})
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params GetUsersUserParams
+	var params GetV1UserParams
 
-	// ------------- Optional query parameter "userId" -------------
+	// ------------- Optional query parameter "limit" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "userId", c.Request.URL.Query(), &params.UserId)
+	err = runtime.BindQueryParameter("form", true, false, "limit", c.Request.URL.Query(), &params.Limit)
 	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter userId: %w", err), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", c.Request.URL.Query(), &params.Offset)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter offset: %w", err), http.StatusBadRequest)
 		return
 	}
 
@@ -1422,6 +1648,14 @@ func (siw *ServerInterfaceWrapper) GetUsersUser(c *gin.Context) {
 		return
 	}
 
+	// ------------- Optional query parameter "display-name" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "display-name", c.Request.URL.Query(), &params.DisplayName)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter display-name: %w", err), http.StatusBadRequest)
+		return
+	}
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -1429,11 +1663,11 @@ func (siw *ServerInterfaceWrapper) GetUsersUser(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.GetUsersUser(c, params)
+	siw.Handler.GetV1User(c, params)
 }
 
-// HeadUsersUser operation middleware
-func (siw *ServerInterfaceWrapper) HeadUsersUser(c *gin.Context) {
+// DeleteV1UserMe operation middleware
+func (siw *ServerInterfaceWrapper) DeleteV1UserMe(c *gin.Context) {
 
 	c.Set(BasicAuthScopes, []string{})
 
@@ -1444,11 +1678,11 @@ func (siw *ServerInterfaceWrapper) HeadUsersUser(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.HeadUsersUser(c)
+	siw.Handler.DeleteV1UserMe(c)
 }
 
-// PatchUsersUser operation middleware
-func (siw *ServerInterfaceWrapper) PatchUsersUser(c *gin.Context) {
+// GetV1UserMe operation middleware
+func (siw *ServerInterfaceWrapper) GetV1UserMe(c *gin.Context) {
 
 	c.Set(BasicAuthScopes, []string{})
 
@@ -1459,11 +1693,11 @@ func (siw *ServerInterfaceWrapper) PatchUsersUser(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.PatchUsersUser(c)
+	siw.Handler.GetV1UserMe(c)
 }
 
-// PostUsersUser operation middleware
-func (siw *ServerInterfaceWrapper) PostUsersUser(c *gin.Context) {
+// PatchV1UserMe operation middleware
+func (siw *ServerInterfaceWrapper) PatchV1UserMe(c *gin.Context) {
 
 	c.Set(BasicAuthScopes, []string{})
 
@@ -1474,7 +1708,137 @@ func (siw *ServerInterfaceWrapper) PostUsersUser(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.PostUsersUser(c)
+	siw.Handler.PatchV1UserMe(c)
+}
+
+// DeleteV1UserUsername operation middleware
+func (siw *ServerInterfaceWrapper) DeleteV1UserUsername(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "username" -------------
+	var username string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "username", c.Param("username"), &username, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter username: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(BasicAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.DeleteV1UserUsername(c, username)
+}
+
+// GetV1UserUsername operation middleware
+func (siw *ServerInterfaceWrapper) GetV1UserUsername(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "username" -------------
+	var username string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "username", c.Param("username"), &username, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter username: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(BasicAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetV1UserUsername(c, username)
+}
+
+// HeadV1UserUsername operation middleware
+func (siw *ServerInterfaceWrapper) HeadV1UserUsername(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "username" -------------
+	var username string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "username", c.Param("username"), &username, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter username: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(BasicAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.HeadV1UserUsername(c, username)
+}
+
+// PatchV1UserUsername operation middleware
+func (siw *ServerInterfaceWrapper) PatchV1UserUsername(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "username" -------------
+	var username string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "username", c.Param("username"), &username, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter username: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(BasicAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.PatchV1UserUsername(c, username)
+}
+
+// PutV1UserUsername operation middleware
+func (siw *ServerInterfaceWrapper) PutV1UserUsername(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "username" -------------
+	var username string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "username", c.Param("username"), &username, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter username: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(BasicAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.PutV1UserUsername(c, username)
 }
 
 // GinServerOptions provides options for the Gin server.
@@ -1504,45 +1868,44 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 		ErrorHandler:       errorHandler,
 	}
 
-	router.DELETE(options.BaseURL+"/artifact", wrapper.DeleteArtifact)
-	router.GET(options.BaseURL+"/artifact", wrapper.GetArtifact)
-	router.HEAD(options.BaseURL+"/artifact", wrapper.HeadArtifact)
-	router.GET(options.BaseURL+"/artifact/list", wrapper.GetArtifactList)
-	router.DELETE(options.BaseURL+"/artifact/tag", wrapper.DeleteArtifactTag)
-	router.POST(options.BaseURL+"/artifact/tag", wrapper.PostArtifactTag)
-	router.GET(options.BaseURL+"/artifact/upload", wrapper.GetArtifactUpload)
-	router.POST(options.BaseURL+"/artifact/upload", wrapper.PostArtifactUpload)
-	router.POST(options.BaseURL+"/manifest", wrapper.PostManifest)
-	router.DELETE(options.BaseURL+"/rbac/endpoint", wrapper.DeleteRbacEndpoint)
-	router.GET(options.BaseURL+"/rbac/endpoint", wrapper.GetRbacEndpoint)
-	router.POST(options.BaseURL+"/rbac/endpoint", wrapper.PostRbacEndpoint)
-	router.GET(options.BaseURL+"/rbac/list-resource-groups", wrapper.GetRbacListResourceGroups)
-	router.GET(options.BaseURL+"/rbac/list-roles", wrapper.GetRbacListRoles)
-	router.DELETE(options.BaseURL+"/rbac/policy", wrapper.DeleteRbacPolicy)
-	router.GET(options.BaseURL+"/rbac/policy", wrapper.GetRbacPolicy)
-	router.POST(options.BaseURL+"/rbac/policy", wrapper.PostRbacPolicy)
-	router.DELETE(options.BaseURL+"/rbac/resource-group", wrapper.DeleteRbacResourceGroup)
-	router.GET(options.BaseURL+"/rbac/resource-group", wrapper.GetRbacResourceGroup)
-	router.HEAD(options.BaseURL+"/rbac/resource-group", wrapper.HeadRbacResourceGroup)
-	router.POST(options.BaseURL+"/rbac/resource-group", wrapper.PostRbacResourceGroup)
-	router.DELETE(options.BaseURL+"/rbac/role", wrapper.DeleteRbacRole)
-	router.GET(options.BaseURL+"/rbac/role", wrapper.GetRbacRole)
-	router.HEAD(options.BaseURL+"/rbac/role", wrapper.HeadRbacRole)
-	router.POST(options.BaseURL+"/rbac/role", wrapper.PostRbacRole)
-	router.DELETE(options.BaseURL+"/rbac/user", wrapper.DeleteRbacUser)
-	router.GET(options.BaseURL+"/rbac/user", wrapper.GetRbacUser)
-	router.POST(options.BaseURL+"/rbac/user", wrapper.PostRbacUser)
-	router.GET(options.BaseURL+"/tasks/list", wrapper.GetTasksList)
-	router.GET(options.BaseURL+"/tasks/task", wrapper.GetTasksTask)
-	router.GET(options.BaseURL+"/users/list", wrapper.GetUsersList)
-	router.DELETE(options.BaseURL+"/users/me", wrapper.DeleteUsersMe)
-	router.GET(options.BaseURL+"/users/me", wrapper.GetUsersMe)
-	router.PATCH(options.BaseURL+"/users/me", wrapper.PatchUsersMe)
-	router.DELETE(options.BaseURL+"/users/user", wrapper.DeleteUsersUser)
-	router.GET(options.BaseURL+"/users/user", wrapper.GetUsersUser)
-	router.HEAD(options.BaseURL+"/users/user", wrapper.HeadUsersUser)
-	router.PATCH(options.BaseURL+"/users/user", wrapper.PatchUsersUser)
-	router.POST(options.BaseURL+"/users/user", wrapper.PostUsersUser)
+	router.GET(options.BaseURL+"/v1/artifact", wrapper.GetV1Artifact)
+	router.POST(options.BaseURL+"/v1/artifact/raw/:namespace/:name", wrapper.PostV1ArtifactRawNamespaceName)
+	router.GET(options.BaseURL+"/v1/artifact/raw/:namespace/:name/hash/:hash", wrapper.GetV1ArtifactRawNamespaceNameHashHash)
+	router.GET(options.BaseURL+"/v1/artifact/raw/:namespace/:name/tag/:tag", wrapper.GetV1ArtifactRawNamespaceNameTagTag)
+	router.GET(options.BaseURL+"/v1/artifact/:namespace", wrapper.GetV1ArtifactNamespace)
+	router.GET(options.BaseURL+"/v1/artifact/:namespace/:name", wrapper.GetV1ArtifactNamespaceName)
+	router.DELETE(options.BaseURL+"/v1/artifact/:namespace/:name/hash/:hash", wrapper.DeleteV1ArtifactNamespaceNameHashHash)
+	router.GET(options.BaseURL+"/v1/artifact/:namespace/:name/hash/:hash", wrapper.GetV1ArtifactNamespaceNameHashHash)
+	router.PATCH(options.BaseURL+"/v1/artifact/:namespace/:name/hash/:hash", wrapper.PatchV1ArtifactNamespaceNameHashHash)
+	router.DELETE(options.BaseURL+"/v1/artifact/:namespace/:name/tag/:tag", wrapper.DeleteV1ArtifactNamespaceNameTagTag)
+	router.GET(options.BaseURL+"/v1/artifact/:namespace/:name/tag/:tag", wrapper.GetV1ArtifactNamespaceNameTagTag)
+	router.PATCH(options.BaseURL+"/v1/artifact/:namespace/:name/tag/:tag", wrapper.PatchV1ArtifactNamespaceNameTagTag)
+	router.DELETE(options.BaseURL+"/v1/rbac/policy", wrapper.DeleteV1RbacPolicy)
+	router.GET(options.BaseURL+"/v1/rbac/policy", wrapper.GetV1RbacPolicy)
+	router.PUT(options.BaseURL+"/v1/rbac/policy", wrapper.PutV1RbacPolicy)
+	router.GET(options.BaseURL+"/v1/rbac/resource-group", wrapper.GetV1RbacResourceGroup)
+	router.DELETE(options.BaseURL+"/v1/rbac/resource-group/:resourceGroup", wrapper.DeleteV1RbacResourceGroupResourceGroup)
+	router.GET(options.BaseURL+"/v1/rbac/resource-group/:resourceGroup", wrapper.GetV1RbacResourceGroupResourceGroup)
+	router.HEAD(options.BaseURL+"/v1/rbac/resource-group/:resourceGroup", wrapper.HeadV1RbacResourceGroupResourceGroup)
+	router.PUT(options.BaseURL+"/v1/rbac/resource-group/:resourceGroup", wrapper.PutV1RbacResourceGroupResourceGroup)
+	router.GET(options.BaseURL+"/v1/rbac/role", wrapper.GetV1RbacRole)
+	router.DELETE(options.BaseURL+"/v1/rbac/role/:role", wrapper.DeleteV1RbacRoleRole)
+	router.GET(options.BaseURL+"/v1/rbac/role/:role", wrapper.GetV1RbacRoleRole)
+	router.HEAD(options.BaseURL+"/v1/rbac/role/:role", wrapper.HeadV1RbacRoleRole)
+	router.PUT(options.BaseURL+"/v1/rbac/role/:role", wrapper.PutV1RbacRoleRole)
+	router.GET(options.BaseURL+"/v1/task", wrapper.GetV1Task)
+	router.POST(options.BaseURL+"/v1/task", wrapper.PostV1Task)
+	router.GET(options.BaseURL+"/v1/task/:id", wrapper.GetV1TaskId)
+	router.GET(options.BaseURL+"/v1/task/:id/logs", wrapper.GetV1TaskIdLogs)
+	router.GET(options.BaseURL+"/v1/user", wrapper.GetV1User)
+	router.DELETE(options.BaseURL+"/v1/user/me", wrapper.DeleteV1UserMe)
+	router.GET(options.BaseURL+"/v1/user/me", wrapper.GetV1UserMe)
+	router.PATCH(options.BaseURL+"/v1/user/me", wrapper.PatchV1UserMe)
+	router.DELETE(options.BaseURL+"/v1/user/:username", wrapper.DeleteV1UserUsername)
+	router.GET(options.BaseURL+"/v1/user/:username", wrapper.GetV1UserUsername)
+	router.HEAD(options.BaseURL+"/v1/user/:username", wrapper.HeadV1UserUsername)
+	router.PATCH(options.BaseURL+"/v1/user/:username", wrapper.PatchV1UserUsername)
+	router.PUT(options.BaseURL+"/v1/user/:username", wrapper.PutV1UserUsername)
 }
 
 type FieldErrorJSONResponse struct {
@@ -1564,399 +1927,145 @@ type GenericTooLargeJSONResponse ErrGeneric
 type GenericUnauthenticatedResponse struct {
 }
 
-type DeleteArtifactRequestObject struct {
-	Body *DeleteArtifactJSONRequestBody
+type GetV1ArtifactRequestObject struct {
+	Params GetV1ArtifactParams
 }
 
-type DeleteArtifactResponseObject interface {
-	VisitDeleteArtifactResponse(w http.ResponseWriter) error
+type GetV1ArtifactResponseObject interface {
+	VisitGetV1ArtifactResponse(w http.ResponseWriter) error
 }
 
-type DeleteArtifact200JSONResponse Artifact
+type GetV1Artifact200JSONResponse []Artifact
 
-func (response DeleteArtifact200JSONResponse) VisitDeleteArtifactResponse(w http.ResponseWriter) error {
+func (response GetV1Artifact200JSONResponse) VisitGetV1ArtifactResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type DeleteArtifact400JSONResponse struct{ GenericBadRequestJSONResponse }
+type GetV1Artifact400JSONResponse struct{ GenericBadRequestJSONResponse }
 
-func (response DeleteArtifact400JSONResponse) VisitDeleteArtifactResponse(w http.ResponseWriter) error {
+func (response GetV1Artifact400JSONResponse) VisitGetV1ArtifactResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type DeleteArtifact401Response = GenericUnauthenticatedResponse
+type GetV1Artifact401Response = GenericUnauthenticatedResponse
 
-func (response DeleteArtifact401Response) VisitDeleteArtifactResponse(w http.ResponseWriter) error {
+func (response GetV1Artifact401Response) VisitGetV1ArtifactResponse(w http.ResponseWriter) error {
 	w.WriteHeader(401)
 	return nil
 }
 
-type DeleteArtifact403Response = GenericForbiddenResponse
+type GetV1Artifact403Response = GenericForbiddenResponse
 
-func (response DeleteArtifact403Response) VisitDeleteArtifactResponse(w http.ResponseWriter) error {
+func (response GetV1Artifact403Response) VisitGetV1ArtifactResponse(w http.ResponseWriter) error {
 	w.WriteHeader(403)
 	return nil
 }
 
-type DeleteArtifact404JSONResponse struct{ GenericNotFoundJSONResponse }
+type GetV1Artifact413JSONResponse struct{ GenericTooLargeJSONResponse }
 
-func (response DeleteArtifact404JSONResponse) VisitDeleteArtifactResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteArtifact413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response DeleteArtifact413JSONResponse) VisitDeleteArtifactResponse(w http.ResponseWriter) error {
+func (response GetV1Artifact413JSONResponse) VisitGetV1ArtifactResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(413)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type DeleteArtifact500Response = GenericInternalServerErrorResponse
+type GetV1Artifact500Response = GenericInternalServerErrorResponse
 
-func (response DeleteArtifact500Response) VisitDeleteArtifactResponse(w http.ResponseWriter) error {
+func (response GetV1Artifact500Response) VisitGetV1ArtifactResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
 	return nil
 }
 
-type GetArtifactRequestObject struct {
-	Params GetArtifactParams
+type PostV1ArtifactRawNamespaceNameRequestObject struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	Body      io.Reader
 }
 
-type GetArtifactResponseObject interface {
-	VisitGetArtifactResponse(w http.ResponseWriter) error
+type PostV1ArtifactRawNamespaceNameResponseObject interface {
+	VisitPostV1ArtifactRawNamespaceNameResponse(w http.ResponseWriter) error
 }
 
-type GetArtifact200JSONResponse Artifact
+type PostV1ArtifactRawNamespaceName201JSONResponse UploadArtifactResponse
 
-func (response GetArtifact200JSONResponse) VisitGetArtifactResponse(w http.ResponseWriter) error {
+func (response PostV1ArtifactRawNamespaceName201JSONResponse) VisitPostV1ArtifactRawNamespaceNameResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetArtifact400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response GetArtifact400JSONResponse) VisitGetArtifactResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetArtifact401Response = GenericUnauthenticatedResponse
-
-func (response GetArtifact401Response) VisitGetArtifactResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type GetArtifact403Response = GenericForbiddenResponse
-
-func (response GetArtifact403Response) VisitGetArtifactResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type GetArtifact404JSONResponse struct{ GenericNotFoundJSONResponse }
-
-func (response GetArtifact404JSONResponse) VisitGetArtifactResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetArtifact413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response GetArtifact413JSONResponse) VisitGetArtifactResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetArtifact500Response = GenericInternalServerErrorResponse
-
-func (response GetArtifact500Response) VisitGetArtifactResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type HeadArtifactRequestObject struct {
-	Params HeadArtifactParams
-}
-
-type HeadArtifactResponseObject interface {
-	VisitHeadArtifactResponse(w http.ResponseWriter) error
-}
-
-type HeadArtifact200Response struct {
-}
-
-func (response HeadArtifact200Response) VisitHeadArtifactResponse(w http.ResponseWriter) error {
-	w.WriteHeader(200)
-	return nil
-}
-
-type HeadArtifact400Response struct {
-}
-
-func (response HeadArtifact400Response) VisitHeadArtifactResponse(w http.ResponseWriter) error {
-	w.WriteHeader(400)
-	return nil
-}
-
-type HeadArtifact401Response struct {
-}
-
-func (response HeadArtifact401Response) VisitHeadArtifactResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type HeadArtifact403Response struct {
-}
-
-func (response HeadArtifact403Response) VisitHeadArtifactResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type HeadArtifact404Response struct {
-}
-
-func (response HeadArtifact404Response) VisitHeadArtifactResponse(w http.ResponseWriter) error {
-	w.WriteHeader(404)
-	return nil
-}
-
-type HeadArtifact413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response HeadArtifact413JSONResponse) VisitHeadArtifactResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type HeadArtifact500Response struct {
-}
-
-func (response HeadArtifact500Response) VisitHeadArtifactResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type GetArtifactListRequestObject struct {
-	Params GetArtifactListParams
-}
-
-type GetArtifactListResponseObject interface {
-	VisitGetArtifactListResponse(w http.ResponseWriter) error
-}
-
-type GetArtifactList200JSONResponse []Artifact
-
-func (response GetArtifactList200JSONResponse) VisitGetArtifactListResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetArtifactList400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response GetArtifactList400JSONResponse) VisitGetArtifactListResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetArtifactList401Response = GenericUnauthenticatedResponse
-
-func (response GetArtifactList401Response) VisitGetArtifactListResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type GetArtifactList403Response = GenericForbiddenResponse
-
-func (response GetArtifactList403Response) VisitGetArtifactListResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type GetArtifactList413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response GetArtifactList413JSONResponse) VisitGetArtifactListResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetArtifactList500Response = GenericInternalServerErrorResponse
-
-func (response GetArtifactList500Response) VisitGetArtifactListResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type DeleteArtifactTagRequestObject struct {
-	Body *DeleteArtifactTagJSONRequestBody
-}
-
-type DeleteArtifactTagResponseObject interface {
-	VisitDeleteArtifactTagResponse(w http.ResponseWriter) error
-}
-
-type DeleteArtifactTag200Response struct {
-}
-
-func (response DeleteArtifactTag200Response) VisitDeleteArtifactTagResponse(w http.ResponseWriter) error {
-	w.WriteHeader(200)
-	return nil
-}
-
-type DeleteArtifactTag400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response DeleteArtifactTag400JSONResponse) VisitDeleteArtifactTagResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteArtifactTag401Response = GenericUnauthenticatedResponse
-
-func (response DeleteArtifactTag401Response) VisitDeleteArtifactTagResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type DeleteArtifactTag403Response = GenericForbiddenResponse
-
-func (response DeleteArtifactTag403Response) VisitDeleteArtifactTagResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type DeleteArtifactTag404JSONResponse struct{ GenericNotFoundJSONResponse }
-
-func (response DeleteArtifactTag404JSONResponse) VisitDeleteArtifactTagResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteArtifactTag413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response DeleteArtifactTag413JSONResponse) VisitDeleteArtifactTagResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteArtifactTag500Response = GenericInternalServerErrorResponse
-
-func (response DeleteArtifactTag500Response) VisitDeleteArtifactTagResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type PostArtifactTagRequestObject struct {
-	Body *PostArtifactTagJSONRequestBody
-}
-
-type PostArtifactTagResponseObject interface {
-	VisitPostArtifactTagResponse(w http.ResponseWriter) error
-}
-
-type PostArtifactTag201Response struct {
-}
-
-func (response PostArtifactTag201Response) VisitPostArtifactTagResponse(w http.ResponseWriter) error {
 	w.WriteHeader(201)
-	return nil
+
+	return json.NewEncoder(w).Encode(response)
 }
 
-type PostArtifactTag400JSONResponse struct{ GenericBadRequestJSONResponse }
+type PostV1ArtifactRawNamespaceName400JSONResponse struct{ GenericBadRequestJSONResponse }
 
-func (response PostArtifactTag400JSONResponse) VisitPostArtifactTagResponse(w http.ResponseWriter) error {
+func (response PostV1ArtifactRawNamespaceName400JSONResponse) VisitPostV1ArtifactRawNamespaceNameResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PostArtifactTag401Response = GenericUnauthenticatedResponse
+type PostV1ArtifactRawNamespaceName401Response = GenericUnauthenticatedResponse
 
-func (response PostArtifactTag401Response) VisitPostArtifactTagResponse(w http.ResponseWriter) error {
+func (response PostV1ArtifactRawNamespaceName401Response) VisitPostV1ArtifactRawNamespaceNameResponse(w http.ResponseWriter) error {
 	w.WriteHeader(401)
 	return nil
 }
 
-type PostArtifactTag403Response = GenericForbiddenResponse
+type PostV1ArtifactRawNamespaceName403Response = GenericForbiddenResponse
 
-func (response PostArtifactTag403Response) VisitPostArtifactTagResponse(w http.ResponseWriter) error {
+func (response PostV1ArtifactRawNamespaceName403Response) VisitPostV1ArtifactRawNamespaceNameResponse(w http.ResponseWriter) error {
 	w.WriteHeader(403)
 	return nil
 }
 
-type PostArtifactTag404JSONResponse struct{ GenericNotFoundJSONResponse }
+type PostV1ArtifactRawNamespaceName409JSONResponse ErrGeneric
 
-func (response PostArtifactTag404JSONResponse) VisitPostArtifactTagResponse(w http.ResponseWriter) error {
+func (response PostV1ArtifactRawNamespaceName409JSONResponse) VisitPostV1ArtifactRawNamespaceNameResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
+	w.WriteHeader(409)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PostArtifactTag413JSONResponse struct{ GenericTooLargeJSONResponse }
+type PostV1ArtifactRawNamespaceName413JSONResponse struct{ GenericTooLargeJSONResponse }
 
-func (response PostArtifactTag413JSONResponse) VisitPostArtifactTagResponse(w http.ResponseWriter) error {
+func (response PostV1ArtifactRawNamespaceName413JSONResponse) VisitPostV1ArtifactRawNamespaceNameResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(413)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PostArtifactTag500Response = GenericInternalServerErrorResponse
+type PostV1ArtifactRawNamespaceName500Response = GenericInternalServerErrorResponse
 
-func (response PostArtifactTag500Response) VisitPostArtifactTagResponse(w http.ResponseWriter) error {
+func (response PostV1ArtifactRawNamespaceName500Response) VisitPostV1ArtifactRawNamespaceNameResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
 	return nil
 }
 
-type GetArtifactUploadRequestObject struct {
-	Params GetArtifactUploadParams
+type GetV1ArtifactRawNamespaceNameHashHashRequestObject struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	Hash      string `json:"hash"`
 }
 
-type GetArtifactUploadResponseObject interface {
-	VisitGetArtifactUploadResponse(w http.ResponseWriter) error
+type GetV1ArtifactRawNamespaceNameHashHashResponseObject interface {
+	VisitGetV1ArtifactRawNamespaceNameHashHashResponse(w http.ResponseWriter) error
 }
 
-type GetArtifactUpload200ApplicationoctetStreamResponse struct {
+type GetV1ArtifactRawNamespaceNameHashHash200ApplicationoctetStreamResponse struct {
 	Body          io.Reader
 	ContentLength int64
 }
 
-func (response GetArtifactUpload200ApplicationoctetStreamResponse) VisitGetArtifactUploadResponse(w http.ResponseWriter) error {
+func (response GetV1ArtifactRawNamespaceNameHashHash200ApplicationoctetStreamResponse) VisitGetV1ArtifactRawNamespaceNameHashHashResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/octet-stream")
 	if response.ContentLength != 0 {
 		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
@@ -1970,2093 +2079,2331 @@ func (response GetArtifactUpload200ApplicationoctetStreamResponse) VisitGetArtif
 	return err
 }
 
-type GetArtifactUpload400JSONResponse struct{ GenericBadRequestJSONResponse }
+type GetV1ArtifactRawNamespaceNameHashHash400JSONResponse struct{ GenericBadRequestJSONResponse }
 
-func (response GetArtifactUpload400JSONResponse) VisitGetArtifactUploadResponse(w http.ResponseWriter) error {
+func (response GetV1ArtifactRawNamespaceNameHashHash400JSONResponse) VisitGetV1ArtifactRawNamespaceNameHashHashResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetArtifactUpload401Response = GenericUnauthenticatedResponse
+type GetV1ArtifactRawNamespaceNameHashHash401Response = GenericUnauthenticatedResponse
 
-func (response GetArtifactUpload401Response) VisitGetArtifactUploadResponse(w http.ResponseWriter) error {
+func (response GetV1ArtifactRawNamespaceNameHashHash401Response) VisitGetV1ArtifactRawNamespaceNameHashHashResponse(w http.ResponseWriter) error {
 	w.WriteHeader(401)
 	return nil
 }
 
-type GetArtifactUpload403Response = GenericForbiddenResponse
+type GetV1ArtifactRawNamespaceNameHashHash403Response = GenericForbiddenResponse
 
-func (response GetArtifactUpload403Response) VisitGetArtifactUploadResponse(w http.ResponseWriter) error {
+func (response GetV1ArtifactRawNamespaceNameHashHash403Response) VisitGetV1ArtifactRawNamespaceNameHashHashResponse(w http.ResponseWriter) error {
 	w.WriteHeader(403)
 	return nil
 }
 
-type GetArtifactUpload404JSONResponse struct{ GenericNotFoundJSONResponse }
+type GetV1ArtifactRawNamespaceNameHashHash404JSONResponse struct{ GenericNotFoundJSONResponse }
 
-func (response GetArtifactUpload404JSONResponse) VisitGetArtifactUploadResponse(w http.ResponseWriter) error {
+func (response GetV1ArtifactRawNamespaceNameHashHash404JSONResponse) VisitGetV1ArtifactRawNamespaceNameHashHashResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetArtifactUpload413JSONResponse struct{ GenericTooLargeJSONResponse }
+type GetV1ArtifactRawNamespaceNameHashHash413JSONResponse struct{ GenericTooLargeJSONResponse }
 
-func (response GetArtifactUpload413JSONResponse) VisitGetArtifactUploadResponse(w http.ResponseWriter) error {
+func (response GetV1ArtifactRawNamespaceNameHashHash413JSONResponse) VisitGetV1ArtifactRawNamespaceNameHashHashResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(413)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetArtifactUpload500Response = GenericInternalServerErrorResponse
+type GetV1ArtifactRawNamespaceNameHashHash500Response = GenericInternalServerErrorResponse
 
-func (response GetArtifactUpload500Response) VisitGetArtifactUploadResponse(w http.ResponseWriter) error {
+func (response GetV1ArtifactRawNamespaceNameHashHash500Response) VisitGetV1ArtifactRawNamespaceNameHashHashResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
 	return nil
 }
 
-type PostArtifactUploadRequestObject struct {
-	Body *multipart.Reader
+type GetV1ArtifactRawNamespaceNameTagTagRequestObject struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	Tag       string `json:"tag"`
 }
 
-type PostArtifactUploadResponseObject interface {
-	VisitPostArtifactUploadResponse(w http.ResponseWriter) error
+type GetV1ArtifactRawNamespaceNameTagTagResponseObject interface {
+	VisitGetV1ArtifactRawNamespaceNameTagTagResponse(w http.ResponseWriter) error
 }
 
-type PostArtifactUpload201JSONResponse Artifact
-
-func (response PostArtifactUpload201JSONResponse) VisitPostArtifactUploadResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(201)
-
-	return json.NewEncoder(w).Encode(response)
+type GetV1ArtifactRawNamespaceNameTagTag200ApplicationoctetStreamResponse struct {
+	Body          io.Reader
+	ContentLength int64
 }
 
-type PostArtifactUpload400JSONResponse struct{ GenericBadRequestJSONResponse }
+func (response GetV1ArtifactRawNamespaceNameTagTag200ApplicationoctetStreamResponse) VisitGetV1ArtifactRawNamespaceNameTagTagResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/octet-stream")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
 
-func (response PostArtifactUpload400JSONResponse) VisitPostArtifactUploadResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PostArtifactUpload401Response = GenericUnauthenticatedResponse
-
-func (response PostArtifactUpload401Response) VisitPostArtifactUploadResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type PostArtifactUpload403Response = GenericForbiddenResponse
-
-func (response PostArtifactUpload403Response) VisitPostArtifactUploadResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type PostArtifactUpload409JSONResponse ErrGeneric
-
-func (response PostArtifactUpload409JSONResponse) VisitPostArtifactUploadResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(409)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PostArtifactUpload413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response PostArtifactUpload413JSONResponse) VisitPostArtifactUploadResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PostArtifactUpload500Response = GenericInternalServerErrorResponse
-
-func (response PostArtifactUpload500Response) VisitPostArtifactUploadResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type PostManifestRequestObject struct {
-	Body io.Reader
-}
-
-type PostManifestResponseObject interface {
-	VisitPostManifestResponse(w http.ResponseWriter) error
-}
-
-type PostManifest201TextResponse string
-
-func (response PostManifest201TextResponse) VisitPostManifestResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(201)
-
-	_, err := w.Write([]byte(response))
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
 	return err
 }
 
-type PostManifest400JSONResponse struct{ GenericBadRequestJSONResponse }
+type GetV1ArtifactRawNamespaceNameTagTag400JSONResponse struct{ GenericBadRequestJSONResponse }
 
-func (response PostManifest400JSONResponse) VisitPostManifestResponse(w http.ResponseWriter) error {
+func (response GetV1ArtifactRawNamespaceNameTagTag400JSONResponse) VisitGetV1ArtifactRawNamespaceNameTagTagResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PostManifest401Response = GenericUnauthenticatedResponse
+type GetV1ArtifactRawNamespaceNameTagTag401Response = GenericUnauthenticatedResponse
 
-func (response PostManifest401Response) VisitPostManifestResponse(w http.ResponseWriter) error {
+func (response GetV1ArtifactRawNamespaceNameTagTag401Response) VisitGetV1ArtifactRawNamespaceNameTagTagResponse(w http.ResponseWriter) error {
 	w.WriteHeader(401)
 	return nil
 }
 
-type PostManifest403Response = GenericForbiddenResponse
+type GetV1ArtifactRawNamespaceNameTagTag403Response = GenericForbiddenResponse
 
-func (response PostManifest403Response) VisitPostManifestResponse(w http.ResponseWriter) error {
+func (response GetV1ArtifactRawNamespaceNameTagTag403Response) VisitGetV1ArtifactRawNamespaceNameTagTagResponse(w http.ResponseWriter) error {
 	w.WriteHeader(403)
 	return nil
 }
 
-type PostManifest409JSONResponse ErrGeneric
+type GetV1ArtifactRawNamespaceNameTagTag404JSONResponse struct{ GenericNotFoundJSONResponse }
 
-func (response PostManifest409JSONResponse) VisitPostManifestResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(409)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PostManifest500Response = GenericInternalServerErrorResponse
-
-func (response PostManifest500Response) VisitPostManifestResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type DeleteRbacEndpointRequestObject struct {
-	Body *DeleteRbacEndpointJSONRequestBody
-}
-
-type DeleteRbacEndpointResponseObject interface {
-	VisitDeleteRbacEndpointResponse(w http.ResponseWriter) error
-}
-
-type DeleteRbacEndpoint200Response struct {
-}
-
-func (response DeleteRbacEndpoint200Response) VisitDeleteRbacEndpointResponse(w http.ResponseWriter) error {
-	w.WriteHeader(200)
-	return nil
-}
-
-type DeleteRbacEndpoint400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response DeleteRbacEndpoint400JSONResponse) VisitDeleteRbacEndpointResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteRbacEndpoint401Response = GenericUnauthenticatedResponse
-
-func (response DeleteRbacEndpoint401Response) VisitDeleteRbacEndpointResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type DeleteRbacEndpoint403Response = GenericForbiddenResponse
-
-func (response DeleteRbacEndpoint403Response) VisitDeleteRbacEndpointResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type DeleteRbacEndpoint404JSONResponse struct{ GenericNotFoundJSONResponse }
-
-func (response DeleteRbacEndpoint404JSONResponse) VisitDeleteRbacEndpointResponse(w http.ResponseWriter) error {
+func (response GetV1ArtifactRawNamespaceNameTagTag404JSONResponse) VisitGetV1ArtifactRawNamespaceNameTagTagResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type DeleteRbacEndpoint413JSONResponse struct{ GenericTooLargeJSONResponse }
+type GetV1ArtifactRawNamespaceNameTagTag413JSONResponse struct{ GenericTooLargeJSONResponse }
 
-func (response DeleteRbacEndpoint413JSONResponse) VisitDeleteRbacEndpointResponse(w http.ResponseWriter) error {
+func (response GetV1ArtifactRawNamespaceNameTagTag413JSONResponse) VisitGetV1ArtifactRawNamespaceNameTagTagResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(413)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type DeleteRbacEndpoint500Response = GenericInternalServerErrorResponse
+type GetV1ArtifactRawNamespaceNameTagTag500Response = GenericInternalServerErrorResponse
 
-func (response DeleteRbacEndpoint500Response) VisitDeleteRbacEndpointResponse(w http.ResponseWriter) error {
+func (response GetV1ArtifactRawNamespaceNameTagTag500Response) VisitGetV1ArtifactRawNamespaceNameTagTagResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
 	return nil
 }
 
-type GetRbacEndpointRequestObject struct {
-	Params GetRbacEndpointParams
+type GetV1ArtifactNamespaceRequestObject struct {
+	Namespace string `json:"namespace"`
+	Params    GetV1ArtifactNamespaceParams
 }
 
-type GetRbacEndpointResponseObject interface {
-	VisitGetRbacEndpointResponse(w http.ResponseWriter) error
+type GetV1ArtifactNamespaceResponseObject interface {
+	VisitGetV1ArtifactNamespaceResponse(w http.ResponseWriter) error
 }
 
-type GetRbacEndpoint200JSONResponse []string
+type GetV1ArtifactNamespace200JSONResponse []Artifact
 
-func (response GetRbacEndpoint200JSONResponse) VisitGetRbacEndpointResponse(w http.ResponseWriter) error {
+func (response GetV1ArtifactNamespace200JSONResponse) VisitGetV1ArtifactNamespaceResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetRbacEndpoint400JSONResponse struct{ GenericBadRequestJSONResponse }
+type GetV1ArtifactNamespace400JSONResponse struct{ GenericBadRequestJSONResponse }
 
-func (response GetRbacEndpoint400JSONResponse) VisitGetRbacEndpointResponse(w http.ResponseWriter) error {
+func (response GetV1ArtifactNamespace400JSONResponse) VisitGetV1ArtifactNamespaceResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetRbacEndpoint401Response = GenericUnauthenticatedResponse
+type GetV1ArtifactNamespace401Response = GenericUnauthenticatedResponse
 
-func (response GetRbacEndpoint401Response) VisitGetRbacEndpointResponse(w http.ResponseWriter) error {
+func (response GetV1ArtifactNamespace401Response) VisitGetV1ArtifactNamespaceResponse(w http.ResponseWriter) error {
 	w.WriteHeader(401)
 	return nil
 }
 
-type GetRbacEndpoint403Response = GenericForbiddenResponse
+type GetV1ArtifactNamespace403Response = GenericForbiddenResponse
 
-func (response GetRbacEndpoint403Response) VisitGetRbacEndpointResponse(w http.ResponseWriter) error {
+func (response GetV1ArtifactNamespace403Response) VisitGetV1ArtifactNamespaceResponse(w http.ResponseWriter) error {
 	w.WriteHeader(403)
 	return nil
 }
 
-type GetRbacEndpoint413JSONResponse struct{ GenericTooLargeJSONResponse }
+type GetV1ArtifactNamespace413JSONResponse struct{ GenericTooLargeJSONResponse }
 
-func (response GetRbacEndpoint413JSONResponse) VisitGetRbacEndpointResponse(w http.ResponseWriter) error {
+func (response GetV1ArtifactNamespace413JSONResponse) VisitGetV1ArtifactNamespaceResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(413)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetRbacEndpoint500Response = GenericInternalServerErrorResponse
+type GetV1ArtifactNamespace500Response = GenericInternalServerErrorResponse
 
-func (response GetRbacEndpoint500Response) VisitGetRbacEndpointResponse(w http.ResponseWriter) error {
+func (response GetV1ArtifactNamespace500Response) VisitGetV1ArtifactNamespaceResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
 	return nil
 }
 
-type PostRbacEndpointRequestObject struct {
-	Body *PostRbacEndpointJSONRequestBody
+type GetV1ArtifactNamespaceNameRequestObject struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	Params    GetV1ArtifactNamespaceNameParams
 }
 
-type PostRbacEndpointResponseObject interface {
-	VisitPostRbacEndpointResponse(w http.ResponseWriter) error
+type GetV1ArtifactNamespaceNameResponseObject interface {
+	VisitGetV1ArtifactNamespaceNameResponse(w http.ResponseWriter) error
 }
 
-type PostRbacEndpoint201Response struct {
+type GetV1ArtifactNamespaceName200JSONResponse []Artifact
+
+func (response GetV1ArtifactNamespaceName200JSONResponse) VisitGetV1ArtifactNamespaceNameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
 }
 
-func (response PostRbacEndpoint201Response) VisitPostRbacEndpointResponse(w http.ResponseWriter) error {
+type GetV1ArtifactNamespaceName400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response GetV1ArtifactNamespaceName400JSONResponse) VisitGetV1ArtifactNamespaceNameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1ArtifactNamespaceName401Response = GenericUnauthenticatedResponse
+
+func (response GetV1ArtifactNamespaceName401Response) VisitGetV1ArtifactNamespaceNameResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type GetV1ArtifactNamespaceName403Response = GenericForbiddenResponse
+
+func (response GetV1ArtifactNamespaceName403Response) VisitGetV1ArtifactNamespaceNameResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type GetV1ArtifactNamespaceName413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response GetV1ArtifactNamespaceName413JSONResponse) VisitGetV1ArtifactNamespaceNameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1ArtifactNamespaceName500Response = GenericInternalServerErrorResponse
+
+func (response GetV1ArtifactNamespaceName500Response) VisitGetV1ArtifactNamespaceNameResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type DeleteV1ArtifactNamespaceNameHashHashRequestObject struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	Hash      string `json:"hash"`
+}
+
+type DeleteV1ArtifactNamespaceNameHashHashResponseObject interface {
+	VisitDeleteV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error
+}
+
+type DeleteV1ArtifactNamespaceNameHashHash200JSONResponse Artifact
+
+func (response DeleteV1ArtifactNamespaceNameHashHash200JSONResponse) VisitDeleteV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1ArtifactNamespaceNameHashHash400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response DeleteV1ArtifactNamespaceNameHashHash400JSONResponse) VisitDeleteV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1ArtifactNamespaceNameHashHash401Response = GenericUnauthenticatedResponse
+
+func (response DeleteV1ArtifactNamespaceNameHashHash401Response) VisitDeleteV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type DeleteV1ArtifactNamespaceNameHashHash403Response = GenericForbiddenResponse
+
+func (response DeleteV1ArtifactNamespaceNameHashHash403Response) VisitDeleteV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type DeleteV1ArtifactNamespaceNameHashHash404JSONResponse struct{ GenericNotFoundJSONResponse }
+
+func (response DeleteV1ArtifactNamespaceNameHashHash404JSONResponse) VisitDeleteV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1ArtifactNamespaceNameHashHash413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response DeleteV1ArtifactNamespaceNameHashHash413JSONResponse) VisitDeleteV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1ArtifactNamespaceNameHashHash500Response = GenericInternalServerErrorResponse
+
+func (response DeleteV1ArtifactNamespaceNameHashHash500Response) VisitDeleteV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type GetV1ArtifactNamespaceNameHashHashRequestObject struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	Hash      string `json:"hash"`
+}
+
+type GetV1ArtifactNamespaceNameHashHashResponseObject interface {
+	VisitGetV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error
+}
+
+type GetV1ArtifactNamespaceNameHashHash200JSONResponse Artifact
+
+func (response GetV1ArtifactNamespaceNameHashHash200JSONResponse) VisitGetV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1ArtifactNamespaceNameHashHash400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response GetV1ArtifactNamespaceNameHashHash400JSONResponse) VisitGetV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1ArtifactNamespaceNameHashHash401Response = GenericUnauthenticatedResponse
+
+func (response GetV1ArtifactNamespaceNameHashHash401Response) VisitGetV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type GetV1ArtifactNamespaceNameHashHash403Response = GenericForbiddenResponse
+
+func (response GetV1ArtifactNamespaceNameHashHash403Response) VisitGetV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type GetV1ArtifactNamespaceNameHashHash404JSONResponse struct{ GenericNotFoundJSONResponse }
+
+func (response GetV1ArtifactNamespaceNameHashHash404JSONResponse) VisitGetV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1ArtifactNamespaceNameHashHash413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response GetV1ArtifactNamespaceNameHashHash413JSONResponse) VisitGetV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1ArtifactNamespaceNameHashHash500Response = GenericInternalServerErrorResponse
+
+func (response GetV1ArtifactNamespaceNameHashHash500Response) VisitGetV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type PatchV1ArtifactNamespaceNameHashHashRequestObject struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	Hash      string `json:"hash"`
+	Body      *PatchV1ArtifactNamespaceNameHashHashJSONRequestBody
+}
+
+type PatchV1ArtifactNamespaceNameHashHashResponseObject interface {
+	VisitPatchV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error
+}
+
+type PatchV1ArtifactNamespaceNameHashHash200JSONResponse Artifact
+
+func (response PatchV1ArtifactNamespaceNameHashHash200JSONResponse) VisitPatchV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchV1ArtifactNamespaceNameHashHash400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response PatchV1ArtifactNamespaceNameHashHash400JSONResponse) VisitPatchV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchV1ArtifactNamespaceNameHashHash401Response = GenericUnauthenticatedResponse
+
+func (response PatchV1ArtifactNamespaceNameHashHash401Response) VisitPatchV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type PatchV1ArtifactNamespaceNameHashHash403Response = GenericForbiddenResponse
+
+func (response PatchV1ArtifactNamespaceNameHashHash403Response) VisitPatchV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type PatchV1ArtifactNamespaceNameHashHash404JSONResponse struct{ GenericNotFoundJSONResponse }
+
+func (response PatchV1ArtifactNamespaceNameHashHash404JSONResponse) VisitPatchV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchV1ArtifactNamespaceNameHashHash413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response PatchV1ArtifactNamespaceNameHashHash413JSONResponse) VisitPatchV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchV1ArtifactNamespaceNameHashHash500Response = GenericInternalServerErrorResponse
+
+func (response PatchV1ArtifactNamespaceNameHashHash500Response) VisitPatchV1ArtifactNamespaceNameHashHashResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type DeleteV1ArtifactNamespaceNameTagTagRequestObject struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	Tag       string `json:"tag"`
+}
+
+type DeleteV1ArtifactNamespaceNameTagTagResponseObject interface {
+	VisitDeleteV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error
+}
+
+type DeleteV1ArtifactNamespaceNameTagTag200JSONResponse Artifact
+
+func (response DeleteV1ArtifactNamespaceNameTagTag200JSONResponse) VisitDeleteV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1ArtifactNamespaceNameTagTag400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response DeleteV1ArtifactNamespaceNameTagTag400JSONResponse) VisitDeleteV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1ArtifactNamespaceNameTagTag401Response = GenericUnauthenticatedResponse
+
+func (response DeleteV1ArtifactNamespaceNameTagTag401Response) VisitDeleteV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type DeleteV1ArtifactNamespaceNameTagTag403Response = GenericForbiddenResponse
+
+func (response DeleteV1ArtifactNamespaceNameTagTag403Response) VisitDeleteV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type DeleteV1ArtifactNamespaceNameTagTag404JSONResponse struct{ GenericNotFoundJSONResponse }
+
+func (response DeleteV1ArtifactNamespaceNameTagTag404JSONResponse) VisitDeleteV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1ArtifactNamespaceNameTagTag413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response DeleteV1ArtifactNamespaceNameTagTag413JSONResponse) VisitDeleteV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1ArtifactNamespaceNameTagTag500Response = GenericInternalServerErrorResponse
+
+func (response DeleteV1ArtifactNamespaceNameTagTag500Response) VisitDeleteV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type GetV1ArtifactNamespaceNameTagTagRequestObject struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	Tag       string `json:"tag"`
+}
+
+type GetV1ArtifactNamespaceNameTagTagResponseObject interface {
+	VisitGetV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error
+}
+
+type GetV1ArtifactNamespaceNameTagTag200JSONResponse Artifact
+
+func (response GetV1ArtifactNamespaceNameTagTag200JSONResponse) VisitGetV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1ArtifactNamespaceNameTagTag400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response GetV1ArtifactNamespaceNameTagTag400JSONResponse) VisitGetV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1ArtifactNamespaceNameTagTag401Response = GenericUnauthenticatedResponse
+
+func (response GetV1ArtifactNamespaceNameTagTag401Response) VisitGetV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type GetV1ArtifactNamespaceNameTagTag403Response = GenericForbiddenResponse
+
+func (response GetV1ArtifactNamespaceNameTagTag403Response) VisitGetV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type GetV1ArtifactNamespaceNameTagTag404JSONResponse struct{ GenericNotFoundJSONResponse }
+
+func (response GetV1ArtifactNamespaceNameTagTag404JSONResponse) VisitGetV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1ArtifactNamespaceNameTagTag413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response GetV1ArtifactNamespaceNameTagTag413JSONResponse) VisitGetV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1ArtifactNamespaceNameTagTag500Response = GenericInternalServerErrorResponse
+
+func (response GetV1ArtifactNamespaceNameTagTag500Response) VisitGetV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type PatchV1ArtifactNamespaceNameTagTagRequestObject struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	Tag       string `json:"tag"`
+	Body      *PatchV1ArtifactNamespaceNameTagTagJSONRequestBody
+}
+
+type PatchV1ArtifactNamespaceNameTagTagResponseObject interface {
+	VisitPatchV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error
+}
+
+type PatchV1ArtifactNamespaceNameTagTag200JSONResponse Artifact
+
+func (response PatchV1ArtifactNamespaceNameTagTag200JSONResponse) VisitPatchV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchV1ArtifactNamespaceNameTagTag400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response PatchV1ArtifactNamespaceNameTagTag400JSONResponse) VisitPatchV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchV1ArtifactNamespaceNameTagTag401Response = GenericUnauthenticatedResponse
+
+func (response PatchV1ArtifactNamespaceNameTagTag401Response) VisitPatchV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type PatchV1ArtifactNamespaceNameTagTag403Response = GenericForbiddenResponse
+
+func (response PatchV1ArtifactNamespaceNameTagTag403Response) VisitPatchV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type PatchV1ArtifactNamespaceNameTagTag404JSONResponse struct{ GenericNotFoundJSONResponse }
+
+func (response PatchV1ArtifactNamespaceNameTagTag404JSONResponse) VisitPatchV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchV1ArtifactNamespaceNameTagTag413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response PatchV1ArtifactNamespaceNameTagTag413JSONResponse) VisitPatchV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchV1ArtifactNamespaceNameTagTag500Response = GenericInternalServerErrorResponse
+
+func (response PatchV1ArtifactNamespaceNameTagTag500Response) VisitPatchV1ArtifactNamespaceNameTagTagResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type DeleteV1RbacPolicyRequestObject struct {
+	Body *DeleteV1RbacPolicyJSONRequestBody
+}
+
+type DeleteV1RbacPolicyResponseObject interface {
+	VisitDeleteV1RbacPolicyResponse(w http.ResponseWriter) error
+}
+
+type DeleteV1RbacPolicy200Response struct {
+}
+
+func (response DeleteV1RbacPolicy200Response) VisitDeleteV1RbacPolicyResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	return nil
+}
+
+type DeleteV1RbacPolicy400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response DeleteV1RbacPolicy400JSONResponse) VisitDeleteV1RbacPolicyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1RbacPolicy401Response = GenericUnauthenticatedResponse
+
+func (response DeleteV1RbacPolicy401Response) VisitDeleteV1RbacPolicyResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type DeleteV1RbacPolicy403Response = GenericForbiddenResponse
+
+func (response DeleteV1RbacPolicy403Response) VisitDeleteV1RbacPolicyResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type DeleteV1RbacPolicy409JSONResponse ErrGeneric
+
+func (response DeleteV1RbacPolicy409JSONResponse) VisitDeleteV1RbacPolicyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1RbacPolicy413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response DeleteV1RbacPolicy413JSONResponse) VisitDeleteV1RbacPolicyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1RbacPolicy500Response = GenericInternalServerErrorResponse
+
+func (response DeleteV1RbacPolicy500Response) VisitDeleteV1RbacPolicyResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type GetV1RbacPolicyRequestObject struct {
+	Params GetV1RbacPolicyParams
+}
+
+type GetV1RbacPolicyResponseObject interface {
+	VisitGetV1RbacPolicyResponse(w http.ResponseWriter) error
+}
+
+type GetV1RbacPolicy200JSONResponse []RBACPolicy
+
+func (response GetV1RbacPolicy200JSONResponse) VisitGetV1RbacPolicyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1RbacPolicy401Response = GenericUnauthenticatedResponse
+
+func (response GetV1RbacPolicy401Response) VisitGetV1RbacPolicyResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type GetV1RbacPolicy403Response = GenericForbiddenResponse
+
+func (response GetV1RbacPolicy403Response) VisitGetV1RbacPolicyResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type GetV1RbacPolicy413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response GetV1RbacPolicy413JSONResponse) VisitGetV1RbacPolicyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1RbacPolicy500Response = GenericInternalServerErrorResponse
+
+func (response GetV1RbacPolicy500Response) VisitGetV1RbacPolicyResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type PutV1RbacPolicyRequestObject struct {
+	Body *PutV1RbacPolicyJSONRequestBody
+}
+
+type PutV1RbacPolicyResponseObject interface {
+	VisitPutV1RbacPolicyResponse(w http.ResponseWriter) error
+}
+
+type PutV1RbacPolicy201Response struct {
+}
+
+func (response PutV1RbacPolicy201Response) VisitPutV1RbacPolicyResponse(w http.ResponseWriter) error {
 	w.WriteHeader(201)
 	return nil
 }
 
-type PostRbacEndpoint400JSONResponse struct{ GenericBadRequestJSONResponse }
+type PutV1RbacPolicy400JSONResponse struct{ GenericBadRequestJSONResponse }
 
-func (response PostRbacEndpoint400JSONResponse) VisitPostRbacEndpointResponse(w http.ResponseWriter) error {
+func (response PutV1RbacPolicy400JSONResponse) VisitPutV1RbacPolicyResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PostRbacEndpoint401Response = GenericUnauthenticatedResponse
+type PutV1RbacPolicy401Response = GenericUnauthenticatedResponse
 
-func (response PostRbacEndpoint401Response) VisitPostRbacEndpointResponse(w http.ResponseWriter) error {
+func (response PutV1RbacPolicy401Response) VisitPutV1RbacPolicyResponse(w http.ResponseWriter) error {
 	w.WriteHeader(401)
 	return nil
 }
 
-type PostRbacEndpoint403Response = GenericForbiddenResponse
+type PutV1RbacPolicy403Response = GenericForbiddenResponse
 
-func (response PostRbacEndpoint403Response) VisitPostRbacEndpointResponse(w http.ResponseWriter) error {
+func (response PutV1RbacPolicy403Response) VisitPutV1RbacPolicyResponse(w http.ResponseWriter) error {
 	w.WriteHeader(403)
 	return nil
 }
 
-type PostRbacEndpoint404JSONResponse struct{ GenericNotFoundJSONResponse }
+type PutV1RbacPolicy404JSONResponse struct{ FieldErrorJSONResponse }
 
-func (response PostRbacEndpoint404JSONResponse) VisitPostRbacEndpointResponse(w http.ResponseWriter) error {
+func (response PutV1RbacPolicy404JSONResponse) VisitPutV1RbacPolicyResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PostRbacEndpoint413JSONResponse struct{ GenericTooLargeJSONResponse }
+type PutV1RbacPolicy413JSONResponse struct{ GenericTooLargeJSONResponse }
 
-func (response PostRbacEndpoint413JSONResponse) VisitPostRbacEndpointResponse(w http.ResponseWriter) error {
+func (response PutV1RbacPolicy413JSONResponse) VisitPutV1RbacPolicyResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(413)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PostRbacEndpoint500Response = GenericInternalServerErrorResponse
+type PutV1RbacPolicy500Response = GenericInternalServerErrorResponse
 
-func (response PostRbacEndpoint500Response) VisitPostRbacEndpointResponse(w http.ResponseWriter) error {
+func (response PutV1RbacPolicy500Response) VisitPutV1RbacPolicyResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
 	return nil
 }
 
-type GetRbacListResourceGroupsRequestObject struct {
+type GetV1RbacResourceGroupRequestObject struct {
+	Params GetV1RbacResourceGroupParams
 }
 
-type GetRbacListResourceGroupsResponseObject interface {
-	VisitGetRbacListResourceGroupsResponse(w http.ResponseWriter) error
+type GetV1RbacResourceGroupResponseObject interface {
+	VisitGetV1RbacResourceGroupResponse(w http.ResponseWriter) error
 }
 
-type GetRbacListResourceGroups200JSONResponse []string
+type GetV1RbacResourceGroup200JSONResponse []ResourceGroupResource
 
-func (response GetRbacListResourceGroups200JSONResponse) VisitGetRbacListResourceGroupsResponse(w http.ResponseWriter) error {
+func (response GetV1RbacResourceGroup200JSONResponse) VisitGetV1RbacResourceGroupResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetRbacListResourceGroups401Response = GenericUnauthenticatedResponse
+type GetV1RbacResourceGroup401Response = GenericUnauthenticatedResponse
 
-func (response GetRbacListResourceGroups401Response) VisitGetRbacListResourceGroupsResponse(w http.ResponseWriter) error {
+func (response GetV1RbacResourceGroup401Response) VisitGetV1RbacResourceGroupResponse(w http.ResponseWriter) error {
 	w.WriteHeader(401)
 	return nil
 }
 
-type GetRbacListResourceGroups403Response = GenericForbiddenResponse
+type GetV1RbacResourceGroup403Response = GenericForbiddenResponse
 
-func (response GetRbacListResourceGroups403Response) VisitGetRbacListResourceGroupsResponse(w http.ResponseWriter) error {
+func (response GetV1RbacResourceGroup403Response) VisitGetV1RbacResourceGroupResponse(w http.ResponseWriter) error {
 	w.WriteHeader(403)
 	return nil
 }
 
-type GetRbacListResourceGroups413JSONResponse struct{ GenericTooLargeJSONResponse }
+type GetV1RbacResourceGroup413JSONResponse struct{ GenericTooLargeJSONResponse }
 
-func (response GetRbacListResourceGroups413JSONResponse) VisitGetRbacListResourceGroupsResponse(w http.ResponseWriter) error {
+func (response GetV1RbacResourceGroup413JSONResponse) VisitGetV1RbacResourceGroupResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(413)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetRbacListResourceGroups500Response = GenericInternalServerErrorResponse
+type GetV1RbacResourceGroup500Response = GenericInternalServerErrorResponse
 
-func (response GetRbacListResourceGroups500Response) VisitGetRbacListResourceGroupsResponse(w http.ResponseWriter) error {
+func (response GetV1RbacResourceGroup500Response) VisitGetV1RbacResourceGroupResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
 	return nil
 }
 
-type GetRbacListRolesRequestObject struct {
+type DeleteV1RbacResourceGroupResourceGroupRequestObject struct {
+	ResourceGroup string `json:"resourceGroup"`
 }
 
-type GetRbacListRolesResponseObject interface {
-	VisitGetRbacListRolesResponse(w http.ResponseWriter) error
+type DeleteV1RbacResourceGroupResourceGroupResponseObject interface {
+	VisitDeleteV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error
 }
 
-type GetRbacListRoles200JSONResponse []string
+type DeleteV1RbacResourceGroupResourceGroup200JSONResponse ResourceGroupResource
 
-func (response GetRbacListRoles200JSONResponse) VisitGetRbacListRolesResponse(w http.ResponseWriter) error {
+func (response DeleteV1RbacResourceGroupResourceGroup200JSONResponse) VisitDeleteV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetRbacListRoles401Response = GenericUnauthenticatedResponse
+type DeleteV1RbacResourceGroupResourceGroup400JSONResponse struct{ GenericBadRequestJSONResponse }
 
-func (response GetRbacListRoles401Response) VisitGetRbacListRolesResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type GetRbacListRoles403Response = GenericForbiddenResponse
-
-func (response GetRbacListRoles403Response) VisitGetRbacListRolesResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type GetRbacListRoles413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response GetRbacListRoles413JSONResponse) VisitGetRbacListRolesResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetRbacListRoles500Response = GenericInternalServerErrorResponse
-
-func (response GetRbacListRoles500Response) VisitGetRbacListRolesResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type DeleteRbacPolicyRequestObject struct {
-	Body *DeleteRbacPolicyJSONRequestBody
-}
-
-type DeleteRbacPolicyResponseObject interface {
-	VisitDeleteRbacPolicyResponse(w http.ResponseWriter) error
-}
-
-type DeleteRbacPolicy200Response struct {
-}
-
-func (response DeleteRbacPolicy200Response) VisitDeleteRbacPolicyResponse(w http.ResponseWriter) error {
-	w.WriteHeader(200)
-	return nil
-}
-
-type DeleteRbacPolicy400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response DeleteRbacPolicy400JSONResponse) VisitDeleteRbacPolicyResponse(w http.ResponseWriter) error {
+func (response DeleteV1RbacResourceGroupResourceGroup400JSONResponse) VisitDeleteV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type DeleteRbacPolicy401Response = GenericUnauthenticatedResponse
+type DeleteV1RbacResourceGroupResourceGroup401Response = GenericUnauthenticatedResponse
 
-func (response DeleteRbacPolicy401Response) VisitDeleteRbacPolicyResponse(w http.ResponseWriter) error {
+func (response DeleteV1RbacResourceGroupResourceGroup401Response) VisitDeleteV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.WriteHeader(401)
 	return nil
 }
 
-type DeleteRbacPolicy403Response = GenericForbiddenResponse
+type DeleteV1RbacResourceGroupResourceGroup403Response = GenericForbiddenResponse
 
-func (response DeleteRbacPolicy403Response) VisitDeleteRbacPolicyResponse(w http.ResponseWriter) error {
+func (response DeleteV1RbacResourceGroupResourceGroup403Response) VisitDeleteV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.WriteHeader(403)
 	return nil
 }
 
-type DeleteRbacPolicy413JSONResponse struct{ GenericTooLargeJSONResponse }
+type DeleteV1RbacResourceGroupResourceGroup404JSONResponse struct{ GenericNotFoundJSONResponse }
 
-func (response DeleteRbacPolicy413JSONResponse) VisitDeleteRbacPolicyResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteRbacPolicy500Response = GenericInternalServerErrorResponse
-
-func (response DeleteRbacPolicy500Response) VisitDeleteRbacPolicyResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type GetRbacPolicyRequestObject struct {
-}
-
-type GetRbacPolicyResponseObject interface {
-	VisitGetRbacPolicyResponse(w http.ResponseWriter) error
-}
-
-type GetRbacPolicy200JSONResponse []RBACPolicy
-
-func (response GetRbacPolicy200JSONResponse) VisitGetRbacPolicyResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetRbacPolicy401Response = GenericUnauthenticatedResponse
-
-func (response GetRbacPolicy401Response) VisitGetRbacPolicyResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type GetRbacPolicy403Response = GenericForbiddenResponse
-
-func (response GetRbacPolicy403Response) VisitGetRbacPolicyResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type GetRbacPolicy413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response GetRbacPolicy413JSONResponse) VisitGetRbacPolicyResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetRbacPolicy500Response = GenericInternalServerErrorResponse
-
-func (response GetRbacPolicy500Response) VisitGetRbacPolicyResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type PostRbacPolicyRequestObject struct {
-	Body *PostRbacPolicyJSONRequestBody
-}
-
-type PostRbacPolicyResponseObject interface {
-	VisitPostRbacPolicyResponse(w http.ResponseWriter) error
-}
-
-type PostRbacPolicy201Response struct {
-}
-
-func (response PostRbacPolicy201Response) VisitPostRbacPolicyResponse(w http.ResponseWriter) error {
-	w.WriteHeader(201)
-	return nil
-}
-
-type PostRbacPolicy400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response PostRbacPolicy400JSONResponse) VisitPostRbacPolicyResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PostRbacPolicy401Response = GenericUnauthenticatedResponse
-
-func (response PostRbacPolicy401Response) VisitPostRbacPolicyResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type PostRbacPolicy403Response = GenericForbiddenResponse
-
-func (response PostRbacPolicy403Response) VisitPostRbacPolicyResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type PostRbacPolicy404JSONResponse struct{ FieldErrorJSONResponse }
-
-func (response PostRbacPolicy404JSONResponse) VisitPostRbacPolicyResponse(w http.ResponseWriter) error {
+func (response DeleteV1RbacResourceGroupResourceGroup404JSONResponse) VisitDeleteV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PostRbacPolicy413JSONResponse struct{ GenericTooLargeJSONResponse }
+type DeleteV1RbacResourceGroupResourceGroup413JSONResponse struct{ GenericTooLargeJSONResponse }
 
-func (response PostRbacPolicy413JSONResponse) VisitPostRbacPolicyResponse(w http.ResponseWriter) error {
+func (response DeleteV1RbacResourceGroupResourceGroup413JSONResponse) VisitDeleteV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(413)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PostRbacPolicy500Response = GenericInternalServerErrorResponse
+type DeleteV1RbacResourceGroupResourceGroup500Response = GenericInternalServerErrorResponse
 
-func (response PostRbacPolicy500Response) VisitPostRbacPolicyResponse(w http.ResponseWriter) error {
+func (response DeleteV1RbacResourceGroupResourceGroup500Response) VisitDeleteV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
 	return nil
 }
 
-type DeleteRbacResourceGroupRequestObject struct {
-	Body *DeleteRbacResourceGroupJSONRequestBody
+type GetV1RbacResourceGroupResourceGroupRequestObject struct {
+	ResourceGroup string `json:"resourceGroup"`
 }
 
-type DeleteRbacResourceGroupResponseObject interface {
-	VisitDeleteRbacResourceGroupResponse(w http.ResponseWriter) error
+type GetV1RbacResourceGroupResourceGroupResponseObject interface {
+	VisitGetV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error
 }
 
-type DeleteRbacResourceGroup200Response struct {
-}
+type GetV1RbacResourceGroupResourceGroup200JSONResponse ResourceGroupResource
 
-func (response DeleteRbacResourceGroup200Response) VisitDeleteRbacResourceGroupResponse(w http.ResponseWriter) error {
+func (response GetV1RbacResourceGroupResourceGroup200JSONResponse) VisitGetV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
-	return nil
+
+	return json.NewEncoder(w).Encode(response)
 }
 
-type DeleteRbacResourceGroup400JSONResponse struct{ GenericBadRequestJSONResponse }
+type GetV1RbacResourceGroupResourceGroup400JSONResponse struct{ GenericBadRequestJSONResponse }
 
-func (response DeleteRbacResourceGroup400JSONResponse) VisitDeleteRbacResourceGroupResponse(w http.ResponseWriter) error {
+func (response GetV1RbacResourceGroupResourceGroup400JSONResponse) VisitGetV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type DeleteRbacResourceGroup401Response = GenericUnauthenticatedResponse
+type GetV1RbacResourceGroupResourceGroup401Response = GenericUnauthenticatedResponse
 
-func (response DeleteRbacResourceGroup401Response) VisitDeleteRbacResourceGroupResponse(w http.ResponseWriter) error {
+func (response GetV1RbacResourceGroupResourceGroup401Response) VisitGetV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.WriteHeader(401)
 	return nil
 }
 
-type DeleteRbacResourceGroup403Response = GenericForbiddenResponse
+type GetV1RbacResourceGroupResourceGroup403Response = GenericForbiddenResponse
 
-func (response DeleteRbacResourceGroup403Response) VisitDeleteRbacResourceGroupResponse(w http.ResponseWriter) error {
+func (response GetV1RbacResourceGroupResourceGroup403Response) VisitGetV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.WriteHeader(403)
 	return nil
 }
 
-type DeleteRbacResourceGroup404JSONResponse struct{ GenericNotFoundJSONResponse }
+type GetV1RbacResourceGroupResourceGroup404JSONResponse struct{ GenericNotFoundJSONResponse }
 
-func (response DeleteRbacResourceGroup404JSONResponse) VisitDeleteRbacResourceGroupResponse(w http.ResponseWriter) error {
+func (response GetV1RbacResourceGroupResourceGroup404JSONResponse) VisitGetV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type DeleteRbacResourceGroup413JSONResponse struct{ GenericTooLargeJSONResponse }
+type GetV1RbacResourceGroupResourceGroup413JSONResponse struct{ GenericTooLargeJSONResponse }
 
-func (response DeleteRbacResourceGroup413JSONResponse) VisitDeleteRbacResourceGroupResponse(w http.ResponseWriter) error {
+func (response GetV1RbacResourceGroupResourceGroup413JSONResponse) VisitGetV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(413)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type DeleteRbacResourceGroup500Response = GenericInternalServerErrorResponse
+type GetV1RbacResourceGroupResourceGroup500Response = GenericInternalServerErrorResponse
 
-func (response DeleteRbacResourceGroup500Response) VisitDeleteRbacResourceGroupResponse(w http.ResponseWriter) error {
+func (response GetV1RbacResourceGroupResourceGroup500Response) VisitGetV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
 	return nil
 }
 
-type GetRbacResourceGroupRequestObject struct {
-	Params GetRbacResourceGroupParams
+type HeadV1RbacResourceGroupResourceGroupRequestObject struct {
+	ResourceGroup string `json:"resourceGroup"`
 }
 
-type GetRbacResourceGroupResponseObject interface {
-	VisitGetRbacResourceGroupResponse(w http.ResponseWriter) error
+type HeadV1RbacResourceGroupResourceGroupResponseObject interface {
+	VisitHeadV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error
 }
 
-type GetRbacResourceGroup200JSONResponse []string
-
-func (response GetRbacResourceGroup200JSONResponse) VisitGetRbacResourceGroupResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
+type HeadV1RbacResourceGroupResourceGroup200Response struct {
 }
 
-type GetRbacResourceGroup400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response GetRbacResourceGroup400JSONResponse) VisitGetRbacResourceGroupResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetRbacResourceGroup401Response = GenericUnauthenticatedResponse
-
-func (response GetRbacResourceGroup401Response) VisitGetRbacResourceGroupResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type GetRbacResourceGroup403Response = GenericForbiddenResponse
-
-func (response GetRbacResourceGroup403Response) VisitGetRbacResourceGroupResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type GetRbacResourceGroup404JSONResponse struct{ GenericNotFoundJSONResponse }
-
-func (response GetRbacResourceGroup404JSONResponse) VisitGetRbacResourceGroupResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetRbacResourceGroup413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response GetRbacResourceGroup413JSONResponse) VisitGetRbacResourceGroupResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetRbacResourceGroup500Response = GenericInternalServerErrorResponse
-
-func (response GetRbacResourceGroup500Response) VisitGetRbacResourceGroupResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type HeadRbacResourceGroupRequestObject struct {
-	Body *HeadRbacResourceGroupJSONRequestBody
-}
-
-type HeadRbacResourceGroupResponseObject interface {
-	VisitHeadRbacResourceGroupResponse(w http.ResponseWriter) error
-}
-
-type HeadRbacResourceGroup200Response struct {
-}
-
-func (response HeadRbacResourceGroup200Response) VisitHeadRbacResourceGroupResponse(w http.ResponseWriter) error {
+func (response HeadV1RbacResourceGroupResourceGroup200Response) VisitHeadV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.WriteHeader(200)
 	return nil
 }
 
-type HeadRbacResourceGroup400Response struct {
+type HeadV1RbacResourceGroupResourceGroup400Response struct {
 }
 
-func (response HeadRbacResourceGroup400Response) VisitHeadRbacResourceGroupResponse(w http.ResponseWriter) error {
+func (response HeadV1RbacResourceGroupResourceGroup400Response) VisitHeadV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.WriteHeader(400)
 	return nil
 }
 
-type HeadRbacResourceGroup401Response struct {
+type HeadV1RbacResourceGroupResourceGroup401Response struct {
 }
 
-func (response HeadRbacResourceGroup401Response) VisitHeadRbacResourceGroupResponse(w http.ResponseWriter) error {
+func (response HeadV1RbacResourceGroupResourceGroup401Response) VisitHeadV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.WriteHeader(401)
 	return nil
 }
 
-type HeadRbacResourceGroup403Response struct {
+type HeadV1RbacResourceGroupResourceGroup403Response struct {
 }
 
-func (response HeadRbacResourceGroup403Response) VisitHeadRbacResourceGroupResponse(w http.ResponseWriter) error {
+func (response HeadV1RbacResourceGroupResourceGroup403Response) VisitHeadV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.WriteHeader(403)
 	return nil
 }
 
-type HeadRbacResourceGroup404Response struct {
+type HeadV1RbacResourceGroupResourceGroup404Response struct {
 }
 
-func (response HeadRbacResourceGroup404Response) VisitHeadRbacResourceGroupResponse(w http.ResponseWriter) error {
+func (response HeadV1RbacResourceGroupResourceGroup404Response) VisitHeadV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.WriteHeader(404)
 	return nil
 }
 
-type HeadRbacResourceGroup413JSONResponse struct{ GenericTooLargeJSONResponse }
+type HeadV1RbacResourceGroupResourceGroup413JSONResponse struct{ GenericTooLargeJSONResponse }
 
-func (response HeadRbacResourceGroup413JSONResponse) VisitHeadRbacResourceGroupResponse(w http.ResponseWriter) error {
+func (response HeadV1RbacResourceGroupResourceGroup413JSONResponse) VisitHeadV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(413)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type HeadRbacResourceGroup500Response struct {
+type HeadV1RbacResourceGroupResourceGroup500Response struct {
 }
 
-func (response HeadRbacResourceGroup500Response) VisitHeadRbacResourceGroupResponse(w http.ResponseWriter) error {
+func (response HeadV1RbacResourceGroupResourceGroup500Response) VisitHeadV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
 	return nil
 }
 
-type PostRbacResourceGroupRequestObject struct {
-	Body *PostRbacResourceGroupJSONRequestBody
+type PutV1RbacResourceGroupResourceGroupRequestObject struct {
+	ResourceGroup string `json:"resourceGroup"`
+	Body          *PutV1RbacResourceGroupResourceGroupJSONRequestBody
 }
 
-type PostRbacResourceGroupResponseObject interface {
-	VisitPostRbacResourceGroupResponse(w http.ResponseWriter) error
+type PutV1RbacResourceGroupResourceGroupResponseObject interface {
+	VisitPutV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error
 }
 
-type PostRbacResourceGroup201Response struct {
-}
-
-func (response PostRbacResourceGroup201Response) VisitPostRbacResourceGroupResponse(w http.ResponseWriter) error {
-	w.WriteHeader(201)
-	return nil
-}
-
-type PostRbacResourceGroup400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response PostRbacResourceGroup400JSONResponse) VisitPostRbacResourceGroupResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PostRbacResourceGroup401Response = GenericUnauthenticatedResponse
-
-func (response PostRbacResourceGroup401Response) VisitPostRbacResourceGroupResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type PostRbacResourceGroup403Response = GenericForbiddenResponse
-
-func (response PostRbacResourceGroup403Response) VisitPostRbacResourceGroupResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type PostRbacResourceGroup409JSONResponse ErrGeneric
-
-func (response PostRbacResourceGroup409JSONResponse) VisitPostRbacResourceGroupResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(409)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PostRbacResourceGroup413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response PostRbacResourceGroup413JSONResponse) VisitPostRbacResourceGroupResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PostRbacResourceGroup500Response = GenericInternalServerErrorResponse
-
-func (response PostRbacResourceGroup500Response) VisitPostRbacResourceGroupResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type DeleteRbacRoleRequestObject struct {
-	Body *DeleteRbacRoleJSONRequestBody
-}
-
-type DeleteRbacRoleResponseObject interface {
-	VisitDeleteRbacRoleResponse(w http.ResponseWriter) error
-}
-
-type DeleteRbacRole200Response struct {
-}
-
-func (response DeleteRbacRole200Response) VisitDeleteRbacRoleResponse(w http.ResponseWriter) error {
-	w.WriteHeader(200)
-	return nil
-}
-
-type DeleteRbacRole400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response DeleteRbacRole400JSONResponse) VisitDeleteRbacRoleResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteRbacRole401Response = GenericUnauthenticatedResponse
-
-func (response DeleteRbacRole401Response) VisitDeleteRbacRoleResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type DeleteRbacRole403Response = GenericForbiddenResponse
-
-func (response DeleteRbacRole403Response) VisitDeleteRbacRoleResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type DeleteRbacRole404JSONResponse struct{ GenericNotFoundJSONResponse }
-
-func (response DeleteRbacRole404JSONResponse) VisitDeleteRbacRoleResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteRbacRole409JSONResponse ErrGeneric
-
-func (response DeleteRbacRole409JSONResponse) VisitDeleteRbacRoleResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(409)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteRbacRole413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response DeleteRbacRole413JSONResponse) VisitDeleteRbacRoleResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteRbacRole500Response = GenericInternalServerErrorResponse
-
-func (response DeleteRbacRole500Response) VisitDeleteRbacRoleResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type GetRbacRoleRequestObject struct {
-	Params GetRbacRoleParams
-}
-
-type GetRbacRoleResponseObject interface {
-	VisitGetRbacRoleResponse(w http.ResponseWriter) error
-}
-
-type GetRbacRole200JSONResponse []string
-
-func (response GetRbacRole200JSONResponse) VisitGetRbacRoleResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetRbacRole400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response GetRbacRole400JSONResponse) VisitGetRbacRoleResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetRbacRole401Response = GenericUnauthenticatedResponse
-
-func (response GetRbacRole401Response) VisitGetRbacRoleResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type GetRbacRole403Response = GenericForbiddenResponse
-
-func (response GetRbacRole403Response) VisitGetRbacRoleResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type GetRbacRole404JSONResponse struct{ GenericNotFoundJSONResponse }
-
-func (response GetRbacRole404JSONResponse) VisitGetRbacRoleResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetRbacRole413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response GetRbacRole413JSONResponse) VisitGetRbacRoleResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetRbacRole500Response = GenericInternalServerErrorResponse
-
-func (response GetRbacRole500Response) VisitGetRbacRoleResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type HeadRbacRoleRequestObject struct {
-	Body *HeadRbacRoleJSONRequestBody
-}
-
-type HeadRbacRoleResponseObject interface {
-	VisitHeadRbacRoleResponse(w http.ResponseWriter) error
-}
-
-type HeadRbacRole200Response struct {
-}
-
-func (response HeadRbacRole200Response) VisitHeadRbacRoleResponse(w http.ResponseWriter) error {
-	w.WriteHeader(200)
-	return nil
-}
-
-type HeadRbacRole400Response struct {
-}
-
-func (response HeadRbacRole400Response) VisitHeadRbacRoleResponse(w http.ResponseWriter) error {
-	w.WriteHeader(400)
-	return nil
-}
-
-type HeadRbacRole401Response struct {
-}
-
-func (response HeadRbacRole401Response) VisitHeadRbacRoleResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type HeadRbacRole403Response struct {
-}
-
-func (response HeadRbacRole403Response) VisitHeadRbacRoleResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type HeadRbacRole404Response struct {
-}
-
-func (response HeadRbacRole404Response) VisitHeadRbacRoleResponse(w http.ResponseWriter) error {
-	w.WriteHeader(404)
-	return nil
-}
-
-type HeadRbacRole413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response HeadRbacRole413JSONResponse) VisitHeadRbacRoleResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type HeadRbacRole500Response struct {
-}
-
-func (response HeadRbacRole500Response) VisitHeadRbacRoleResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type PostRbacRoleRequestObject struct {
-	Body *PostRbacRoleJSONRequestBody
-}
-
-type PostRbacRoleResponseObject interface {
-	VisitPostRbacRoleResponse(w http.ResponseWriter) error
-}
-
-type PostRbacRole201Response struct {
-}
-
-func (response PostRbacRole201Response) VisitPostRbacRoleResponse(w http.ResponseWriter) error {
-	w.WriteHeader(201)
-	return nil
-}
-
-type PostRbacRole400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response PostRbacRole400JSONResponse) VisitPostRbacRoleResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PostRbacRole401Response = GenericUnauthenticatedResponse
-
-func (response PostRbacRole401Response) VisitPostRbacRoleResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type PostRbacRole403Response = GenericForbiddenResponse
-
-func (response PostRbacRole403Response) VisitPostRbacRoleResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type PostRbacRole409JSONResponse ErrGeneric
-
-func (response PostRbacRole409JSONResponse) VisitPostRbacRoleResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(409)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PostRbacRole413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response PostRbacRole413JSONResponse) VisitPostRbacRoleResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PostRbacRole500Response = GenericInternalServerErrorResponse
-
-func (response PostRbacRole500Response) VisitPostRbacRoleResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type DeleteRbacUserRequestObject struct {
-	Body *DeleteRbacUserJSONRequestBody
-}
-
-type DeleteRbacUserResponseObject interface {
-	VisitDeleteRbacUserResponse(w http.ResponseWriter) error
-}
-
-type DeleteRbacUser200Response struct {
-}
-
-func (response DeleteRbacUser200Response) VisitDeleteRbacUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(200)
-	return nil
-}
-
-type DeleteRbacUser400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response DeleteRbacUser400JSONResponse) VisitDeleteRbacUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteRbacUser401Response = GenericUnauthenticatedResponse
-
-func (response DeleteRbacUser401Response) VisitDeleteRbacUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type DeleteRbacUser403Response = GenericForbiddenResponse
-
-func (response DeleteRbacUser403Response) VisitDeleteRbacUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type DeleteRbacUser404JSONResponse struct{ GenericNotFoundJSONResponse }
-
-func (response DeleteRbacUser404JSONResponse) VisitDeleteRbacUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteRbacUser413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response DeleteRbacUser413JSONResponse) VisitDeleteRbacUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteRbacUser500Response = GenericInternalServerErrorResponse
-
-func (response DeleteRbacUser500Response) VisitDeleteRbacUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type GetRbacUserRequestObject struct {
-	Params GetRbacUserParams
-}
-
-type GetRbacUserResponseObject interface {
-	VisitGetRbacUserResponse(w http.ResponseWriter) error
-}
-
-type GetRbacUser200JSONResponse []string
-
-func (response GetRbacUser200JSONResponse) VisitGetRbacUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetRbacUser400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response GetRbacUser400JSONResponse) VisitGetRbacUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetRbacUser401Response = GenericUnauthenticatedResponse
-
-func (response GetRbacUser401Response) VisitGetRbacUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type GetRbacUser403Response = GenericForbiddenResponse
-
-func (response GetRbacUser403Response) VisitGetRbacUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type GetRbacUser404JSONResponse struct{ GenericNotFoundJSONResponse }
-
-func (response GetRbacUser404JSONResponse) VisitGetRbacUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetRbacUser413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response GetRbacUser413JSONResponse) VisitGetRbacUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetRbacUser500Response = GenericInternalServerErrorResponse
-
-func (response GetRbacUser500Response) VisitGetRbacUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type PostRbacUserRequestObject struct {
-	Body *PostRbacUserJSONRequestBody
-}
-
-type PostRbacUserResponseObject interface {
-	VisitPostRbacUserResponse(w http.ResponseWriter) error
-}
-
-type PostRbacUser201Response struct {
-}
-
-func (response PostRbacUser201Response) VisitPostRbacUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(201)
-	return nil
-}
-
-type PostRbacUser400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response PostRbacUser400JSONResponse) VisitPostRbacUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PostRbacUser401Response = GenericUnauthenticatedResponse
-
-func (response PostRbacUser401Response) VisitPostRbacUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type PostRbacUser403Response = GenericForbiddenResponse
-
-func (response PostRbacUser403Response) VisitPostRbacUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type PostRbacUser404JSONResponse struct{ GenericNotFoundJSONResponse }
-
-func (response PostRbacUser404JSONResponse) VisitPostRbacUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PostRbacUser413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response PostRbacUser413JSONResponse) VisitPostRbacUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PostRbacUser500Response = GenericInternalServerErrorResponse
-
-func (response PostRbacUser500Response) VisitPostRbacUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type GetTasksListRequestObject struct {
-}
-
-type GetTasksListResponseObject interface {
-	VisitGetTasksListResponse(w http.ResponseWriter) error
-}
-
-type GetTasksList200JSONResponse []TaskState
-
-func (response GetTasksList200JSONResponse) VisitGetTasksListResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetTasksList400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response GetTasksList400JSONResponse) VisitGetTasksListResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetTasksList401Response = GenericUnauthenticatedResponse
-
-func (response GetTasksList401Response) VisitGetTasksListResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type GetTasksList403Response = GenericForbiddenResponse
-
-func (response GetTasksList403Response) VisitGetTasksListResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type GetTasksList500Response = GenericInternalServerErrorResponse
-
-func (response GetTasksList500Response) VisitGetTasksListResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type GetTasksTaskRequestObject struct {
-	Params GetTasksTaskParams
-}
-
-type GetTasksTaskResponseObject interface {
-	VisitGetTasksTaskResponse(w http.ResponseWriter) error
-}
-
-type GetTasksTask200JSONResponse TaskState
-
-func (response GetTasksTask200JSONResponse) VisitGetTasksTaskResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetTasksTask400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response GetTasksTask400JSONResponse) VisitGetTasksTaskResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetTasksTask401Response = GenericUnauthenticatedResponse
-
-func (response GetTasksTask401Response) VisitGetTasksTaskResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type GetTasksTask403Response = GenericForbiddenResponse
-
-func (response GetTasksTask403Response) VisitGetTasksTaskResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type GetTasksTask404JSONResponse struct{ GenericNotFoundJSONResponse }
-
-func (response GetTasksTask404JSONResponse) VisitGetTasksTaskResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetTasksTask500Response = GenericInternalServerErrorResponse
-
-func (response GetTasksTask500Response) VisitGetTasksTaskResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type GetUsersListRequestObject struct {
-}
-
-type GetUsersListResponseObject interface {
-	VisitGetUsersListResponse(w http.ResponseWriter) error
-}
-
-type GetUsersList200JSONResponse []UserResponse
-
-func (response GetUsersList200JSONResponse) VisitGetUsersListResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetUsersList401Response = GenericUnauthenticatedResponse
-
-func (response GetUsersList401Response) VisitGetUsersListResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type GetUsersList403Response = GenericForbiddenResponse
-
-func (response GetUsersList403Response) VisitGetUsersListResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type GetUsersList413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response GetUsersList413JSONResponse) VisitGetUsersListResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetUsersList500Response = GenericInternalServerErrorResponse
-
-func (response GetUsersList500Response) VisitGetUsersListResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type DeleteUsersMeRequestObject struct {
-}
-
-type DeleteUsersMeResponseObject interface {
-	VisitDeleteUsersMeResponse(w http.ResponseWriter) error
-}
-
-type DeleteUsersMe200JSONResponse UserResponse
-
-func (response DeleteUsersMe200JSONResponse) VisitDeleteUsersMeResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteUsersMe401Response = GenericUnauthenticatedResponse
-
-func (response DeleteUsersMe401Response) VisitDeleteUsersMeResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type DeleteUsersMe403Response = GenericForbiddenResponse
-
-func (response DeleteUsersMe403Response) VisitDeleteUsersMeResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type DeleteUsersMe413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response DeleteUsersMe413JSONResponse) VisitDeleteUsersMeResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteUsersMe500Response = GenericInternalServerErrorResponse
-
-func (response DeleteUsersMe500Response) VisitDeleteUsersMeResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type GetUsersMeRequestObject struct {
-}
-
-type GetUsersMeResponseObject interface {
-	VisitGetUsersMeResponse(w http.ResponseWriter) error
-}
-
-type GetUsersMe200JSONResponse UserResponse
-
-func (response GetUsersMe200JSONResponse) VisitGetUsersMeResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetUsersMe401Response = GenericUnauthenticatedResponse
-
-func (response GetUsersMe401Response) VisitGetUsersMeResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type GetUsersMe403Response = GenericForbiddenResponse
-
-func (response GetUsersMe403Response) VisitGetUsersMeResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type GetUsersMe413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response GetUsersMe413JSONResponse) VisitGetUsersMeResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetUsersMe500Response = GenericInternalServerErrorResponse
-
-func (response GetUsersMe500Response) VisitGetUsersMeResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type PatchUsersMeRequestObject struct {
-	Body *PatchUsersMeJSONRequestBody
-}
-
-type PatchUsersMeResponseObject interface {
-	VisitPatchUsersMeResponse(w http.ResponseWriter) error
-}
-
-type PatchUsersMe200JSONResponse UserResponse
-
-func (response PatchUsersMe200JSONResponse) VisitPatchUsersMeResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PatchUsersMe400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response PatchUsersMe400JSONResponse) VisitPatchUsersMeResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PatchUsersMe401Response = GenericUnauthenticatedResponse
-
-func (response PatchUsersMe401Response) VisitPatchUsersMeResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type PatchUsersMe403Response = GenericForbiddenResponse
-
-func (response PatchUsersMe403Response) VisitPatchUsersMeResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type PatchUsersMe409JSONResponse ErrGeneric
-
-func (response PatchUsersMe409JSONResponse) VisitPatchUsersMeResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(409)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PatchUsersMe413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response PatchUsersMe413JSONResponse) VisitPatchUsersMeResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PatchUsersMe500Response = GenericInternalServerErrorResponse
-
-func (response PatchUsersMe500Response) VisitPatchUsersMeResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type DeleteUsersUserRequestObject struct {
-	Body *DeleteUsersUserJSONRequestBody
-}
-
-type DeleteUsersUserResponseObject interface {
-	VisitDeleteUsersUserResponse(w http.ResponseWriter) error
-}
-
-type DeleteUsersUser200JSONResponse UserResponse
-
-func (response DeleteUsersUser200JSONResponse) VisitDeleteUsersUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteUsersUser400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response DeleteUsersUser400JSONResponse) VisitDeleteUsersUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteUsersUser401Response = GenericUnauthenticatedResponse
-
-func (response DeleteUsersUser401Response) VisitDeleteUsersUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type DeleteUsersUser403Response = GenericForbiddenResponse
-
-func (response DeleteUsersUser403Response) VisitDeleteUsersUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type DeleteUsersUser404JSONResponse struct{ GenericNotFoundJSONResponse }
-
-func (response DeleteUsersUser404JSONResponse) VisitDeleteUsersUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteUsersUser413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response DeleteUsersUser413JSONResponse) VisitDeleteUsersUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteUsersUser500Response = GenericInternalServerErrorResponse
-
-func (response DeleteUsersUser500Response) VisitDeleteUsersUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type GetUsersUserRequestObject struct {
-	Params GetUsersUserParams
-}
-
-type GetUsersUserResponseObject interface {
-	VisitGetUsersUserResponse(w http.ResponseWriter) error
-}
-
-type GetUsersUser200JSONResponse UserResponse
-
-func (response GetUsersUser200JSONResponse) VisitGetUsersUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetUsersUser400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response GetUsersUser400JSONResponse) VisitGetUsersUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetUsersUser401Response = GenericUnauthenticatedResponse
-
-func (response GetUsersUser401Response) VisitGetUsersUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type GetUsersUser403Response = GenericForbiddenResponse
-
-func (response GetUsersUser403Response) VisitGetUsersUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type GetUsersUser404JSONResponse struct{ GenericNotFoundJSONResponse }
-
-func (response GetUsersUser404JSONResponse) VisitGetUsersUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetUsersUser413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response GetUsersUser413JSONResponse) VisitGetUsersUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetUsersUser500Response = GenericInternalServerErrorResponse
-
-func (response GetUsersUser500Response) VisitGetUsersUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type HeadUsersUserRequestObject struct {
-	Body *HeadUsersUserJSONRequestBody
-}
-
-type HeadUsersUserResponseObject interface {
-	VisitHeadUsersUserResponse(w http.ResponseWriter) error
-}
-
-type HeadUsersUser200Response struct {
-}
-
-func (response HeadUsersUser200Response) VisitHeadUsersUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(200)
-	return nil
-}
-
-type HeadUsersUser400Response struct {
-}
-
-func (response HeadUsersUser400Response) VisitHeadUsersUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(400)
-	return nil
-}
-
-type HeadUsersUser401Response struct {
-}
-
-func (response HeadUsersUser401Response) VisitHeadUsersUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type HeadUsersUser403Response struct {
-}
-
-func (response HeadUsersUser403Response) VisitHeadUsersUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type HeadUsersUser404Response struct {
-}
-
-func (response HeadUsersUser404Response) VisitHeadUsersUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(404)
-	return nil
-}
-
-type HeadUsersUser413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response HeadUsersUser413JSONResponse) VisitHeadUsersUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type HeadUsersUser500Response struct {
-}
-
-func (response HeadUsersUser500Response) VisitHeadUsersUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type PatchUsersUserRequestObject struct {
-	Body *PatchUsersUserJSONRequestBody
-}
-
-type PatchUsersUserResponseObject interface {
-	VisitPatchUsersUserResponse(w http.ResponseWriter) error
-}
-
-type PatchUsersUser200JSONResponse UserResponse
-
-func (response PatchUsersUser200JSONResponse) VisitPatchUsersUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PatchUsersUser400JSONResponse struct{ GenericBadRequestJSONResponse }
-
-func (response PatchUsersUser400JSONResponse) VisitPatchUsersUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PatchUsersUser401Response = GenericUnauthenticatedResponse
-
-func (response PatchUsersUser401Response) VisitPatchUsersUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(401)
-	return nil
-}
-
-type PatchUsersUser403Response = GenericForbiddenResponse
-
-func (response PatchUsersUser403Response) VisitPatchUsersUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(403)
-	return nil
-}
-
-type PatchUsersUser404JSONResponse struct{ GenericNotFoundJSONResponse }
-
-func (response PatchUsersUser404JSONResponse) VisitPatchUsersUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PatchUsersUser409JSONResponse ErrGeneric
-
-func (response PatchUsersUser409JSONResponse) VisitPatchUsersUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(409)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PatchUsersUser413JSONResponse struct{ GenericTooLargeJSONResponse }
-
-func (response PatchUsersUser413JSONResponse) VisitPatchUsersUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(413)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PatchUsersUser500Response = GenericInternalServerErrorResponse
-
-func (response PatchUsersUser500Response) VisitPatchUsersUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(500)
-	return nil
-}
-
-type PostUsersUserRequestObject struct {
-	Body *PostUsersUserJSONRequestBody
-}
-
-type PostUsersUserResponseObject interface {
-	VisitPostUsersUserResponse(w http.ResponseWriter) error
-}
-
-type PostUsersUser201JSONResponse UserResponse
+type PutV1RbacResourceGroupResourceGroup201JSONResponse ResourceGroupResource
 
-func (response PostUsersUser201JSONResponse) VisitPostUsersUserResponse(w http.ResponseWriter) error {
+func (response PutV1RbacResourceGroupResourceGroup201JSONResponse) VisitPutV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(201)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PostUsersUser400JSONResponse struct{ GenericBadRequestJSONResponse }
+type PutV1RbacResourceGroupResourceGroup400JSONResponse struct{ GenericBadRequestJSONResponse }
 
-func (response PostUsersUser400JSONResponse) VisitPostUsersUserResponse(w http.ResponseWriter) error {
+func (response PutV1RbacResourceGroupResourceGroup400JSONResponse) VisitPutV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PostUsersUser401Response = GenericUnauthenticatedResponse
+type PutV1RbacResourceGroupResourceGroup401Response = GenericUnauthenticatedResponse
 
-func (response PostUsersUser401Response) VisitPostUsersUserResponse(w http.ResponseWriter) error {
+func (response PutV1RbacResourceGroupResourceGroup401Response) VisitPutV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.WriteHeader(401)
 	return nil
 }
 
-type PostUsersUser403Response = GenericForbiddenResponse
+type PutV1RbacResourceGroupResourceGroup403Response = GenericForbiddenResponse
 
-func (response PostUsersUser403Response) VisitPostUsersUserResponse(w http.ResponseWriter) error {
+func (response PutV1RbacResourceGroupResourceGroup403Response) VisitPutV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.WriteHeader(403)
 	return nil
 }
 
-type PostUsersUser409JSONResponse ErrGeneric
+type PutV1RbacResourceGroupResourceGroup409JSONResponse ErrGeneric
 
-func (response PostUsersUser409JSONResponse) VisitPostUsersUserResponse(w http.ResponseWriter) error {
+func (response PutV1RbacResourceGroupResourceGroup409JSONResponse) VisitPutV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(409)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PostUsersUser413JSONResponse struct{ GenericTooLargeJSONResponse }
+type PutV1RbacResourceGroupResourceGroup413JSONResponse struct{ GenericTooLargeJSONResponse }
 
-func (response PostUsersUser413JSONResponse) VisitPostUsersUserResponse(w http.ResponseWriter) error {
+func (response PutV1RbacResourceGroupResourceGroup413JSONResponse) VisitPutV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(413)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PostUsersUser500Response = GenericInternalServerErrorResponse
+type PutV1RbacResourceGroupResourceGroup500Response = GenericInternalServerErrorResponse
 
-func (response PostUsersUser500Response) VisitPostUsersUserResponse(w http.ResponseWriter) error {
+func (response PutV1RbacResourceGroupResourceGroup500Response) VisitPutV1RbacResourceGroupResourceGroupResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type GetV1RbacRoleRequestObject struct {
+	Params GetV1RbacRoleParams
+}
+
+type GetV1RbacRoleResponseObject interface {
+	VisitGetV1RbacRoleResponse(w http.ResponseWriter) error
+}
+
+type GetV1RbacRole200JSONResponse []RoleResource
+
+func (response GetV1RbacRole200JSONResponse) VisitGetV1RbacRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1RbacRole401Response = GenericUnauthenticatedResponse
+
+func (response GetV1RbacRole401Response) VisitGetV1RbacRoleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type GetV1RbacRole403Response = GenericForbiddenResponse
+
+func (response GetV1RbacRole403Response) VisitGetV1RbacRoleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type GetV1RbacRole413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response GetV1RbacRole413JSONResponse) VisitGetV1RbacRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1RbacRole500Response = GenericInternalServerErrorResponse
+
+func (response GetV1RbacRole500Response) VisitGetV1RbacRoleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type DeleteV1RbacRoleRoleRequestObject struct {
+	Role string `json:"role"`
+}
+
+type DeleteV1RbacRoleRoleResponseObject interface {
+	VisitDeleteV1RbacRoleRoleResponse(w http.ResponseWriter) error
+}
+
+type DeleteV1RbacRoleRole200JSONResponse RoleResource
+
+func (response DeleteV1RbacRoleRole200JSONResponse) VisitDeleteV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1RbacRoleRole400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response DeleteV1RbacRoleRole400JSONResponse) VisitDeleteV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1RbacRoleRole401Response = GenericUnauthenticatedResponse
+
+func (response DeleteV1RbacRoleRole401Response) VisitDeleteV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type DeleteV1RbacRoleRole403Response = GenericForbiddenResponse
+
+func (response DeleteV1RbacRoleRole403Response) VisitDeleteV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type DeleteV1RbacRoleRole404JSONResponse struct{ GenericNotFoundJSONResponse }
+
+func (response DeleteV1RbacRoleRole404JSONResponse) VisitDeleteV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1RbacRoleRole409JSONResponse ErrGeneric
+
+func (response DeleteV1RbacRoleRole409JSONResponse) VisitDeleteV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1RbacRoleRole413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response DeleteV1RbacRoleRole413JSONResponse) VisitDeleteV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1RbacRoleRole500Response = GenericInternalServerErrorResponse
+
+func (response DeleteV1RbacRoleRole500Response) VisitDeleteV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type GetV1RbacRoleRoleRequestObject struct {
+	Role string `json:"role"`
+}
+
+type GetV1RbacRoleRoleResponseObject interface {
+	VisitGetV1RbacRoleRoleResponse(w http.ResponseWriter) error
+}
+
+type GetV1RbacRoleRole200JSONResponse RoleResource
+
+func (response GetV1RbacRoleRole200JSONResponse) VisitGetV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1RbacRoleRole400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response GetV1RbacRoleRole400JSONResponse) VisitGetV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1RbacRoleRole401Response = GenericUnauthenticatedResponse
+
+func (response GetV1RbacRoleRole401Response) VisitGetV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type GetV1RbacRoleRole403Response = GenericForbiddenResponse
+
+func (response GetV1RbacRoleRole403Response) VisitGetV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type GetV1RbacRoleRole404JSONResponse struct{ GenericNotFoundJSONResponse }
+
+func (response GetV1RbacRoleRole404JSONResponse) VisitGetV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1RbacRoleRole413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response GetV1RbacRoleRole413JSONResponse) VisitGetV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1RbacRoleRole500Response = GenericInternalServerErrorResponse
+
+func (response GetV1RbacRoleRole500Response) VisitGetV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type HeadV1RbacRoleRoleRequestObject struct {
+	Role string `json:"role"`
+}
+
+type HeadV1RbacRoleRoleResponseObject interface {
+	VisitHeadV1RbacRoleRoleResponse(w http.ResponseWriter) error
+}
+
+type HeadV1RbacRoleRole200Response struct {
+}
+
+func (response HeadV1RbacRoleRole200Response) VisitHeadV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	return nil
+}
+
+type HeadV1RbacRoleRole400Response struct {
+}
+
+func (response HeadV1RbacRoleRole400Response) VisitHeadV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(400)
+	return nil
+}
+
+type HeadV1RbacRoleRole401Response struct {
+}
+
+func (response HeadV1RbacRoleRole401Response) VisitHeadV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type HeadV1RbacRoleRole403Response struct {
+}
+
+func (response HeadV1RbacRoleRole403Response) VisitHeadV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type HeadV1RbacRoleRole404Response struct {
+}
+
+func (response HeadV1RbacRoleRole404Response) VisitHeadV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(404)
+	return nil
+}
+
+type HeadV1RbacRoleRole413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response HeadV1RbacRoleRole413JSONResponse) VisitHeadV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type HeadV1RbacRoleRole500Response struct {
+}
+
+func (response HeadV1RbacRoleRole500Response) VisitHeadV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type PutV1RbacRoleRoleRequestObject struct {
+	Role string `json:"role"`
+	Body *PutV1RbacRoleRoleJSONRequestBody
+}
+
+type PutV1RbacRoleRoleResponseObject interface {
+	VisitPutV1RbacRoleRoleResponse(w http.ResponseWriter) error
+}
+
+type PutV1RbacRoleRole201JSONResponse RoleResource
+
+func (response PutV1RbacRoleRole201JSONResponse) VisitPutV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PutV1RbacRoleRole400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response PutV1RbacRoleRole400JSONResponse) VisitPutV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PutV1RbacRoleRole401Response = GenericUnauthenticatedResponse
+
+func (response PutV1RbacRoleRole401Response) VisitPutV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type PutV1RbacRoleRole403Response = GenericForbiddenResponse
+
+func (response PutV1RbacRoleRole403Response) VisitPutV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type PutV1RbacRoleRole409JSONResponse ErrGeneric
+
+func (response PutV1RbacRoleRole409JSONResponse) VisitPutV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PutV1RbacRoleRole413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response PutV1RbacRoleRole413JSONResponse) VisitPutV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PutV1RbacRoleRole500Response = GenericInternalServerErrorResponse
+
+func (response PutV1RbacRoleRole500Response) VisitPutV1RbacRoleRoleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type GetV1TaskRequestObject struct {
+	Params GetV1TaskParams
+}
+
+type GetV1TaskResponseObject interface {
+	VisitGetV1TaskResponse(w http.ResponseWriter) error
+}
+
+type GetV1Task200JSONResponse []Task
+
+func (response GetV1Task200JSONResponse) VisitGetV1TaskResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1Task400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response GetV1Task400JSONResponse) VisitGetV1TaskResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1Task401Response = GenericUnauthenticatedResponse
+
+func (response GetV1Task401Response) VisitGetV1TaskResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type GetV1Task403Response = GenericForbiddenResponse
+
+func (response GetV1Task403Response) VisitGetV1TaskResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type GetV1Task500Response = GenericInternalServerErrorResponse
+
+func (response GetV1Task500Response) VisitGetV1TaskResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type PostV1TaskRequestObject struct {
+	Body *PostV1TaskJSONRequestBody
+}
+
+type PostV1TaskResponseObject interface {
+	VisitPostV1TaskResponse(w http.ResponseWriter) error
+}
+
+type PostV1Task201JSONResponse Task
+
+func (response PostV1Task201JSONResponse) VisitPostV1TaskResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostV1Task400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response PostV1Task400JSONResponse) VisitPostV1TaskResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostV1Task401Response = GenericUnauthenticatedResponse
+
+func (response PostV1Task401Response) VisitPostV1TaskResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type PostV1Task403Response = GenericForbiddenResponse
+
+func (response PostV1Task403Response) VisitPostV1TaskResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type PostV1Task413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response PostV1Task413JSONResponse) VisitPostV1TaskResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PostV1Task500Response = GenericInternalServerErrorResponse
+
+func (response PostV1Task500Response) VisitPostV1TaskResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type GetV1TaskIdRequestObject struct {
+	Id string `json:"id"`
+}
+
+type GetV1TaskIdResponseObject interface {
+	VisitGetV1TaskIdResponse(w http.ResponseWriter) error
+}
+
+type GetV1TaskId200JSONResponse Task
+
+func (response GetV1TaskId200JSONResponse) VisitGetV1TaskIdResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1TaskId400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response GetV1TaskId400JSONResponse) VisitGetV1TaskIdResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1TaskId401Response = GenericUnauthenticatedResponse
+
+func (response GetV1TaskId401Response) VisitGetV1TaskIdResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type GetV1TaskId403Response = GenericForbiddenResponse
+
+func (response GetV1TaskId403Response) VisitGetV1TaskIdResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type GetV1TaskId404JSONResponse struct{ GenericNotFoundJSONResponse }
+
+func (response GetV1TaskId404JSONResponse) VisitGetV1TaskIdResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1TaskId500Response = GenericInternalServerErrorResponse
+
+func (response GetV1TaskId500Response) VisitGetV1TaskIdResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type GetV1TaskIdLogsRequestObject struct {
+	Id     string `json:"id"`
+	Params GetV1TaskIdLogsParams
+}
+
+type GetV1TaskIdLogsResponseObject interface {
+	VisitGetV1TaskIdLogsResponse(w http.ResponseWriter) error
+}
+
+type GetV1TaskIdLogs200JSONResponse []TaskLog
+
+func (response GetV1TaskIdLogs200JSONResponse) VisitGetV1TaskIdLogsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1TaskIdLogs400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response GetV1TaskIdLogs400JSONResponse) VisitGetV1TaskIdLogsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1TaskIdLogs401Response = GenericUnauthenticatedResponse
+
+func (response GetV1TaskIdLogs401Response) VisitGetV1TaskIdLogsResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type GetV1TaskIdLogs403Response = GenericForbiddenResponse
+
+func (response GetV1TaskIdLogs403Response) VisitGetV1TaskIdLogsResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type GetV1TaskIdLogs404JSONResponse struct{ GenericNotFoundJSONResponse }
+
+func (response GetV1TaskIdLogs404JSONResponse) VisitGetV1TaskIdLogsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1TaskIdLogs500Response = GenericInternalServerErrorResponse
+
+func (response GetV1TaskIdLogs500Response) VisitGetV1TaskIdLogsResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type GetV1UserRequestObject struct {
+	Params GetV1UserParams
+}
+
+type GetV1UserResponseObject interface {
+	VisitGetV1UserResponse(w http.ResponseWriter) error
+}
+
+type GetV1User200JSONResponse []UserResponse
+
+func (response GetV1User200JSONResponse) VisitGetV1UserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1User400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response GetV1User400JSONResponse) VisitGetV1UserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1User401Response = GenericUnauthenticatedResponse
+
+func (response GetV1User401Response) VisitGetV1UserResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type GetV1User403Response = GenericForbiddenResponse
+
+func (response GetV1User403Response) VisitGetV1UserResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type GetV1User413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response GetV1User413JSONResponse) VisitGetV1UserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1User500Response = GenericInternalServerErrorResponse
+
+func (response GetV1User500Response) VisitGetV1UserResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type DeleteV1UserMeRequestObject struct {
+}
+
+type DeleteV1UserMeResponseObject interface {
+	VisitDeleteV1UserMeResponse(w http.ResponseWriter) error
+}
+
+type DeleteV1UserMe200JSONResponse UserResponse
+
+func (response DeleteV1UserMe200JSONResponse) VisitDeleteV1UserMeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1UserMe401Response = GenericUnauthenticatedResponse
+
+func (response DeleteV1UserMe401Response) VisitDeleteV1UserMeResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type DeleteV1UserMe403Response = GenericForbiddenResponse
+
+func (response DeleteV1UserMe403Response) VisitDeleteV1UserMeResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type DeleteV1UserMe413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response DeleteV1UserMe413JSONResponse) VisitDeleteV1UserMeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1UserMe500Response = GenericInternalServerErrorResponse
+
+func (response DeleteV1UserMe500Response) VisitDeleteV1UserMeResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type GetV1UserMeRequestObject struct {
+}
+
+type GetV1UserMeResponseObject interface {
+	VisitGetV1UserMeResponse(w http.ResponseWriter) error
+}
+
+type GetV1UserMe200JSONResponse UserResponse
+
+func (response GetV1UserMe200JSONResponse) VisitGetV1UserMeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1UserMe401Response = GenericUnauthenticatedResponse
+
+func (response GetV1UserMe401Response) VisitGetV1UserMeResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type GetV1UserMe403Response = GenericForbiddenResponse
+
+func (response GetV1UserMe403Response) VisitGetV1UserMeResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type GetV1UserMe413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response GetV1UserMe413JSONResponse) VisitGetV1UserMeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1UserMe500Response = GenericInternalServerErrorResponse
+
+func (response GetV1UserMe500Response) VisitGetV1UserMeResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type PatchV1UserMeRequestObject struct {
+	Body *PatchV1UserMeJSONRequestBody
+}
+
+type PatchV1UserMeResponseObject interface {
+	VisitPatchV1UserMeResponse(w http.ResponseWriter) error
+}
+
+type PatchV1UserMe200JSONResponse UserResponse
+
+func (response PatchV1UserMe200JSONResponse) VisitPatchV1UserMeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchV1UserMe400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response PatchV1UserMe400JSONResponse) VisitPatchV1UserMeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchV1UserMe401Response = GenericUnauthenticatedResponse
+
+func (response PatchV1UserMe401Response) VisitPatchV1UserMeResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type PatchV1UserMe403Response = GenericForbiddenResponse
+
+func (response PatchV1UserMe403Response) VisitPatchV1UserMeResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type PatchV1UserMe409JSONResponse ErrGeneric
+
+func (response PatchV1UserMe409JSONResponse) VisitPatchV1UserMeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchV1UserMe413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response PatchV1UserMe413JSONResponse) VisitPatchV1UserMeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchV1UserMe500Response = GenericInternalServerErrorResponse
+
+func (response PatchV1UserMe500Response) VisitPatchV1UserMeResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type DeleteV1UserUsernameRequestObject struct {
+	Username string `json:"username"`
+}
+
+type DeleteV1UserUsernameResponseObject interface {
+	VisitDeleteV1UserUsernameResponse(w http.ResponseWriter) error
+}
+
+type DeleteV1UserUsername200JSONResponse UserResponse
+
+func (response DeleteV1UserUsername200JSONResponse) VisitDeleteV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1UserUsername400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response DeleteV1UserUsername400JSONResponse) VisitDeleteV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1UserUsername401Response = GenericUnauthenticatedResponse
+
+func (response DeleteV1UserUsername401Response) VisitDeleteV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type DeleteV1UserUsername403Response = GenericForbiddenResponse
+
+func (response DeleteV1UserUsername403Response) VisitDeleteV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type DeleteV1UserUsername404JSONResponse struct{ GenericNotFoundJSONResponse }
+
+func (response DeleteV1UserUsername404JSONResponse) VisitDeleteV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1UserUsername413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response DeleteV1UserUsername413JSONResponse) VisitDeleteV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteV1UserUsername500Response = GenericInternalServerErrorResponse
+
+func (response DeleteV1UserUsername500Response) VisitDeleteV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type GetV1UserUsernameRequestObject struct {
+	Username string `json:"username"`
+}
+
+type GetV1UserUsernameResponseObject interface {
+	VisitGetV1UserUsernameResponse(w http.ResponseWriter) error
+}
+
+type GetV1UserUsername200JSONResponse UserResponse
+
+func (response GetV1UserUsername200JSONResponse) VisitGetV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1UserUsername400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response GetV1UserUsername400JSONResponse) VisitGetV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1UserUsername401Response = GenericUnauthenticatedResponse
+
+func (response GetV1UserUsername401Response) VisitGetV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type GetV1UserUsername403Response = GenericForbiddenResponse
+
+func (response GetV1UserUsername403Response) VisitGetV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type GetV1UserUsername404JSONResponse struct{ GenericNotFoundJSONResponse }
+
+func (response GetV1UserUsername404JSONResponse) VisitGetV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1UserUsername413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response GetV1UserUsername413JSONResponse) VisitGetV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1UserUsername500Response = GenericInternalServerErrorResponse
+
+func (response GetV1UserUsername500Response) VisitGetV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type HeadV1UserUsernameRequestObject struct {
+	Username string `json:"username"`
+}
+
+type HeadV1UserUsernameResponseObject interface {
+	VisitHeadV1UserUsernameResponse(w http.ResponseWriter) error
+}
+
+type HeadV1UserUsername200Response struct {
+}
+
+func (response HeadV1UserUsername200Response) VisitHeadV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	return nil
+}
+
+type HeadV1UserUsername400Response struct {
+}
+
+func (response HeadV1UserUsername400Response) VisitHeadV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.WriteHeader(400)
+	return nil
+}
+
+type HeadV1UserUsername401Response struct {
+}
+
+func (response HeadV1UserUsername401Response) VisitHeadV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type HeadV1UserUsername403Response struct {
+}
+
+func (response HeadV1UserUsername403Response) VisitHeadV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type HeadV1UserUsername404Response struct {
+}
+
+func (response HeadV1UserUsername404Response) VisitHeadV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.WriteHeader(404)
+	return nil
+}
+
+type HeadV1UserUsername413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response HeadV1UserUsername413JSONResponse) VisitHeadV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type HeadV1UserUsername500Response struct {
+}
+
+func (response HeadV1UserUsername500Response) VisitHeadV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type PatchV1UserUsernameRequestObject struct {
+	Username string `json:"username"`
+	Body     *PatchV1UserUsernameJSONRequestBody
+}
+
+type PatchV1UserUsernameResponseObject interface {
+	VisitPatchV1UserUsernameResponse(w http.ResponseWriter) error
+}
+
+type PatchV1UserUsername200JSONResponse UserResponse
+
+func (response PatchV1UserUsername200JSONResponse) VisitPatchV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchV1UserUsername400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response PatchV1UserUsername400JSONResponse) VisitPatchV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchV1UserUsername401Response = GenericUnauthenticatedResponse
+
+func (response PatchV1UserUsername401Response) VisitPatchV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type PatchV1UserUsername403Response = GenericForbiddenResponse
+
+func (response PatchV1UserUsername403Response) VisitPatchV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type PatchV1UserUsername404JSONResponse struct{ GenericNotFoundJSONResponse }
+
+func (response PatchV1UserUsername404JSONResponse) VisitPatchV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchV1UserUsername409JSONResponse ErrGeneric
+
+func (response PatchV1UserUsername409JSONResponse) VisitPatchV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchV1UserUsername413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response PatchV1UserUsername413JSONResponse) VisitPatchV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PatchV1UserUsername500Response = GenericInternalServerErrorResponse
+
+func (response PatchV1UserUsername500Response) VisitPatchV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type PutV1UserUsernameRequestObject struct {
+	Username string `json:"username"`
+	Body     *PutV1UserUsernameJSONRequestBody
+}
+
+type PutV1UserUsernameResponseObject interface {
+	VisitPutV1UserUsernameResponse(w http.ResponseWriter) error
+}
+
+type PutV1UserUsername201JSONResponse UserResponse
+
+func (response PutV1UserUsername201JSONResponse) VisitPutV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PutV1UserUsername400JSONResponse struct{ GenericBadRequestJSONResponse }
+
+func (response PutV1UserUsername400JSONResponse) VisitPutV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PutV1UserUsername401Response = GenericUnauthenticatedResponse
+
+func (response PutV1UserUsername401Response) VisitPutV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type PutV1UserUsername403Response = GenericForbiddenResponse
+
+func (response PutV1UserUsername403Response) VisitPutV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.WriteHeader(403)
+	return nil
+}
+
+type PutV1UserUsername409JSONResponse ErrGeneric
+
+func (response PutV1UserUsername409JSONResponse) VisitPutV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PutV1UserUsername413JSONResponse struct{ GenericTooLargeJSONResponse }
+
+func (response PutV1UserUsername413JSONResponse) VisitPutV1UserUsernameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(413)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PutV1UserUsername500Response = GenericInternalServerErrorResponse
+
+func (response PutV1UserUsername500Response) VisitPutV1UserUsernameResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
 	return nil
 }
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
-	// Delete Artifact
-	// (DELETE /artifact)
-	DeleteArtifact(ctx context.Context, request DeleteArtifactRequestObject) (DeleteArtifactResponseObject, error)
-	// Retrieve Artifact Metadata
-	// (GET /artifact)
-	GetArtifact(ctx context.Context, request GetArtifactRequestObject) (GetArtifactResponseObject, error)
-	// Check Artifact Existence
-	// (HEAD /artifact)
-	HeadArtifact(ctx context.Context, request HeadArtifactRequestObject) (HeadArtifactResponseObject, error)
-	// Query Artifact Metadata
-	// (GET /artifact/list)
-	GetArtifactList(ctx context.Context, request GetArtifactListRequestObject) (GetArtifactListResponseObject, error)
-	// Remove Tag from Artifact
-	// (DELETE /artifact/tag)
-	DeleteArtifactTag(ctx context.Context, request DeleteArtifactTagRequestObject) (DeleteArtifactTagResponseObject, error)
-	// Tag Artifact Version
-	// (POST /artifact/tag)
-	PostArtifactTag(ctx context.Context, request PostArtifactTagRequestObject) (PostArtifactTagResponseObject, error)
-	// Download Artifact
-	// (GET /artifact/upload)
-	GetArtifactUpload(ctx context.Context, request GetArtifactUploadRequestObject) (GetArtifactUploadResponseObject, error)
+	// List Artifact Namespaces
+	// (GET /v1/artifact)
+	GetV1Artifact(ctx context.Context, request GetV1ArtifactRequestObject) (GetV1ArtifactResponseObject, error)
 	// Upload Artifact
-	// (POST /artifact/upload)
-	PostArtifactUpload(ctx context.Context, request PostArtifactUploadRequestObject) (PostArtifactUploadResponseObject, error)
-	// Create Manifest
-	// (POST /manifest)
-	PostManifest(ctx context.Context, request PostManifestRequestObject) (PostManifestResponseObject, error)
-	// Remove Endpoint from Resource Group
-	// (DELETE /rbac/endpoint)
-	DeleteRbacEndpoint(ctx context.Context, request DeleteRbacEndpointRequestObject) (DeleteRbacEndpointResponseObject, error)
-	// Get Resource Group Assigned to Endpoint
-	// (GET /rbac/endpoint)
-	GetRbacEndpoint(ctx context.Context, request GetRbacEndpointRequestObject) (GetRbacEndpointResponseObject, error)
-	// Assign Endpoint to Resource Group
-	// (POST /rbac/endpoint)
-	PostRbacEndpoint(ctx context.Context, request PostRbacEndpointRequestObject) (PostRbacEndpointResponseObject, error)
-	// List All Resource Groups
-	// (GET /rbac/list-resource-groups)
-	GetRbacListResourceGroups(ctx context.Context, request GetRbacListResourceGroupsRequestObject) (GetRbacListResourceGroupsResponseObject, error)
-	// List All Roles
-	// (GET /rbac/list-roles)
-	GetRbacListRoles(ctx context.Context, request GetRbacListRolesRequestObject) (GetRbacListRolesResponseObject, error)
+	// (POST /v1/artifact/raw/{namespace}/{name})
+	PostV1ArtifactRawNamespaceName(ctx context.Context, request PostV1ArtifactRawNamespaceNameRequestObject) (PostV1ArtifactRawNamespaceNameResponseObject, error)
+	// Download Artifact by Hash
+	// (GET /v1/artifact/raw/{namespace}/{name}/hash/{hash})
+	GetV1ArtifactRawNamespaceNameHashHash(ctx context.Context, request GetV1ArtifactRawNamespaceNameHashHashRequestObject) (GetV1ArtifactRawNamespaceNameHashHashResponseObject, error)
+	// Download Artifact by Tag
+	// (GET /v1/artifact/raw/{namespace}/{name}/tag/{tag})
+	GetV1ArtifactRawNamespaceNameTagTag(ctx context.Context, request GetV1ArtifactRawNamespaceNameTagTagRequestObject) (GetV1ArtifactRawNamespaceNameTagTagResponseObject, error)
+	// List Artifacts in Namespace
+	// (GET /v1/artifact/{namespace})
+	GetV1ArtifactNamespace(ctx context.Context, request GetV1ArtifactNamespaceRequestObject) (GetV1ArtifactNamespaceResponseObject, error)
+	// List Artifact Versions
+	// (GET /v1/artifact/{namespace}/{name})
+	GetV1ArtifactNamespaceName(ctx context.Context, request GetV1ArtifactNamespaceNameRequestObject) (GetV1ArtifactNamespaceNameResponseObject, error)
+	// Delete Artifact by Hash
+	// (DELETE /v1/artifact/{namespace}/{name}/hash/{hash})
+	DeleteV1ArtifactNamespaceNameHashHash(ctx context.Context, request DeleteV1ArtifactNamespaceNameHashHashRequestObject) (DeleteV1ArtifactNamespaceNameHashHashResponseObject, error)
+	// Retrieve Artifact Metadata by Hash
+	// (GET /v1/artifact/{namespace}/{name}/hash/{hash})
+	GetV1ArtifactNamespaceNameHashHash(ctx context.Context, request GetV1ArtifactNamespaceNameHashHashRequestObject) (GetV1ArtifactNamespaceNameHashHashResponseObject, error)
+	// Patch Artifact Metadata by Hash
+	// (PATCH /v1/artifact/{namespace}/{name}/hash/{hash})
+	PatchV1ArtifactNamespaceNameHashHash(ctx context.Context, request PatchV1ArtifactNamespaceNameHashHashRequestObject) (PatchV1ArtifactNamespaceNameHashHashResponseObject, error)
+	// Delete Artifact by Tag
+	// (DELETE /v1/artifact/{namespace}/{name}/tag/{tag})
+	DeleteV1ArtifactNamespaceNameTagTag(ctx context.Context, request DeleteV1ArtifactNamespaceNameTagTagRequestObject) (DeleteV1ArtifactNamespaceNameTagTagResponseObject, error)
+	// Retrieve Artifact Metadata by Tag
+	// (GET /v1/artifact/{namespace}/{name}/tag/{tag})
+	GetV1ArtifactNamespaceNameTagTag(ctx context.Context, request GetV1ArtifactNamespaceNameTagTagRequestObject) (GetV1ArtifactNamespaceNameTagTagResponseObject, error)
+	// Patch Artifact Metadata by Tag
+	// (PATCH /v1/artifact/{namespace}/{name}/tag/{tag})
+	PatchV1ArtifactNamespaceNameTagTag(ctx context.Context, request PatchV1ArtifactNamespaceNameTagTagRequestObject) (PatchV1ArtifactNamespaceNameTagTagResponseObject, error)
 	// Delete RBAC Policy
-	// (DELETE /rbac/policy)
-	DeleteRbacPolicy(ctx context.Context, request DeleteRbacPolicyRequestObject) (DeleteRbacPolicyResponseObject, error)
-	// List All RBAC Policies
-	// (GET /rbac/policy)
-	GetRbacPolicy(ctx context.Context, request GetRbacPolicyRequestObject) (GetRbacPolicyResponseObject, error)
-	// Create New RBAC Policy
-	// (POST /rbac/policy)
-	PostRbacPolicy(ctx context.Context, request PostRbacPolicyRequestObject) (PostRbacPolicyResponseObject, error)
+	// (DELETE /v1/rbac/policy)
+	DeleteV1RbacPolicy(ctx context.Context, request DeleteV1RbacPolicyRequestObject) (DeleteV1RbacPolicyResponseObject, error)
+	// List RBAC Policies
+	// (GET /v1/rbac/policy)
+	GetV1RbacPolicy(ctx context.Context, request GetV1RbacPolicyRequestObject) (GetV1RbacPolicyResponseObject, error)
+	// Create or Replace RBAC Policy
+	// (PUT /v1/rbac/policy)
+	PutV1RbacPolicy(ctx context.Context, request PutV1RbacPolicyRequestObject) (PutV1RbacPolicyResponseObject, error)
+	// List All Resource Groups
+	// (GET /v1/rbac/resource-group)
+	GetV1RbacResourceGroup(ctx context.Context, request GetV1RbacResourceGroupRequestObject) (GetV1RbacResourceGroupResponseObject, error)
 	// Delete Resource Group
-	// (DELETE /rbac/resource-group)
-	DeleteRbacResourceGroup(ctx context.Context, request DeleteRbacResourceGroupRequestObject) (DeleteRbacResourceGroupResponseObject, error)
+	// (DELETE /v1/rbac/resource-group/{resourceGroup})
+	DeleteV1RbacResourceGroupResourceGroup(ctx context.Context, request DeleteV1RbacResourceGroupResourceGroupRequestObject) (DeleteV1RbacResourceGroupResourceGroupResponseObject, error)
 	// Get Endpoints Assigned to Resource Group
-	// (GET /rbac/resource-group)
-	GetRbacResourceGroup(ctx context.Context, request GetRbacResourceGroupRequestObject) (GetRbacResourceGroupResponseObject, error)
+	// (GET /v1/rbac/resource-group/{resourceGroup})
+	GetV1RbacResourceGroupResourceGroup(ctx context.Context, request GetV1RbacResourceGroupResourceGroupRequestObject) (GetV1RbacResourceGroupResourceGroupResponseObject, error)
 	// Check Resource Group Existence
-	// (HEAD /rbac/resource-group)
-	HeadRbacResourceGroup(ctx context.Context, request HeadRbacResourceGroupRequestObject) (HeadRbacResourceGroupResponseObject, error)
-	// Create New Resource Group
-	// (POST /rbac/resource-group)
-	PostRbacResourceGroup(ctx context.Context, request PostRbacResourceGroupRequestObject) (PostRbacResourceGroupResponseObject, error)
+	// (HEAD /v1/rbac/resource-group/{resourceGroup})
+	HeadV1RbacResourceGroupResourceGroup(ctx context.Context, request HeadV1RbacResourceGroupResourceGroupRequestObject) (HeadV1RbacResourceGroupResourceGroupResponseObject, error)
+	// Create or Replace Resource Group
+	// (PUT /v1/rbac/resource-group/{resourceGroup})
+	PutV1RbacResourceGroupResourceGroup(ctx context.Context, request PutV1RbacResourceGroupResourceGroupRequestObject) (PutV1RbacResourceGroupResourceGroupResponseObject, error)
+	// List All Roles
+	// (GET /v1/rbac/role)
+	GetV1RbacRole(ctx context.Context, request GetV1RbacRoleRequestObject) (GetV1RbacRoleResponseObject, error)
 	// Delete Role
-	// (DELETE /rbac/role)
-	DeleteRbacRole(ctx context.Context, request DeleteRbacRoleRequestObject) (DeleteRbacRoleResponseObject, error)
+	// (DELETE /v1/rbac/role/{role})
+	DeleteV1RbacRoleRole(ctx context.Context, request DeleteV1RbacRoleRoleRequestObject) (DeleteV1RbacRoleRoleResponseObject, error)
 	// Get assigned users for role
-	// (GET /rbac/role)
-	GetRbacRole(ctx context.Context, request GetRbacRoleRequestObject) (GetRbacRoleResponseObject, error)
+	// (GET /v1/rbac/role/{role})
+	GetV1RbacRoleRole(ctx context.Context, request GetV1RbacRoleRoleRequestObject) (GetV1RbacRoleRoleResponseObject, error)
 	// Check Role Existence
-	// (HEAD /rbac/role)
-	HeadRbacRole(ctx context.Context, request HeadRbacRoleRequestObject) (HeadRbacRoleResponseObject, error)
-	// Create New Role
-	// (POST /rbac/role)
-	PostRbacRole(ctx context.Context, request PostRbacRoleRequestObject) (PostRbacRoleResponseObject, error)
-	// Remove Role from User
-	// (DELETE /rbac/user)
-	DeleteRbacUser(ctx context.Context, request DeleteRbacUserRequestObject) (DeleteRbacUserResponseObject, error)
-	// Get Roles Assigned to User
-	// (GET /rbac/user)
-	GetRbacUser(ctx context.Context, request GetRbacUserRequestObject) (GetRbacUserResponseObject, error)
-	// Assign Roles to User
-	// (POST /rbac/user)
-	PostRbacUser(ctx context.Context, request PostRbacUserRequestObject) (PostRbacUserResponseObject, error)
-	// Get Task list
-	// (GET /tasks/list)
-	GetTasksList(ctx context.Context, request GetTasksListRequestObject) (GetTasksListResponseObject, error)
-	// Get Single Task
-	// (GET /tasks/task)
-	GetTasksTask(ctx context.Context, request GetTasksTaskRequestObject) (GetTasksTaskResponseObject, error)
-	// List All Users
-	// (GET /users/list)
-	GetUsersList(ctx context.Context, request GetUsersListRequestObject) (GetUsersListResponseObject, error)
+	// (HEAD /v1/rbac/role/{role})
+	HeadV1RbacRoleRole(ctx context.Context, request HeadV1RbacRoleRoleRequestObject) (HeadV1RbacRoleRoleResponseObject, error)
+	// Create or Replace Role
+	// (PUT /v1/rbac/role/{role})
+	PutV1RbacRoleRole(ctx context.Context, request PutV1RbacRoleRoleRequestObject) (PutV1RbacRoleRoleResponseObject, error)
+	// List Tasks
+	// (GET /v1/task)
+	GetV1Task(ctx context.Context, request GetV1TaskRequestObject) (GetV1TaskResponseObject, error)
+	// Create Task
+	// (POST /v1/task)
+	PostV1Task(ctx context.Context, request PostV1TaskRequestObject) (PostV1TaskResponseObject, error)
+	// Get Task
+	// (GET /v1/task/{id})
+	GetV1TaskId(ctx context.Context, request GetV1TaskIdRequestObject) (GetV1TaskIdResponseObject, error)
+	// Get Task Logs
+	// (GET /v1/task/{id}/logs)
+	GetV1TaskIdLogs(ctx context.Context, request GetV1TaskIdLogsRequestObject) (GetV1TaskIdLogsResponseObject, error)
+	// List Users
+	// (GET /v1/user)
+	GetV1User(ctx context.Context, request GetV1UserRequestObject) (GetV1UserResponseObject, error)
 	// Delete Current User
-	// (DELETE /users/me)
-	DeleteUsersMe(ctx context.Context, request DeleteUsersMeRequestObject) (DeleteUsersMeResponseObject, error)
-	// Get Current User Information
-	// (GET /users/me)
-	GetUsersMe(ctx context.Context, request GetUsersMeRequestObject) (GetUsersMeResponseObject, error)
-	// Update Current User Information
-	// (PATCH /users/me)
-	PatchUsersMe(ctx context.Context, request PatchUsersMeRequestObject) (PatchUsersMeResponseObject, error)
+	// (DELETE /v1/user/me)
+	DeleteV1UserMe(ctx context.Context, request DeleteV1UserMeRequestObject) (DeleteV1UserMeResponseObject, error)
+	// Get Current User
+	// (GET /v1/user/me)
+	GetV1UserMe(ctx context.Context, request GetV1UserMeRequestObject) (GetV1UserMeResponseObject, error)
+	// Update Current User
+	// (PATCH /v1/user/me)
+	PatchV1UserMe(ctx context.Context, request PatchV1UserMeRequestObject) (PatchV1UserMeResponseObject, error)
 	// Delete User
-	// (DELETE /users/user)
-	DeleteUsersUser(ctx context.Context, request DeleteUsersUserRequestObject) (DeleteUsersUserResponseObject, error)
-	// Get User Information
-	// (GET /users/user)
-	GetUsersUser(ctx context.Context, request GetUsersUserRequestObject) (GetUsersUserResponseObject, error)
+	// (DELETE /v1/user/{username})
+	DeleteV1UserUsername(ctx context.Context, request DeleteV1UserUsernameRequestObject) (DeleteV1UserUsernameResponseObject, error)
+	// Get User
+	// (GET /v1/user/{username})
+	GetV1UserUsername(ctx context.Context, request GetV1UserUsernameRequestObject) (GetV1UserUsernameResponseObject, error)
 	// Check User Existence
-	// (HEAD /users/user)
-	HeadUsersUser(ctx context.Context, request HeadUsersUserRequestObject) (HeadUsersUserResponseObject, error)
-	// Update User Information
-	// (PATCH /users/user)
-	PatchUsersUser(ctx context.Context, request PatchUsersUserRequestObject) (PatchUsersUserResponseObject, error)
-	// Create New User
-	// (POST /users/user)
-	PostUsersUser(ctx context.Context, request PostUsersUserRequestObject) (PostUsersUserResponseObject, error)
+	// (HEAD /v1/user/{username})
+	HeadV1UserUsername(ctx context.Context, request HeadV1UserUsernameRequestObject) (HeadV1UserUsernameResponseObject, error)
+	// Update User
+	// (PATCH /v1/user/{username})
+	PatchV1UserUsername(ctx context.Context, request PatchV1UserUsernameRequestObject) (PatchV1UserUsernameResponseObject, error)
+	// Create User
+	// (PUT /v1/user/{username})
+	PutV1UserUsername(ctx context.Context, request PutV1UserUsernameRequestObject) (PutV1UserUsernameResponseObject, error)
 }
 
 type StrictHandlerFunc = strictgin.StrictGinHandlerFunc
@@ -4071,50 +4418,17 @@ type strictHandler struct {
 	middlewares []StrictMiddlewareFunc
 }
 
-// DeleteArtifact operation middleware
-func (sh *strictHandler) DeleteArtifact(ctx *gin.Context) {
-	var request DeleteArtifactRequestObject
-
-	var body DeleteArtifactJSONRequestBody
-	if err := ctx.ShouldBindJSON(&body); err != nil {
-		ctx.Status(http.StatusBadRequest)
-		ctx.Error(err)
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteArtifact(ctx, request.(DeleteArtifactRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "DeleteArtifact")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(DeleteArtifactResponseObject); ok {
-		if err := validResponse.VisitDeleteArtifactResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// GetArtifact operation middleware
-func (sh *strictHandler) GetArtifact(ctx *gin.Context, params GetArtifactParams) {
-	var request GetArtifactRequestObject
+// GetV1Artifact operation middleware
+func (sh *strictHandler) GetV1Artifact(ctx *gin.Context, params GetV1ArtifactParams) {
+	var request GetV1ArtifactRequestObject
 
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetArtifact(ctx, request.(GetArtifactRequestObject))
+		return sh.ssi.GetV1Artifact(ctx, request.(GetV1ArtifactRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetArtifact")
+		handler = middleware(handler, "GetV1Artifact")
 	}
 
 	response, err := handler(ctx, request)
@@ -4122,8 +4436,8 @@ func (sh *strictHandler) GetArtifact(ctx *gin.Context, params GetArtifactParams)
 	if err != nil {
 		ctx.Error(err)
 		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(GetArtifactResponseObject); ok {
-		if err := validResponse.VisitGetArtifactResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(GetV1ArtifactResponseObject); ok {
+		if err := validResponse.VisitGetV1ArtifactResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -4131,196 +4445,20 @@ func (sh *strictHandler) GetArtifact(ctx *gin.Context, params GetArtifactParams)
 	}
 }
 
-// HeadArtifact operation middleware
-func (sh *strictHandler) HeadArtifact(ctx *gin.Context, params HeadArtifactParams) {
-	var request HeadArtifactRequestObject
+// PostV1ArtifactRawNamespaceName operation middleware
+func (sh *strictHandler) PostV1ArtifactRawNamespaceName(ctx *gin.Context, namespace string, name string) {
+	var request PostV1ArtifactRawNamespaceNameRequestObject
 
-	request.Params = params
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.HeadArtifact(ctx, request.(HeadArtifactRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "HeadArtifact")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(HeadArtifactResponseObject); ok {
-		if err := validResponse.VisitHeadArtifactResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// GetArtifactList operation middleware
-func (sh *strictHandler) GetArtifactList(ctx *gin.Context, params GetArtifactListParams) {
-	var request GetArtifactListRequestObject
-
-	request.Params = params
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetArtifactList(ctx, request.(GetArtifactListRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetArtifactList")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(GetArtifactListResponseObject); ok {
-		if err := validResponse.VisitGetArtifactListResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// DeleteArtifactTag operation middleware
-func (sh *strictHandler) DeleteArtifactTag(ctx *gin.Context) {
-	var request DeleteArtifactTagRequestObject
-
-	var body DeleteArtifactTagJSONRequestBody
-	if err := ctx.ShouldBindJSON(&body); err != nil {
-		ctx.Status(http.StatusBadRequest)
-		ctx.Error(err)
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteArtifactTag(ctx, request.(DeleteArtifactTagRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "DeleteArtifactTag")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(DeleteArtifactTagResponseObject); ok {
-		if err := validResponse.VisitDeleteArtifactTagResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// PostArtifactTag operation middleware
-func (sh *strictHandler) PostArtifactTag(ctx *gin.Context) {
-	var request PostArtifactTagRequestObject
-
-	var body PostArtifactTagJSONRequestBody
-	if err := ctx.ShouldBindJSON(&body); err != nil {
-		ctx.Status(http.StatusBadRequest)
-		ctx.Error(err)
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.PostArtifactTag(ctx, request.(PostArtifactTagRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "PostArtifactTag")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(PostArtifactTagResponseObject); ok {
-		if err := validResponse.VisitPostArtifactTagResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// GetArtifactUpload operation middleware
-func (sh *strictHandler) GetArtifactUpload(ctx *gin.Context, params GetArtifactUploadParams) {
-	var request GetArtifactUploadRequestObject
-
-	request.Params = params
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetArtifactUpload(ctx, request.(GetArtifactUploadRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetArtifactUpload")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(GetArtifactUploadResponseObject); ok {
-		if err := validResponse.VisitGetArtifactUploadResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// PostArtifactUpload operation middleware
-func (sh *strictHandler) PostArtifactUpload(ctx *gin.Context) {
-	var request PostArtifactUploadRequestObject
-
-	if reader, err := ctx.Request.MultipartReader(); err == nil {
-		request.Body = reader
-	} else {
-		ctx.Error(err)
-		return
-	}
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.PostArtifactUpload(ctx, request.(PostArtifactUploadRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "PostArtifactUpload")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(PostArtifactUploadResponseObject); ok {
-		if err := validResponse.VisitPostArtifactUploadResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// PostManifest operation middleware
-func (sh *strictHandler) PostManifest(ctx *gin.Context) {
-	var request PostManifestRequestObject
+	request.Namespace = namespace
+	request.Name = name
 
 	request.Body = ctx.Request.Body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.PostManifest(ctx, request.(PostManifestRequestObject))
+		return sh.ssi.PostV1ArtifactRawNamespaceName(ctx, request.(PostV1ArtifactRawNamespaceNameRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "PostManifest")
+		handler = middleware(handler, "PostV1ArtifactRawNamespaceName")
 	}
 
 	response, err := handler(ctx, request)
@@ -4328,8 +4466,8 @@ func (sh *strictHandler) PostManifest(ctx *gin.Context) {
 	if err != nil {
 		ctx.Error(err)
 		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(PostManifestResponseObject); ok {
-		if err := validResponse.VisitPostManifestResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(PostV1ArtifactRawNamespaceNameResponseObject); ok {
+		if err := validResponse.VisitPostV1ArtifactRawNamespaceNameResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -4337,11 +4475,188 @@ func (sh *strictHandler) PostManifest(ctx *gin.Context) {
 	}
 }
 
-// DeleteRbacEndpoint operation middleware
-func (sh *strictHandler) DeleteRbacEndpoint(ctx *gin.Context) {
-	var request DeleteRbacEndpointRequestObject
+// GetV1ArtifactRawNamespaceNameHashHash operation middleware
+func (sh *strictHandler) GetV1ArtifactRawNamespaceNameHashHash(ctx *gin.Context, namespace string, name string, hash string) {
+	var request GetV1ArtifactRawNamespaceNameHashHashRequestObject
 
-	var body DeleteRbacEndpointJSONRequestBody
+	request.Namespace = namespace
+	request.Name = name
+	request.Hash = hash
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetV1ArtifactRawNamespaceNameHashHash(ctx, request.(GetV1ArtifactRawNamespaceNameHashHashRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetV1ArtifactRawNamespaceNameHashHash")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(GetV1ArtifactRawNamespaceNameHashHashResponseObject); ok {
+		if err := validResponse.VisitGetV1ArtifactRawNamespaceNameHashHashResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetV1ArtifactRawNamespaceNameTagTag operation middleware
+func (sh *strictHandler) GetV1ArtifactRawNamespaceNameTagTag(ctx *gin.Context, namespace string, name string, tag string) {
+	var request GetV1ArtifactRawNamespaceNameTagTagRequestObject
+
+	request.Namespace = namespace
+	request.Name = name
+	request.Tag = tag
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetV1ArtifactRawNamespaceNameTagTag(ctx, request.(GetV1ArtifactRawNamespaceNameTagTagRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetV1ArtifactRawNamespaceNameTagTag")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(GetV1ArtifactRawNamespaceNameTagTagResponseObject); ok {
+		if err := validResponse.VisitGetV1ArtifactRawNamespaceNameTagTagResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetV1ArtifactNamespace operation middleware
+func (sh *strictHandler) GetV1ArtifactNamespace(ctx *gin.Context, namespace string, params GetV1ArtifactNamespaceParams) {
+	var request GetV1ArtifactNamespaceRequestObject
+
+	request.Namespace = namespace
+	request.Params = params
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetV1ArtifactNamespace(ctx, request.(GetV1ArtifactNamespaceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetV1ArtifactNamespace")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(GetV1ArtifactNamespaceResponseObject); ok {
+		if err := validResponse.VisitGetV1ArtifactNamespaceResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetV1ArtifactNamespaceName operation middleware
+func (sh *strictHandler) GetV1ArtifactNamespaceName(ctx *gin.Context, namespace string, name string, params GetV1ArtifactNamespaceNameParams) {
+	var request GetV1ArtifactNamespaceNameRequestObject
+
+	request.Namespace = namespace
+	request.Name = name
+	request.Params = params
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetV1ArtifactNamespaceName(ctx, request.(GetV1ArtifactNamespaceNameRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetV1ArtifactNamespaceName")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(GetV1ArtifactNamespaceNameResponseObject); ok {
+		if err := validResponse.VisitGetV1ArtifactNamespaceNameResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteV1ArtifactNamespaceNameHashHash operation middleware
+func (sh *strictHandler) DeleteV1ArtifactNamespaceNameHashHash(ctx *gin.Context, namespace string, name string, hash string) {
+	var request DeleteV1ArtifactNamespaceNameHashHashRequestObject
+
+	request.Namespace = namespace
+	request.Name = name
+	request.Hash = hash
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteV1ArtifactNamespaceNameHashHash(ctx, request.(DeleteV1ArtifactNamespaceNameHashHashRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteV1ArtifactNamespaceNameHashHash")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(DeleteV1ArtifactNamespaceNameHashHashResponseObject); ok {
+		if err := validResponse.VisitDeleteV1ArtifactNamespaceNameHashHashResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetV1ArtifactNamespaceNameHashHash operation middleware
+func (sh *strictHandler) GetV1ArtifactNamespaceNameHashHash(ctx *gin.Context, namespace string, name string, hash string) {
+	var request GetV1ArtifactNamespaceNameHashHashRequestObject
+
+	request.Namespace = namespace
+	request.Name = name
+	request.Hash = hash
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetV1ArtifactNamespaceNameHashHash(ctx, request.(GetV1ArtifactNamespaceNameHashHashRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetV1ArtifactNamespaceNameHashHash")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(GetV1ArtifactNamespaceNameHashHashResponseObject); ok {
+		if err := validResponse.VisitGetV1ArtifactNamespaceNameHashHashResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PatchV1ArtifactNamespaceNameHashHash operation middleware
+func (sh *strictHandler) PatchV1ArtifactNamespaceNameHashHash(ctx *gin.Context, namespace string, name string, hash string) {
+	var request PatchV1ArtifactNamespaceNameHashHashRequestObject
+
+	request.Namespace = namespace
+	request.Name = name
+	request.Hash = hash
+
+	var body PatchV1ArtifactNamespaceNameHashHashJSONRequestBody
 	if err := ctx.ShouldBindJSON(&body); err != nil {
 		ctx.Status(http.StatusBadRequest)
 		ctx.Error(err)
@@ -4350,10 +4665,10 @@ func (sh *strictHandler) DeleteRbacEndpoint(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteRbacEndpoint(ctx, request.(DeleteRbacEndpointRequestObject))
+		return sh.ssi.PatchV1ArtifactNamespaceNameHashHash(ctx, request.(PatchV1ArtifactNamespaceNameHashHashRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "DeleteRbacEndpoint")
+		handler = middleware(handler, "PatchV1ArtifactNamespaceNameHashHash")
 	}
 
 	response, err := handler(ctx, request)
@@ -4361,8 +4676,8 @@ func (sh *strictHandler) DeleteRbacEndpoint(ctx *gin.Context) {
 	if err != nil {
 		ctx.Error(err)
 		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(DeleteRbacEndpointResponseObject); ok {
-		if err := validResponse.VisitDeleteRbacEndpointResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(PatchV1ArtifactNamespaceNameHashHashResponseObject); ok {
+		if err := validResponse.VisitPatchV1ArtifactNamespaceNameHashHashResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -4370,17 +4685,145 @@ func (sh *strictHandler) DeleteRbacEndpoint(ctx *gin.Context) {
 	}
 }
 
-// GetRbacEndpoint operation middleware
-func (sh *strictHandler) GetRbacEndpoint(ctx *gin.Context, params GetRbacEndpointParams) {
-	var request GetRbacEndpointRequestObject
+// DeleteV1ArtifactNamespaceNameTagTag operation middleware
+func (sh *strictHandler) DeleteV1ArtifactNamespaceNameTagTag(ctx *gin.Context, namespace string, name string, tag string) {
+	var request DeleteV1ArtifactNamespaceNameTagTagRequestObject
+
+	request.Namespace = namespace
+	request.Name = name
+	request.Tag = tag
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteV1ArtifactNamespaceNameTagTag(ctx, request.(DeleteV1ArtifactNamespaceNameTagTagRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteV1ArtifactNamespaceNameTagTag")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(DeleteV1ArtifactNamespaceNameTagTagResponseObject); ok {
+		if err := validResponse.VisitDeleteV1ArtifactNamespaceNameTagTagResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetV1ArtifactNamespaceNameTagTag operation middleware
+func (sh *strictHandler) GetV1ArtifactNamespaceNameTagTag(ctx *gin.Context, namespace string, name string, tag string) {
+	var request GetV1ArtifactNamespaceNameTagTagRequestObject
+
+	request.Namespace = namespace
+	request.Name = name
+	request.Tag = tag
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetV1ArtifactNamespaceNameTagTag(ctx, request.(GetV1ArtifactNamespaceNameTagTagRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetV1ArtifactNamespaceNameTagTag")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(GetV1ArtifactNamespaceNameTagTagResponseObject); ok {
+		if err := validResponse.VisitGetV1ArtifactNamespaceNameTagTagResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PatchV1ArtifactNamespaceNameTagTag operation middleware
+func (sh *strictHandler) PatchV1ArtifactNamespaceNameTagTag(ctx *gin.Context, namespace string, name string, tag string) {
+	var request PatchV1ArtifactNamespaceNameTagTagRequestObject
+
+	request.Namespace = namespace
+	request.Name = name
+	request.Tag = tag
+
+	var body PatchV1ArtifactNamespaceNameTagTagJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.Status(http.StatusBadRequest)
+		ctx.Error(err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.PatchV1ArtifactNamespaceNameTagTag(ctx, request.(PatchV1ArtifactNamespaceNameTagTagRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PatchV1ArtifactNamespaceNameTagTag")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(PatchV1ArtifactNamespaceNameTagTagResponseObject); ok {
+		if err := validResponse.VisitPatchV1ArtifactNamespaceNameTagTagResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteV1RbacPolicy operation middleware
+func (sh *strictHandler) DeleteV1RbacPolicy(ctx *gin.Context) {
+	var request DeleteV1RbacPolicyRequestObject
+
+	var body DeleteV1RbacPolicyJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.Status(http.StatusBadRequest)
+		ctx.Error(err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteV1RbacPolicy(ctx, request.(DeleteV1RbacPolicyRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteV1RbacPolicy")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(DeleteV1RbacPolicyResponseObject); ok {
+		if err := validResponse.VisitDeleteV1RbacPolicyResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetV1RbacPolicy operation middleware
+func (sh *strictHandler) GetV1RbacPolicy(ctx *gin.Context, params GetV1RbacPolicyParams) {
+	var request GetV1RbacPolicyRequestObject
 
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetRbacEndpoint(ctx, request.(GetRbacEndpointRequestObject))
+		return sh.ssi.GetV1RbacPolicy(ctx, request.(GetV1RbacPolicyRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetRbacEndpoint")
+		handler = middleware(handler, "GetV1RbacPolicy")
 	}
 
 	response, err := handler(ctx, request)
@@ -4388,8 +4831,8 @@ func (sh *strictHandler) GetRbacEndpoint(ctx *gin.Context, params GetRbacEndpoin
 	if err != nil {
 		ctx.Error(err)
 		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(GetRbacEndpointResponseObject); ok {
-		if err := validResponse.VisitGetRbacEndpointResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(GetV1RbacPolicyResponseObject); ok {
+		if err := validResponse.VisitGetV1RbacPolicyResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -4397,11 +4840,11 @@ func (sh *strictHandler) GetRbacEndpoint(ctx *gin.Context, params GetRbacEndpoin
 	}
 }
 
-// PostRbacEndpoint operation middleware
-func (sh *strictHandler) PostRbacEndpoint(ctx *gin.Context) {
-	var request PostRbacEndpointRequestObject
+// PutV1RbacPolicy operation middleware
+func (sh *strictHandler) PutV1RbacPolicy(ctx *gin.Context) {
+	var request PutV1RbacPolicyRequestObject
 
-	var body PostRbacEndpointJSONRequestBody
+	var body PutV1RbacPolicyJSONRequestBody
 	if err := ctx.ShouldBindJSON(&body); err != nil {
 		ctx.Status(http.StatusBadRequest)
 		ctx.Error(err)
@@ -4410,10 +4853,10 @@ func (sh *strictHandler) PostRbacEndpoint(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.PostRbacEndpoint(ctx, request.(PostRbacEndpointRequestObject))
+		return sh.ssi.PutV1RbacPolicy(ctx, request.(PutV1RbacPolicyRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "PostRbacEndpoint")
+		handler = middleware(handler, "PutV1RbacPolicy")
 	}
 
 	response, err := handler(ctx, request)
@@ -4421,8 +4864,8 @@ func (sh *strictHandler) PostRbacEndpoint(ctx *gin.Context) {
 	if err != nil {
 		ctx.Error(err)
 		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(PostRbacEndpointResponseObject); ok {
-		if err := validResponse.VisitPostRbacEndpointResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(PutV1RbacPolicyResponseObject); ok {
+		if err := validResponse.VisitPutV1RbacPolicyResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -4430,191 +4873,17 @@ func (sh *strictHandler) PostRbacEndpoint(ctx *gin.Context) {
 	}
 }
 
-// GetRbacListResourceGroups operation middleware
-func (sh *strictHandler) GetRbacListResourceGroups(ctx *gin.Context) {
-	var request GetRbacListResourceGroupsRequestObject
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetRbacListResourceGroups(ctx, request.(GetRbacListResourceGroupsRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetRbacListResourceGroups")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(GetRbacListResourceGroupsResponseObject); ok {
-		if err := validResponse.VisitGetRbacListResourceGroupsResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// GetRbacListRoles operation middleware
-func (sh *strictHandler) GetRbacListRoles(ctx *gin.Context) {
-	var request GetRbacListRolesRequestObject
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetRbacListRoles(ctx, request.(GetRbacListRolesRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetRbacListRoles")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(GetRbacListRolesResponseObject); ok {
-		if err := validResponse.VisitGetRbacListRolesResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// DeleteRbacPolicy operation middleware
-func (sh *strictHandler) DeleteRbacPolicy(ctx *gin.Context) {
-	var request DeleteRbacPolicyRequestObject
-
-	var body DeleteRbacPolicyJSONRequestBody
-	if err := ctx.ShouldBindJSON(&body); err != nil {
-		ctx.Status(http.StatusBadRequest)
-		ctx.Error(err)
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteRbacPolicy(ctx, request.(DeleteRbacPolicyRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "DeleteRbacPolicy")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(DeleteRbacPolicyResponseObject); ok {
-		if err := validResponse.VisitDeleteRbacPolicyResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// GetRbacPolicy operation middleware
-func (sh *strictHandler) GetRbacPolicy(ctx *gin.Context) {
-	var request GetRbacPolicyRequestObject
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetRbacPolicy(ctx, request.(GetRbacPolicyRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetRbacPolicy")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(GetRbacPolicyResponseObject); ok {
-		if err := validResponse.VisitGetRbacPolicyResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// PostRbacPolicy operation middleware
-func (sh *strictHandler) PostRbacPolicy(ctx *gin.Context) {
-	var request PostRbacPolicyRequestObject
-
-	var body PostRbacPolicyJSONRequestBody
-	if err := ctx.ShouldBindJSON(&body); err != nil {
-		ctx.Status(http.StatusBadRequest)
-		ctx.Error(err)
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.PostRbacPolicy(ctx, request.(PostRbacPolicyRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "PostRbacPolicy")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(PostRbacPolicyResponseObject); ok {
-		if err := validResponse.VisitPostRbacPolicyResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// DeleteRbacResourceGroup operation middleware
-func (sh *strictHandler) DeleteRbacResourceGroup(ctx *gin.Context) {
-	var request DeleteRbacResourceGroupRequestObject
-
-	var body DeleteRbacResourceGroupJSONRequestBody
-	if err := ctx.ShouldBindJSON(&body); err != nil {
-		ctx.Status(http.StatusBadRequest)
-		ctx.Error(err)
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteRbacResourceGroup(ctx, request.(DeleteRbacResourceGroupRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "DeleteRbacResourceGroup")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(DeleteRbacResourceGroupResponseObject); ok {
-		if err := validResponse.VisitDeleteRbacResourceGroupResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// GetRbacResourceGroup operation middleware
-func (sh *strictHandler) GetRbacResourceGroup(ctx *gin.Context, params GetRbacResourceGroupParams) {
-	var request GetRbacResourceGroupRequestObject
+// GetV1RbacResourceGroup operation middleware
+func (sh *strictHandler) GetV1RbacResourceGroup(ctx *gin.Context, params GetV1RbacResourceGroupParams) {
+	var request GetV1RbacResourceGroupRequestObject
 
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetRbacResourceGroup(ctx, request.(GetRbacResourceGroupRequestObject))
+		return sh.ssi.GetV1RbacResourceGroup(ctx, request.(GetV1RbacResourceGroupRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetRbacResourceGroup")
+		handler = middleware(handler, "GetV1RbacResourceGroup")
 	}
 
 	response, err := handler(ctx, request)
@@ -4622,8 +4891,8 @@ func (sh *strictHandler) GetRbacResourceGroup(ctx *gin.Context, params GetRbacRe
 	if err != nil {
 		ctx.Error(err)
 		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(GetRbacResourceGroupResponseObject); ok {
-		if err := validResponse.VisitGetRbacResourceGroupResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(GetV1RbacResourceGroupResponseObject); ok {
+		if err := validResponse.VisitGetV1RbacResourceGroupResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -4631,11 +4900,94 @@ func (sh *strictHandler) GetRbacResourceGroup(ctx *gin.Context, params GetRbacRe
 	}
 }
 
-// HeadRbacResourceGroup operation middleware
-func (sh *strictHandler) HeadRbacResourceGroup(ctx *gin.Context) {
-	var request HeadRbacResourceGroupRequestObject
+// DeleteV1RbacResourceGroupResourceGroup operation middleware
+func (sh *strictHandler) DeleteV1RbacResourceGroupResourceGroup(ctx *gin.Context, resourceGroup string) {
+	var request DeleteV1RbacResourceGroupResourceGroupRequestObject
 
-	var body HeadRbacResourceGroupJSONRequestBody
+	request.ResourceGroup = resourceGroup
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteV1RbacResourceGroupResourceGroup(ctx, request.(DeleteV1RbacResourceGroupResourceGroupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteV1RbacResourceGroupResourceGroup")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(DeleteV1RbacResourceGroupResourceGroupResponseObject); ok {
+		if err := validResponse.VisitDeleteV1RbacResourceGroupResourceGroupResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetV1RbacResourceGroupResourceGroup operation middleware
+func (sh *strictHandler) GetV1RbacResourceGroupResourceGroup(ctx *gin.Context, resourceGroup string) {
+	var request GetV1RbacResourceGroupResourceGroupRequestObject
+
+	request.ResourceGroup = resourceGroup
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetV1RbacResourceGroupResourceGroup(ctx, request.(GetV1RbacResourceGroupResourceGroupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetV1RbacResourceGroupResourceGroup")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(GetV1RbacResourceGroupResourceGroupResponseObject); ok {
+		if err := validResponse.VisitGetV1RbacResourceGroupResourceGroupResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// HeadV1RbacResourceGroupResourceGroup operation middleware
+func (sh *strictHandler) HeadV1RbacResourceGroupResourceGroup(ctx *gin.Context, resourceGroup string) {
+	var request HeadV1RbacResourceGroupResourceGroupRequestObject
+
+	request.ResourceGroup = resourceGroup
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.HeadV1RbacResourceGroupResourceGroup(ctx, request.(HeadV1RbacResourceGroupResourceGroupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "HeadV1RbacResourceGroupResourceGroup")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(HeadV1RbacResourceGroupResourceGroupResponseObject); ok {
+		if err := validResponse.VisitHeadV1RbacResourceGroupResourceGroupResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PutV1RbacResourceGroupResourceGroup operation middleware
+func (sh *strictHandler) PutV1RbacResourceGroupResourceGroup(ctx *gin.Context, resourceGroup string) {
+	var request PutV1RbacResourceGroupResourceGroupRequestObject
+
+	request.ResourceGroup = resourceGroup
+
+	var body PutV1RbacResourceGroupResourceGroupJSONRequestBody
 	if err := ctx.ShouldBindJSON(&body); err != nil {
 		ctx.Status(http.StatusBadRequest)
 		ctx.Error(err)
@@ -4644,10 +4996,10 @@ func (sh *strictHandler) HeadRbacResourceGroup(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.HeadRbacResourceGroup(ctx, request.(HeadRbacResourceGroupRequestObject))
+		return sh.ssi.PutV1RbacResourceGroupResourceGroup(ctx, request.(PutV1RbacResourceGroupResourceGroupRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "HeadRbacResourceGroup")
+		handler = middleware(handler, "PutV1RbacResourceGroupResourceGroup")
 	}
 
 	response, err := handler(ctx, request)
@@ -4655,8 +5007,8 @@ func (sh *strictHandler) HeadRbacResourceGroup(ctx *gin.Context) {
 	if err != nil {
 		ctx.Error(err)
 		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(HeadRbacResourceGroupResponseObject); ok {
-		if err := validResponse.VisitHeadRbacResourceGroupResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(PutV1RbacResourceGroupResourceGroupResponseObject); ok {
+		if err := validResponse.VisitPutV1RbacResourceGroupResourceGroupResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -4664,83 +5016,17 @@ func (sh *strictHandler) HeadRbacResourceGroup(ctx *gin.Context) {
 	}
 }
 
-// PostRbacResourceGroup operation middleware
-func (sh *strictHandler) PostRbacResourceGroup(ctx *gin.Context) {
-	var request PostRbacResourceGroupRequestObject
-
-	var body PostRbacResourceGroupJSONRequestBody
-	if err := ctx.ShouldBindJSON(&body); err != nil {
-		ctx.Status(http.StatusBadRequest)
-		ctx.Error(err)
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.PostRbacResourceGroup(ctx, request.(PostRbacResourceGroupRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "PostRbacResourceGroup")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(PostRbacResourceGroupResponseObject); ok {
-		if err := validResponse.VisitPostRbacResourceGroupResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// DeleteRbacRole operation middleware
-func (sh *strictHandler) DeleteRbacRole(ctx *gin.Context) {
-	var request DeleteRbacRoleRequestObject
-
-	var body DeleteRbacRoleJSONRequestBody
-	if err := ctx.ShouldBindJSON(&body); err != nil {
-		ctx.Status(http.StatusBadRequest)
-		ctx.Error(err)
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteRbacRole(ctx, request.(DeleteRbacRoleRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "DeleteRbacRole")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(DeleteRbacRoleResponseObject); ok {
-		if err := validResponse.VisitDeleteRbacRoleResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// GetRbacRole operation middleware
-func (sh *strictHandler) GetRbacRole(ctx *gin.Context, params GetRbacRoleParams) {
-	var request GetRbacRoleRequestObject
+// GetV1RbacRole operation middleware
+func (sh *strictHandler) GetV1RbacRole(ctx *gin.Context, params GetV1RbacRoleParams) {
+	var request GetV1RbacRoleRequestObject
 
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetRbacRole(ctx, request.(GetRbacRoleRequestObject))
+		return sh.ssi.GetV1RbacRole(ctx, request.(GetV1RbacRoleRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetRbacRole")
+		handler = middleware(handler, "GetV1RbacRole")
 	}
 
 	response, err := handler(ctx, request)
@@ -4748,8 +5034,8 @@ func (sh *strictHandler) GetRbacRole(ctx *gin.Context, params GetRbacRoleParams)
 	if err != nil {
 		ctx.Error(err)
 		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(GetRbacRoleResponseObject); ok {
-		if err := validResponse.VisitGetRbacRoleResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(GetV1RbacRoleResponseObject); ok {
+		if err := validResponse.VisitGetV1RbacRoleResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -4757,11 +5043,94 @@ func (sh *strictHandler) GetRbacRole(ctx *gin.Context, params GetRbacRoleParams)
 	}
 }
 
-// HeadRbacRole operation middleware
-func (sh *strictHandler) HeadRbacRole(ctx *gin.Context) {
-	var request HeadRbacRoleRequestObject
+// DeleteV1RbacRoleRole operation middleware
+func (sh *strictHandler) DeleteV1RbacRoleRole(ctx *gin.Context, role string) {
+	var request DeleteV1RbacRoleRoleRequestObject
 
-	var body HeadRbacRoleJSONRequestBody
+	request.Role = role
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteV1RbacRoleRole(ctx, request.(DeleteV1RbacRoleRoleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteV1RbacRoleRole")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(DeleteV1RbacRoleRoleResponseObject); ok {
+		if err := validResponse.VisitDeleteV1RbacRoleRoleResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetV1RbacRoleRole operation middleware
+func (sh *strictHandler) GetV1RbacRoleRole(ctx *gin.Context, role string) {
+	var request GetV1RbacRoleRoleRequestObject
+
+	request.Role = role
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetV1RbacRoleRole(ctx, request.(GetV1RbacRoleRoleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetV1RbacRoleRole")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(GetV1RbacRoleRoleResponseObject); ok {
+		if err := validResponse.VisitGetV1RbacRoleRoleResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// HeadV1RbacRoleRole operation middleware
+func (sh *strictHandler) HeadV1RbacRoleRole(ctx *gin.Context, role string) {
+	var request HeadV1RbacRoleRoleRequestObject
+
+	request.Role = role
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.HeadV1RbacRoleRole(ctx, request.(HeadV1RbacRoleRoleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "HeadV1RbacRoleRole")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(HeadV1RbacRoleRoleResponseObject); ok {
+		if err := validResponse.VisitHeadV1RbacRoleRoleResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PutV1RbacRoleRole operation middleware
+func (sh *strictHandler) PutV1RbacRoleRole(ctx *gin.Context, role string) {
+	var request PutV1RbacRoleRoleRequestObject
+
+	request.Role = role
+
+	var body PutV1RbacRoleRoleJSONRequestBody
 	if err := ctx.ShouldBindJSON(&body); err != nil {
 		ctx.Status(http.StatusBadRequest)
 		ctx.Error(err)
@@ -4770,10 +5139,10 @@ func (sh *strictHandler) HeadRbacRole(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.HeadRbacRole(ctx, request.(HeadRbacRoleRequestObject))
+		return sh.ssi.PutV1RbacRoleRole(ctx, request.(PutV1RbacRoleRoleRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "HeadRbacRole")
+		handler = middleware(handler, "PutV1RbacRoleRole")
 	}
 
 	response, err := handler(ctx, request)
@@ -4781,8 +5150,8 @@ func (sh *strictHandler) HeadRbacRole(ctx *gin.Context) {
 	if err != nil {
 		ctx.Error(err)
 		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(HeadRbacRoleResponseObject); ok {
-		if err := validResponse.VisitHeadRbacRoleResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(PutV1RbacRoleRoleResponseObject); ok {
+		if err := validResponse.VisitPutV1RbacRoleRoleResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -4790,83 +5159,17 @@ func (sh *strictHandler) HeadRbacRole(ctx *gin.Context) {
 	}
 }
 
-// PostRbacRole operation middleware
-func (sh *strictHandler) PostRbacRole(ctx *gin.Context) {
-	var request PostRbacRoleRequestObject
-
-	var body PostRbacRoleJSONRequestBody
-	if err := ctx.ShouldBindJSON(&body); err != nil {
-		ctx.Status(http.StatusBadRequest)
-		ctx.Error(err)
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.PostRbacRole(ctx, request.(PostRbacRoleRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "PostRbacRole")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(PostRbacRoleResponseObject); ok {
-		if err := validResponse.VisitPostRbacRoleResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// DeleteRbacUser operation middleware
-func (sh *strictHandler) DeleteRbacUser(ctx *gin.Context) {
-	var request DeleteRbacUserRequestObject
-
-	var body DeleteRbacUserJSONRequestBody
-	if err := ctx.ShouldBindJSON(&body); err != nil {
-		ctx.Status(http.StatusBadRequest)
-		ctx.Error(err)
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteRbacUser(ctx, request.(DeleteRbacUserRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "DeleteRbacUser")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(DeleteRbacUserResponseObject); ok {
-		if err := validResponse.VisitDeleteRbacUserResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// GetRbacUser operation middleware
-func (sh *strictHandler) GetRbacUser(ctx *gin.Context, params GetRbacUserParams) {
-	var request GetRbacUserRequestObject
+// GetV1Task operation middleware
+func (sh *strictHandler) GetV1Task(ctx *gin.Context, params GetV1TaskParams) {
+	var request GetV1TaskRequestObject
 
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetRbacUser(ctx, request.(GetRbacUserRequestObject))
+		return sh.ssi.GetV1Task(ctx, request.(GetV1TaskRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetRbacUser")
+		handler = middleware(handler, "GetV1Task")
 	}
 
 	response, err := handler(ctx, request)
@@ -4874,8 +5177,8 @@ func (sh *strictHandler) GetRbacUser(ctx *gin.Context, params GetRbacUserParams)
 	if err != nil {
 		ctx.Error(err)
 		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(GetRbacUserResponseObject); ok {
-		if err := validResponse.VisitGetRbacUserResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(GetV1TaskResponseObject); ok {
+		if err := validResponse.VisitGetV1TaskResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -4883,11 +5186,11 @@ func (sh *strictHandler) GetRbacUser(ctx *gin.Context, params GetRbacUserParams)
 	}
 }
 
-// PostRbacUser operation middleware
-func (sh *strictHandler) PostRbacUser(ctx *gin.Context) {
-	var request PostRbacUserRequestObject
+// PostV1Task operation middleware
+func (sh *strictHandler) PostV1Task(ctx *gin.Context) {
+	var request PostV1TaskRequestObject
 
-	var body PostRbacUserJSONRequestBody
+	var body PostV1TaskJSONRequestBody
 	if err := ctx.ShouldBindJSON(&body); err != nil {
 		ctx.Status(http.StatusBadRequest)
 		ctx.Error(err)
@@ -4896,10 +5199,10 @@ func (sh *strictHandler) PostRbacUser(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.PostRbacUser(ctx, request.(PostRbacUserRequestObject))
+		return sh.ssi.PostV1Task(ctx, request.(PostV1TaskRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "PostRbacUser")
+		handler = middleware(handler, "PostV1Task")
 	}
 
 	response, err := handler(ctx, request)
@@ -4907,8 +5210,8 @@ func (sh *strictHandler) PostRbacUser(ctx *gin.Context) {
 	if err != nil {
 		ctx.Error(err)
 		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(PostRbacUserResponseObject); ok {
-		if err := validResponse.VisitPostRbacUserResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(PostV1TaskResponseObject); ok {
+		if err := validResponse.VisitPostV1TaskResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -4916,15 +5219,17 @@ func (sh *strictHandler) PostRbacUser(ctx *gin.Context) {
 	}
 }
 
-// GetTasksList operation middleware
-func (sh *strictHandler) GetTasksList(ctx *gin.Context) {
-	var request GetTasksListRequestObject
+// GetV1TaskId operation middleware
+func (sh *strictHandler) GetV1TaskId(ctx *gin.Context, id string) {
+	var request GetV1TaskIdRequestObject
+
+	request.Id = id
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetTasksList(ctx, request.(GetTasksListRequestObject))
+		return sh.ssi.GetV1TaskId(ctx, request.(GetV1TaskIdRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetTasksList")
+		handler = middleware(handler, "GetV1TaskId")
 	}
 
 	response, err := handler(ctx, request)
@@ -4932,8 +5237,8 @@ func (sh *strictHandler) GetTasksList(ctx *gin.Context) {
 	if err != nil {
 		ctx.Error(err)
 		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(GetTasksListResponseObject); ok {
-		if err := validResponse.VisitGetTasksListResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(GetV1TaskIdResponseObject); ok {
+		if err := validResponse.VisitGetV1TaskIdResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -4941,17 +5246,45 @@ func (sh *strictHandler) GetTasksList(ctx *gin.Context) {
 	}
 }
 
-// GetTasksTask operation middleware
-func (sh *strictHandler) GetTasksTask(ctx *gin.Context, params GetTasksTaskParams) {
-	var request GetTasksTaskRequestObject
+// GetV1TaskIdLogs operation middleware
+func (sh *strictHandler) GetV1TaskIdLogs(ctx *gin.Context, id string, params GetV1TaskIdLogsParams) {
+	var request GetV1TaskIdLogsRequestObject
+
+	request.Id = id
+	request.Params = params
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetV1TaskIdLogs(ctx, request.(GetV1TaskIdLogsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetV1TaskIdLogs")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(GetV1TaskIdLogsResponseObject); ok {
+		if err := validResponse.VisitGetV1TaskIdLogsResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetV1User operation middleware
+func (sh *strictHandler) GetV1User(ctx *gin.Context, params GetV1UserParams) {
+	var request GetV1UserRequestObject
 
 	request.Params = params
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetTasksTask(ctx, request.(GetTasksTaskRequestObject))
+		return sh.ssi.GetV1User(ctx, request.(GetV1UserRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetTasksTask")
+		handler = middleware(handler, "GetV1User")
 	}
 
 	response, err := handler(ctx, request)
@@ -4959,8 +5292,8 @@ func (sh *strictHandler) GetTasksTask(ctx *gin.Context, params GetTasksTaskParam
 	if err != nil {
 		ctx.Error(err)
 		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(GetTasksTaskResponseObject); ok {
-		if err := validResponse.VisitGetTasksTaskResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(GetV1UserResponseObject); ok {
+		if err := validResponse.VisitGetV1UserResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -4968,15 +5301,15 @@ func (sh *strictHandler) GetTasksTask(ctx *gin.Context, params GetTasksTaskParam
 	}
 }
 
-// GetUsersList operation middleware
-func (sh *strictHandler) GetUsersList(ctx *gin.Context) {
-	var request GetUsersListRequestObject
+// DeleteV1UserMe operation middleware
+func (sh *strictHandler) DeleteV1UserMe(ctx *gin.Context) {
+	var request DeleteV1UserMeRequestObject
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetUsersList(ctx, request.(GetUsersListRequestObject))
+		return sh.ssi.DeleteV1UserMe(ctx, request.(DeleteV1UserMeRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetUsersList")
+		handler = middleware(handler, "DeleteV1UserMe")
 	}
 
 	response, err := handler(ctx, request)
@@ -4984,8 +5317,8 @@ func (sh *strictHandler) GetUsersList(ctx *gin.Context) {
 	if err != nil {
 		ctx.Error(err)
 		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(GetUsersListResponseObject); ok {
-		if err := validResponse.VisitGetUsersListResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(DeleteV1UserMeResponseObject); ok {
+		if err := validResponse.VisitDeleteV1UserMeResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -4993,15 +5326,15 @@ func (sh *strictHandler) GetUsersList(ctx *gin.Context) {
 	}
 }
 
-// DeleteUsersMe operation middleware
-func (sh *strictHandler) DeleteUsersMe(ctx *gin.Context) {
-	var request DeleteUsersMeRequestObject
+// GetV1UserMe operation middleware
+func (sh *strictHandler) GetV1UserMe(ctx *gin.Context) {
+	var request GetV1UserMeRequestObject
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteUsersMe(ctx, request.(DeleteUsersMeRequestObject))
+		return sh.ssi.GetV1UserMe(ctx, request.(GetV1UserMeRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "DeleteUsersMe")
+		handler = middleware(handler, "GetV1UserMe")
 	}
 
 	response, err := handler(ctx, request)
@@ -5009,8 +5342,8 @@ func (sh *strictHandler) DeleteUsersMe(ctx *gin.Context) {
 	if err != nil {
 		ctx.Error(err)
 		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(DeleteUsersMeResponseObject); ok {
-		if err := validResponse.VisitDeleteUsersMeResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(GetV1UserMeResponseObject); ok {
+		if err := validResponse.VisitGetV1UserMeResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -5018,36 +5351,11 @@ func (sh *strictHandler) DeleteUsersMe(ctx *gin.Context) {
 	}
 }
 
-// GetUsersMe operation middleware
-func (sh *strictHandler) GetUsersMe(ctx *gin.Context) {
-	var request GetUsersMeRequestObject
+// PatchV1UserMe operation middleware
+func (sh *strictHandler) PatchV1UserMe(ctx *gin.Context) {
+	var request PatchV1UserMeRequestObject
 
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetUsersMe(ctx, request.(GetUsersMeRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetUsersMe")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(GetUsersMeResponseObject); ok {
-		if err := validResponse.VisitGetUsersMeResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// PatchUsersMe operation middleware
-func (sh *strictHandler) PatchUsersMe(ctx *gin.Context) {
-	var request PatchUsersMeRequestObject
-
-	var body PatchUsersMeJSONRequestBody
+	var body PatchV1UserMeJSONRequestBody
 	if err := ctx.ShouldBindJSON(&body); err != nil {
 		ctx.Status(http.StatusBadRequest)
 		ctx.Error(err)
@@ -5056,10 +5364,10 @@ func (sh *strictHandler) PatchUsersMe(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.PatchUsersMe(ctx, request.(PatchUsersMeRequestObject))
+		return sh.ssi.PatchV1UserMe(ctx, request.(PatchV1UserMeRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "PatchUsersMe")
+		handler = middleware(handler, "PatchV1UserMe")
 	}
 
 	response, err := handler(ctx, request)
@@ -5067,8 +5375,8 @@ func (sh *strictHandler) PatchUsersMe(ctx *gin.Context) {
 	if err != nil {
 		ctx.Error(err)
 		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(PatchUsersMeResponseObject); ok {
-		if err := validResponse.VisitPatchUsersMeResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(PatchV1UserMeResponseObject); ok {
+		if err := validResponse.VisitPatchV1UserMeResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -5076,11 +5384,94 @@ func (sh *strictHandler) PatchUsersMe(ctx *gin.Context) {
 	}
 }
 
-// DeleteUsersUser operation middleware
-func (sh *strictHandler) DeleteUsersUser(ctx *gin.Context) {
-	var request DeleteUsersUserRequestObject
+// DeleteV1UserUsername operation middleware
+func (sh *strictHandler) DeleteV1UserUsername(ctx *gin.Context, username string) {
+	var request DeleteV1UserUsernameRequestObject
 
-	var body DeleteUsersUserJSONRequestBody
+	request.Username = username
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteV1UserUsername(ctx, request.(DeleteV1UserUsernameRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteV1UserUsername")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(DeleteV1UserUsernameResponseObject); ok {
+		if err := validResponse.VisitDeleteV1UserUsernameResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetV1UserUsername operation middleware
+func (sh *strictHandler) GetV1UserUsername(ctx *gin.Context, username string) {
+	var request GetV1UserUsernameRequestObject
+
+	request.Username = username
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetV1UserUsername(ctx, request.(GetV1UserUsernameRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetV1UserUsername")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(GetV1UserUsernameResponseObject); ok {
+		if err := validResponse.VisitGetV1UserUsernameResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// HeadV1UserUsername operation middleware
+func (sh *strictHandler) HeadV1UserUsername(ctx *gin.Context, username string) {
+	var request HeadV1UserUsernameRequestObject
+
+	request.Username = username
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.HeadV1UserUsername(ctx, request.(HeadV1UserUsernameRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "HeadV1UserUsername")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(HeadV1UserUsernameResponseObject); ok {
+		if err := validResponse.VisitHeadV1UserUsernameResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PatchV1UserUsername operation middleware
+func (sh *strictHandler) PatchV1UserUsername(ctx *gin.Context, username string) {
+	var request PatchV1UserUsernameRequestObject
+
+	request.Username = username
+
+	var body PatchV1UserUsernameJSONRequestBody
 	if err := ctx.ShouldBindJSON(&body); err != nil {
 		ctx.Status(http.StatusBadRequest)
 		ctx.Error(err)
@@ -5089,10 +5480,10 @@ func (sh *strictHandler) DeleteUsersUser(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteUsersUser(ctx, request.(DeleteUsersUserRequestObject))
+		return sh.ssi.PatchV1UserUsername(ctx, request.(PatchV1UserUsernameRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "DeleteUsersUser")
+		handler = middleware(handler, "PatchV1UserUsername")
 	}
 
 	response, err := handler(ctx, request)
@@ -5100,8 +5491,8 @@ func (sh *strictHandler) DeleteUsersUser(ctx *gin.Context) {
 	if err != nil {
 		ctx.Error(err)
 		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(DeleteUsersUserResponseObject); ok {
-		if err := validResponse.VisitDeleteUsersUserResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(PatchV1UserUsernameResponseObject); ok {
+		if err := validResponse.VisitPatchV1UserUsernameResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -5109,38 +5500,13 @@ func (sh *strictHandler) DeleteUsersUser(ctx *gin.Context) {
 	}
 }
 
-// GetUsersUser operation middleware
-func (sh *strictHandler) GetUsersUser(ctx *gin.Context, params GetUsersUserParams) {
-	var request GetUsersUserRequestObject
+// PutV1UserUsername operation middleware
+func (sh *strictHandler) PutV1UserUsername(ctx *gin.Context, username string) {
+	var request PutV1UserUsernameRequestObject
 
-	request.Params = params
+	request.Username = username
 
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetUsersUser(ctx, request.(GetUsersUserRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetUsersUser")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(GetUsersUserResponseObject); ok {
-		if err := validResponse.VisitGetUsersUserResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// HeadUsersUser operation middleware
-func (sh *strictHandler) HeadUsersUser(ctx *gin.Context) {
-	var request HeadUsersUserRequestObject
-
-	var body HeadUsersUserJSONRequestBody
+	var body PutV1UserUsernameJSONRequestBody
 	if err := ctx.ShouldBindJSON(&body); err != nil {
 		ctx.Status(http.StatusBadRequest)
 		ctx.Error(err)
@@ -5149,10 +5515,10 @@ func (sh *strictHandler) HeadUsersUser(ctx *gin.Context) {
 	request.Body = &body
 
 	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.HeadUsersUser(ctx, request.(HeadUsersUserRequestObject))
+		return sh.ssi.PutV1UserUsername(ctx, request.(PutV1UserUsernameRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "HeadUsersUser")
+		handler = middleware(handler, "PutV1UserUsername")
 	}
 
 	response, err := handler(ctx, request)
@@ -5160,74 +5526,8 @@ func (sh *strictHandler) HeadUsersUser(ctx *gin.Context) {
 	if err != nil {
 		ctx.Error(err)
 		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(HeadUsersUserResponseObject); ok {
-		if err := validResponse.VisitHeadUsersUserResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// PatchUsersUser operation middleware
-func (sh *strictHandler) PatchUsersUser(ctx *gin.Context) {
-	var request PatchUsersUserRequestObject
-
-	var body PatchUsersUserJSONRequestBody
-	if err := ctx.ShouldBindJSON(&body); err != nil {
-		ctx.Status(http.StatusBadRequest)
-		ctx.Error(err)
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.PatchUsersUser(ctx, request.(PatchUsersUserRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "PatchUsersUser")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(PatchUsersUserResponseObject); ok {
-		if err := validResponse.VisitPatchUsersUserResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// PostUsersUser operation middleware
-func (sh *strictHandler) PostUsersUser(ctx *gin.Context) {
-	var request PostUsersUserRequestObject
-
-	var body PostUsersUserJSONRequestBody
-	if err := ctx.ShouldBindJSON(&body); err != nil {
-		ctx.Status(http.StatusBadRequest)
-		ctx.Error(err)
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.PostUsersUser(ctx, request.(PostUsersUserRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "PostUsersUser")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(PostUsersUserResponseObject); ok {
-		if err := validResponse.VisitPostUsersUserResponse(ctx.Writer); err != nil {
+	} else if validResponse, ok := response.(PutV1UserUsernameResponseObject); ok {
+		if err := validResponse.VisitPutV1UserUsernameResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {
@@ -5238,78 +5538,82 @@ func (sh *strictHandler) PostUsersUser(ctx *gin.Context) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xdW3PbOJb+KyjuPqSnZNmOu2u3/aY4iuMq57KyMluz3akUTB5JGJOEAoB2NF3+71u4",
-	"kSAJitTFjuTRSyJLJHCA850rDoC/gpAmc5pCKnhw/lfAgM9pykH98Y5AHA0Zo0z+FdJUQCrkRzyfxyTE",
-	"gtD0+J+cpvI7Hs4gwfLTnNE5MEF0IyDfV5+IgER9+E8Gk+A8+I/jou9j/To/HjKmug0ee4FYzCE4DzBj",
-	"eBE8Fl/Q239CKIJH+VUEPGRkLkkJzoNPKSDKUEIZoIlshqMHYIBIeo9jEvVlq5eQAiPhGxyN4HsGXKw0",
-	"uBbaTeM+2sYzQEz3iB4wRwmOJ5QlEEmKPQS+o+yWRBEoAupN4UzMIBWSUohQxoGhiAJHKRVohu8BzYEl",
-	"hHNCUyQowmEInCNREAERYsBpxkJwu71KBbAUxzfA7oHl3C8TMEgRMc8hrh5Eis+IhmHGGER9dE3pHcJC",
-	"9WgeiemUo4nlTwQCk5i7fX+k4h3N0uj5OeJMhmKOnMWJJMUlb0zpNWZT+AmAmeNFTHGECEeCUhRLMlzS",
-	"vqQlPPghM2f0nkQQudiR8AgZRPJPHNfE5bFnhqIEd8AEmeBQ1Jv/AAJHWGBEJwinCJsH+0Gvog5CBpLA",
-	"gfCTqH5WkCUJcIGTuWxRYshtUsoNFsF5EGEBR/LRIFcOXDCSTuXUzHF4hzW3ljHhs37sI05AvZXFMfcT",
-	"l2bJLTBFkKSuRBaaYY5uAVIkG4CoX1AkJWUKTGk0PPW1jaccYc5pSJQwPxAxq4051561cZbVZC+4Byal",
-	"/j3mM/84zAOS5Jlveis9PPYCCUPCJK7+yKe13FHP4aydRDPerzXF3Qsu1MNfOLC6xYgIn8d4oRjipd88",
-	"gFKcgNIncgApPCgt2PdBIW1sS7Vh5kApUUE1CKHvxxTnD5Q1CZj5tQtRlVlVFDrt90rT4JvC3FL6Ta5H",
-	"aSPnbztmrbYZxAp5gqovlen0jn9ie1w+k+oxJGZYoBBnXLZs+2qfCt1HzwyjYehWbzYPfnknzY27+qA2",
-	"UPNjPtiluq4b6pZIngYun+NwSTvq59XFuGjZiId/LkQ4+wD1WU7h4W2bmErwe0VVuQipWCKu8LC82ZWb",
-	"+7xUbmWTNdltafaxabr8So00dJ1lJKrqn2weNemfjeZ9S/O95Xnuph9J5AXo6M3g4jONSbioT3nhADd4",
-	"0HFMHyByHeVX0J/2e+jP4HI4/jOQHz5/ujGf/vZn8IukE9IskRRdDsdBT/0u/xuML94HveDt8Ho4Hga9",
-	"4P1w8DboBX9zqC4myrqal4xm83YNkXumU/l8H72iTNOj5hDHceUJ/ouPO4zGHbSRfMrbA43B126FTaqT",
-	"6gB7LiuauDgy5JV5uALR3WjzdT/G/O6aTj1Cy3kGrMFTtZ6kNnPqUW3mYjpFkAq2QK9u/nEzHn7oocFo",
-	"fPVucDH+xSs3MdxD7O9FtqV+Rq/eDt98ueyhq4/vPvXQ/w5GH3toOBp9GvXQu8F4cO1vOgHOjQ/sb9w8",
-	"gEw8420k98X9zcifKwOXIZTxB/to9O4CnZ2d/Y60297OqKI/Ozc9y4piRE2MvBFYeIAk2RWDgOgb9oUe",
-	"dggC8zvEMxkrT7I4XqAJSQmfSS3BqPyWpFPvHDXq95R8zwARFWBNCLBc78mulD75gSVpwXnw+3/jh/8K",
-	"J//yYgRz8a3BsRvnfpzl5oTRRLMEc4EmmMQZg8Zm5e/LJsZImduWl6vFSF6fvD47Ovn96PWv49Pfzs9O",
-	"zk9O/s/bPZ12Tw1ZMfWEPAn+8Y2BYDaCqE1Pgn+QJEucEM48bq1Aif4zX+yWwg/xzaCgA4geSByjW0CS",
-	"+iiLtXN9CxZHDYKx+hQy4FksvpkEgX/0+pk8iWD4aQHoaVKqAq/dfJsxE59Xx8lAYJJChPBEAJMyFAJE",
-	"UlzQJY1xOkWRfVf3VB7ub7Oz5DVvoKaZr9ZJq/G11PqJj5/cKormVuUjGS/NF7oBQDMh5vz8+HhKxCy7",
-	"7Yc0OZ6RW3IH6THmi/T78QO5I8fXZAJHdHKEjyRyS6MdXIyv/j7s4vQU4y+j3NLvcsunEqU36uQ513dK",
-	"dcf3sLarpinR6eVNg36HttW0cWVgGyYL+t04aGL75QG9RCSEGSNicSMVnp6WN5iTcJCJWZ5UlO/cym+L",
-	"viUcdQKRpBPaYB+kXZ5TkorcpRumYYzvAQ0+X9k8I0c4jaRrk2SpyQ6qMRKhYOu+ofPDRRYoOA/uT/pn",
-	"/VM5hXQOKZ6T4Dw465/0z1RiQ8zUiI5xKYkobbJHzajvEUZ8DiGZkLDIs91iDhGiKSKCo7kTjktCJaIU",
-	"1VdR3kqetNScAS7e0GixwYpGYcvrhA+JmIG27+UsG0MCTzuF/OukLRtTdA6tX73rJ8VrgmWg7UmxAvT6",
-	"5GRrye6cD55Ut/0NaUBE2nwYH6yPRiAyluqEq30iB0RiUs8qHf6rJthHRz6w4/oKkHrztPOb1Wy7ev2s",
-	"8+vFyo568dfOL+brI/K90+4d5gsXj73gtxVmyLcW5Cqq4PyPkor64+vj117AsyTBbFGIsSOBOgH+R85w",
-	"Hnx97AVT8LhTI2NwcgZrxbWZSrgE4VAzxwwnIIBxNZIV82tEPvU9A7awOv68lFUri1bPEZOazVglR9jU",
-	"7WY9rq64fHQ46mYVar7+JLVzk2sZZPvXiy8H5bL7yiXXD7nxsIuQjXpmBr4I6WIG4R0iE69ugR9EukUr",
-	"qJj3gKODjtkXHdPgh2i2u1JffvANjqzP3HcEvPyQlmTKyL8g6jtyXH4qF9i+I7FN7pGt8FD09bcgquWO",
-	"rnxFHf2VxFJLU07xUBIKqQKrTygfe0VEcBwTHaWu4A9Qp+LHtuOIa17yoECECmFc6hpcSzqeWnSfXlSf",
-	"zuB2ytcVlrdWyrWCJUYSFGqp9aXY5D2wrf+jpKWrYS3JsMDTZZH9CBJ6LyN7qfFVmrqyhL4shB/j6dai",
-	"+PWqg/LR1RZB8FRnydTw8vz70kh/o0IdtVCcCjxdv2JHDmaDrECtiMmMPjJ8tYSWYvmDH717frSC7NjK",
-	"Y2u0PqfcY54HnJNpirBa5DfS4DjUFsqVmhl0ZXPrU0RUERyZpnqtBKOITCagEvH2bRwzwNGih4jIFx40",
-	"5EzlkuzcPFxXJp8pF0+hSlJ4GDfpBXc29AwZSnPxcMjdUgnjxnplI61iZmM9xXLqVywlXFQm7qBfdlu/",
-	"SP7lnsTfzWJBB0cim9sFTW848JY+pGo1swTeCYmhOVhXqxtF/Lg0Bviiuz8E8PuZJKShAHHEBQOclHV3",
-	"Xjx+S1Ks6Kr2tEaeUOLuoHt2bwHCKok1nRqtBIxTkzNbsV7qljwTIfWKUj1OGVWz75Grlmb3I8liQeaY",
-	"iWMJ1yMVfC3xQGTfDUWOJc2oiktl56VdFE2C0NuxCuam8AtPebN/tcreibYS6Z6e6A1cm+dbSdV8ri6l",
-	"7quK+v2Z9lzl02cijVIieA8UnlFYLepO+lkJTsnEVgV5lZ/eo2OUn31cx4j/GHy4Lr7SyTifxvtgO1mm",
-	"6wT8EMcLnMTB+V/rCJJ6fx5jUkFBq1m31NlS1SVVB3mBNYkOItQiQgUw8o1sU3IPqXHB64L1nAJiQO0A",
-	"0wqI/coKCLvF4TGkkSqa6pLSTJF9WguJ9BDywLVSw9+Q6Bzd4nBou9xWeqI8hnphmKG5kr2U1NeJ3vJW",
-	"htYkA7iT4fa0tbylne5y8rJM5yHFsBcpzGFJ/EaWhXYTihX00ZvBRYeyozpcK+nJPLdpQerNJ1REujWb",
-	"4MqjCpybwmgo64nnqbTp7El3j6Fb5lk4c9JHw2QuFkh1gsikmCyil8VLDEoXNXVzWDB8Igm8BFERODRw",
-	"eOEIQE0Kly8npCWBcISuzaBK9/Mnm9NyQPrzjWl1V14+kq3l6nMN7AriEluKKFN7xaxTaF872Nidk3Aj",
-	"kEMH320WNveiY8LFkYXBkd6j2l7n45R+1Le4IqL3IPEFF5A0Wt5rwsXIhT0Pds8CFgOtDLJ/MDvLQSnZ",
-	"iwZxXIEib8UijWF1BMqXVsGd6mSn4SYpPICsM8gMQ5ugNc8PImjb15Tq9AdJp4oHR3rF0pzRJbHBaIxe",
-	"yfZ/QbrVnnR3iSn81NtVmxII5jyE9f2dZbkf58CFdSNu2YQZlX+/z8FNf+INOYoDOUxWjIvrSrEdvmZD",
-	"rldVOnB96opUF7xbUaAFlMlBka6gSHP8EZ9C7XVZkOioN5sDw51Sk6fL1aR3geIFx0jOyaN7gm2DzY/w",
-	"sFy75s5CORxa1WnovJowqsT828mBPGuiYmup/lE5EfGSfI+Xv4l403R+YbRt2os35fPbpMs4LlXR6lQo",
-	"2CwSvhw/80jv3ib6K3FnLcv/MpL1L1gSL0Hk+T9eyu+3C2f3rbeVdLHZgNuSdnkPODqYu6Xmbre2tFZt",
-	"8b5sbK0scvm2t64UxXRcxfq3xfVpK3ReVGz0XEValTnc02pHN+jquhZVnCi6NNqSjxXbOJvMjhNn2YNP",
-	"nyaXoJpf2xAod+sQ7jynfEn4EI64IHFc8nQzrk4f2LPgS6N77ZBLDbox3DKn9/qDLN3zarGVadAbURVy",
-	"+gICqfq8FuM/hE87GD7lrNKcm1CGWINsrRAxSWWzYpy04+Zq16IVSdL+xCiS2o0jE2XBlqMpj052BU2n",
-	"Daw7xAjr+jAvIDLw6tc8Hsi4Pcd16e6OIh6wB/82RQLq/o+tReid7z/wnT7TeMSx/OFq/TOSK3G+aa3X",
-	"dMPCJnagtCtDnUV9WK7Zh70Yo1xejDysHTvUFwsc18cvjCZ2MD23xg4+xPtihwLnL3kZRs/AQa52cYeF",
-	"Ypi78NIkXEs3VVhz0SpH1r/7iSatvIdijwxakytazQXV9kOokR82RezTpggtl43iKH1Ngfkd73jAabnC",
-	"Ur2p4k6ShnEWkXSqb16J6dRfVTmWb5gzTJ++qLK4dGmjXYBqRHlcvXcof25TMLbz5cBN8b2EN/lvO95I",
-	"qo+CUSfs3dJMuJZBMeZ2ga7eqgJLLOFHBG9Bn7nxpt31Wno9VvXeGf9pUjtz1LwjCasi32HBv5maf27B",
-	"uSHpNAZkAOoTHZWaXUtVm7Udj1BIw/B8Krl01dIWVxoOFe5dK9wVvx186b9dfCVdVqGde2jjhefK/6Y8",
-	"lOruAwRPqOzKGKtj6sK5PneFa32c6PMAs5ZVWTvFFa/TYq23stlfHW5Wtf1crDXqL/cOZ4+NPSBsmaV0",
-	"4YWuisnzQm2ORTjzHaAYYVGGWuV+bT/Q0Kc0XhS3N6gr4Xl+5LO+INuzCTK/gNsCcvsLUvZK9Ge+PW0l",
-	"dWvm57Dctcpyl4J5ebmrOKDGXoK+RwcBKsFbQYYL16RtScyzIanVGdkwhdguGgapuyWVX9Z2fg5Zvp1z",
-	"t7bmZlXz7sg5V1vp76u3iDKdDk8yLsy10coUNrtg6652dUmy5AnxDY4n79rXk19e9CSeZoOHeRDj3fJp",
-	"O/my3SvvFNdtaYyv1m43bZ/HSO1WvZ22m/tSb6eo9dXbrRse1TyrjcOhJ4Rg3slOOl8vKhTa9V0PLzKE",
-	"6pb+aC+obS6xeGoJ1WR0F9HT5xXRQ3HudkRtH4tzG2Kqx8f8u6pMfbLiwxGDWAHHVtIkOMVTSMz9Kyac",
-	"0E3WwxN/O42nCjktqqqOrg0Wd9J6qStuZejaoD1cv6HB4hT7rg2q9WdvW3pR9PHr4/8HAAD//13fAr0m",
-	"nAAA",
+	"H4sIAAAAAAAC/+xdW3PbuJL+KyjuPkxOKVayOfuwPi/rOJ4kVUkm5dizDzOpFES2JIxJQAOAcrRe/fct",
+	"XHgHeLFlRXL4klgS2GgA3R/6AjbugpAlK0aBShGc3gUcxIpRAfrDrwTi6IJzxtWnkFEJVKo/8WoVkxBL",
+	"wuj0L8Go+k6ES0iw+mvF2Qq4JIYIqOf1X0RCov/4dw7z4DT4t2nR99Q8LqYXnOtug+0kkJsVBKcB5hxv",
+	"gm3xBZv9BaEMtuqrCETIyUqxEpwGv1FAjKOEcUBzRUagW+CACF3jmEQniupboMBJ+BpHl/B3CkIOGlwH",
+	"75a4i7erJSBuekS3WKAEx3PGE4gUxw4Gf2V8RqIINANNUjiVS6BScQoRSgVwFDEQiDKJlngNaAU8IUIQ",
+	"RpFkCIchCIFkwQREiINgKQ+h3O17KoFTHH8Bvgaer36VgTOKiG2HhG6I9DojFoYp5xCdoA+M3SAsdY+2",
+	"ScwWAs2z9YlAYhKLct+fmPyVpTTa/4qUJkMvjprFuWKlzN4VYx8wX8APEJgV3sQMR4gIJBlDsWKjzNo1",
+	"rciDW2RWnK1JBFFZdpR4hBwi9RHHDXXZTuxQtOKecUnmOJRN8h9B4ghLjNgcYYqwbYjWwJUEngSTGiyE",
+	"HBSjZw5a5+onLbYkASFxslJUlRxlZBU5pTtYBqdBhCU8V02DHCCE5IQu1PRQnECzh084ARdN5+NihUMP",
+	"Df1TL0KrNI6Fg0iazIBrCmqsFTpoiQWaAVCkHoaoRFfp3gK4xki8cNC9wguBsBAsJBoebolcNpjM8bjB",
+	"bRV4J4FdxXdYLJt9/W5+VOwue8zFdhIooSZcSekfpRm2i1XtbVISlGwW7aC/NvaDiREduMLipoTtVcHD",
+	"3DVhZ3yRJkAliomQCk0jBZqErtkN6BFJLG6GTVqI43iGwxuHgNtf0PXlB9tHhJS8Y3GDFEzEIK3S5FKe",
+	"cuKSK6DrJv0LuiacUT2eNeYEz2IQSKQKp8zAnCNqRaqC5O+WomvMK8xx4pjez+p7kMAFWmEh/Ew4aHJQ",
+	"QEuYYx98k3KLFAxxtZ3QnCjCcwm8NpuN6eMguZWLGp7h7yRJE0RzBbVN0QzmavfK+yECJWxtRiQklkr4",
+	"wyVZQ+TUV7PHuDRW3CC7AdlhqLVHuX6cqr+meted4xCm85SG6tn//jN98eJVqLTv/yRe6E/QrXeWD5cS",
+	"uda6oUY3sOkneHoEzslf4ziFnkR02+5RKa4yws6hZdal20x14AIqfc7QzZg6HGKNrVaStbnpHOc867G5",
+	"I9PSRqSbIbnEEoXYIFDWV/fATR8TOwzP0DNbwz/49k78xD9jGS7L1kGVfssmpUxTIciCZvPYMB3Q/yyB",
+	"IgFygjisYhzafRK+EyEJXSBFfQg0b30D+OiQ84iIVYw3n5x2hFpC28AspTJuFW/aCKZ6I+FuewALccu4",
+	"z1Czv/anx1nsgrFL9bWd4EJU69QePHHXAviupm5XU7abqdrJFKXy0voWbzlLV17TBGi0YsR64nVQtD/V",
+	"OCSi8FsWivhAZivqnXf/1TMKFoOXeTVTDsaVaOg9zME4i+EB7JoOPayqbr2s3k8wKdzuTDhbaQ0S0DKl",
+	"e05kzvukMjOumb18fXb+mcUk3DRnNQG5ZJ4JwHHMbiFC766uPiPTEP0CJ4uTCfozeHtx9Weg/vj82xf7",
+	"1z/+DJ6pEQFNE8Xi24urYKJ/V/9d63/Prs7fBZPgzcWHi6uLYBK8uzh7E0yCf5QYLxt6JQXs3otrOoV+",
+	"YdxwpVcQx3GthXjmW8gefSk1cPWg1vtZ585fHZntdJKthnMRq2BUWKQ/Fo18zvpVYz18JqXDtdQy1AZr",
+	"BtN8c9DCEWszbfcOhnasfkxU/sXoDO/VGSYOMLym5O8UENHxtjkBnm8JGQeOrWX0qQ/Up54Eiru0U2AU",
+	"I19My7riEjUkO4CcnE+BP7BFU4eJECk4XNfzjA/jU+pmxqeM2QIBlXzjHFIMa4ib5D6wBdI/ZRt3BLN0",
+	"MUGEztkE3WJOJ8ZZnaA5ljh+5iSegBB4AW7y9kdkY+tOAnlM2LHcJIHq+HQo3wYQ+8aMa+tT9JfNzCSb",
+	"8WI0vvX6kktHLfhtNAiib1i2jEPrwpxQIpYQoRVnIQhB6KJ/+DvGQn7zhDZ0aief8zlniZk8LCSaYxKn",
+	"3C3ymqZq0Ma+tW3qxHoG7eG7/GaH22OGiEBK0aI0BmNhFzOFFKn+HXMQaSy/2WSLwwTXv+fJGDtIL3J7",
+	"kfDcOuCqwQaFLK0IexnZFPj5nzdw0cFHw140TE2CBH//VnwyXbkk+XqlRptFdy5thrgp1a1ZAhOZj7Ko",
+	"js4WdDNbJulkTbt5PoaG+Xl2Fr1umd8W7PX4Y4cdHNZguzenxAvClBO5+aL2KcPdayxIeJbKZZ7FVM/M",
+	"1LfFqJZSrkzGUqG/e1I0AGvDO/doLmgY4zWgs8/vs8SmQJhGyqJIUmrTkXr2iFSuU1B+wiSki/xQcBqs",
+	"X5y8OnmppoOtgOIVCU6DVycvTl4FymySSz2i6frlFJdCkwuQLs1WerAGhNEKLwjVsqrNXzYvQpK54aDj",
+	"jUrUNMfvo+A0eAvy95d5CNSabdo8C07/6DaFCtLW8Eq5ngmimv+dAt9kCbLTICYJUV0USeaEUEUvOH3Z",
+	"RJHtpN77b/O5AIkIzWIIeSpTjdjXK9NPubt94ej266R6muQ/XrwYlDjvZYrnE95UiUY+/ayxjHa820nw",
+	"T8Ocq6t8ENPmyRH95MveT9az9PrxV70fL06EqAdf9n8wP7iwnQT/OWCkrrMgZdzQkl1CjD++qlUXaZJg",
+	"vlFGnVKgfNrzjHmewj39I18UEXxVlMvKOuX4dnqXL9bW/L3VOM+EQ4nNRoU4vi1U1oqbwSC0wuENXsC/",
+	"rIKZRELo2Zqq+v2ZiZKCX+LbfDifDNq2KnxT9nI1U0BVaFk5H15AuuQplBWvsWu29tfS1aBevprGIORr",
+	"Fm1alJmFEuRzITngpKrUuR02IxRrdKl3sq1ztG3gyMudHcDxmDZt4JHqRyBCItVHquZpHG+OFUNe/Nee",
+	"zjLl04djDjjamOydyA6I5SeTJF4gxq0KHgnKWdgp7f33B7epGvn0Tv279Rorb9gt7UK6DMw4zIEDDSFC",
+	"s40H2iqmSx3ZlO1tj+I8fYSbDD3c5Oh0aSZrIKz2NpQeiK2eScxDLkeKY//s/WB+xvRI0CVX9nytZhtk",
+	"FfIBOCPxYnon8eIxUEbixUCQucKLK7z4OSHmCi+Q9pP1WRbjkUUgFLXy8VlH31JP2Qg0I9A8GtAYreyD",
+	"MyWMeViURVhsqSh5C5Z8Kin7QcFHM8hTDHHvMZ4cwH+OEI8WKiVHpbUewzz7CPMIRCgq6+RA8ChFeYZj",
+	"iN0vLYTQiqneB0J+mlBOD7DK53LvWJVZlT8HVFVHO4LUXmLR1q8X98aneqAmghhcqdo3+nvnyfZesRnz",
+	"vAeqxtjMYcVmhkVMC7RoQQcjV08k2vyEnSej5j1jNJMO0ybJ3qY1npBYQUjmJGwiSL+Q7ogZPxdmZOIz",
+	"4sTB4USu4vli5W/Od0HGCstw6ToGLMNlgQwV6DCvMuRGRv5G3W801lFagUJM0QyQpg3Rv4pEnK2egblC",
+	"I74w5ydrGXH10IgyPxJl+iTjhwFM9U3OXun4H4RuKF1FeDSNDh7yDEANxbseHlglhfVw/8uZtWp1v8as",
+	"1eFlrUYXbHTBemSvdumBdae7R9T4+VBjdMKO1AlrA42j8sFGoNkb0Ix+2GgfHbEf1nnKh89wOF3lhT86",
+	"nC1Mi+JMnMXwfIYFRFkJUiWhnMXol8vXZ+fPkKGaQ2VxEjxdxTBBZI6INORc+Jf5Z5czHNrCJI+jj6XK",
+	"J/2VsWZcvj47z4b7pHyKfb1EcMVtxQYzewjs24E4Sgi1M3tk3oqWiVxwMw1U3/ZwUnB+7qWflhHve4sV",
+	"9Rn45mJGev/nRKwu7fKYSKPPX0ksgReDnG2KUi2O/mz1nQGWiquDZg0dV1e21fOFrfzzsE5LpZl8Pdqa",
+	"Qo/pdvU6ZlPG4u6DNl9yiEUZa6YebqE+BTJrFRlP0nSfpCmAi1Te58yha5X6Sjsr4KJw29s00LU2deHH",
+	"imXBKHisBoeblMoDtBFettsI2XupP4tdXbpu4Eg0wYoz4+jSCmjrfl42pmvo3eO0a35Ovll9LqtuJDZC",
+	"QtKyx1/WisWNW/0jbvX72Qudxfx2sy3WpGzcGHsdMY1jlK0D0qsihiDB9K5S0HE71N1umI5+f9kpOnkZ",
+	"yceKLXkEtimgl9Waj2MW7qj82ooG3Me1rZX8LK6q6be5HZ48ewG3WXC2ejHPKOCHJOBvQaKi/u1ZqXBX",
+	"t8wvwVVV7nwJ4Q0i83KeuSYPtlpGh5n3DnB0T1VohV7Te1kWq81f4yir51W2EeqVT5V8MU7+F6KTknTV",
+	"bLBMjE5KctS+L2SXXmkud1E0pNrde9c9VyfD3AS9wFXxQBc6pE0rr8gVznObXd5RrNqd1mqUiR6S4Orh",
+	"y1cXpcVlz64EM5IOUZ4H9HjsHaL8CJk3T7n+PZcmuq+d9KSiBvvKLNTmsFqk6OSIwxEdW1LFD7HV6gfF",
+	"IXT1yt7RB+Mxj0GHow86lIvm7yjWoCRpjDD0jjDoarKd+jy9U//2CSLo+wzyItA+Va6ED5QQGHF8POeq",
+	"ImgO3Nb4M4YGDiYJr/HpyEIVRoaHByiUxvQJSxyAnrTHHqoDGSMOBxhxyAuE6xtedN6Te+R2QJBBLfzg",
+	"0EK7ODfx+dDCB4ql4wkaKG53GCoom5a1AEG2pruNCyj+h0QDKvcq+UICZRF8nABA6aa7ffv9PUye0cm/",
+	"l5OvZu7puPZO+LcOgLS3fbXbMKqVMHYA0z/iGM21P2quZbD1texZeYd5oy8VG+zQm27v4c339uD1JTAV",
+	"5nv67r39dTOG2cZeT2WvRDo7v3r/+8UzX4fmipUf7r3rVXuI165v3TniclV799jVjJe9dfNZ797Oiwwq",
+	"W2h2rY/rOgKrgI+xCzav0t/zRmjE1OGA6osBn9AGeDzbjxW3uhiXNp3pHYl61G4k1NQQJowiPGOpLLsl",
+	"Gl5mG/T+Tcu28z7q2niaVy2W7smy24/mxmMQ65v5DuOF01ZViEBiEoufzHHftwPeU/SnMTM3qnZbXkg1",
+	"RYJxhWM68krhFoRUosniCIRsFf8PqqNdqYDhZc74bnTBZzXpXmYbc4+k1+6ztyzen7y5n9FHP7+9cUAH",
+	"XyTmMp88kgDimC7AWssn6GMqJJqBuSvX2Egkgee60XPJtDU9A5QwDohDaC+3dHFXek7JRIXNftdXOi5r",
+	"vi/nWiot7zEI0Z93yYZzvjfj9wNb9LF/rzIlHaH10aEVWTjz4GsqzA23wytC63ipB0ivhcaBge6ricDu",
+	"PRmtut1LKnq2QfBd33Rlbyv3dWjf0h+O07NN5eZNH33b5nlnP3sBjspVo7vJeVvZHL2Wx/S9r/WV+AWy",
+	"mM8VZJlmF7t2lhALzcW78QZVZjK/r9WdLVddfnzU/F9VOJvCmF0YrEHEmS5Hl6UbEbMWZlijlPVJI2dT",
+	"bDeVurhNBnvEw+Ut39R+rLB5kS8sS2FpwKOI9bCSOuXLU5voWldnqchX9tZsq3SZAkX1WkS3JI61u2Bq",
+	"vngLEpWk8JFq43yEfVfFGQSyT6oozr4ydGqG6zeE5sdUKNxac/Fo7gXVmtehuGU75C4zuYe+9tdtf1xb",
+	"yj9yY7i+t/UxHkc6OHtnZ3ZOKfKvkXO2qXieHhPnEOTZa+h4DJxRig/LpPKKcP8jdHql7U7VKrjmAF0P",
+	"yXVA5mEdoDMofiwH6DS3rgN0ZcO5O4VSPkSXbbaOPElaXtshB+kG2e6Nnf/htvp1lfFHsdi1uh2YzX79",
+	"5Gz1Q39/4Ena+H6nvPOErN5B8gnIddi/k+hjsPvQ2VQa7fkhp396Ke54DHY3Cnhsx2B9rvQ2/66RTctU",
+	"SCAOsRYayYzuJZjiBSQ2r203ckPSkZVz0vFWsitR1Ad0+xIsLop2cldU6O1LUB/4cNIymdbt1+3/BwAA",
+	"//8mMR12C64AAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

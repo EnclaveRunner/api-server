@@ -34,4 +34,14 @@ type AppConfig struct {
 		Username string `mapstructure:"username"`
 		Password string `mapstructure:"password"`
 	} `mapstructure:"redis" validate:"required"`
+
+	Pagination struct {
+		Default int `mapstructure:"default" validate:"required,numeric,min=1"`
+		Maximum int `mapstructure:"maximum" validate:"required,numeric,min=1"`
+	} `mapstructure:"pagination" validate:"required"`
+
+	Retry struct {
+		MaxRetries int    `mapstructure:"max_retries" validate:"required,numeric,min=0"`
+		Retention  string `mapstructure:"retention"   validate:"required"`
+	} `mapstructure:"retry" validate:"required"`
 }

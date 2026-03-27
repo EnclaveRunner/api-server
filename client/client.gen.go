@@ -15,51 +15,75 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 const (
 	BasicAuthScopes = "BasicAuth.Scopes"
 )
 
-// Defines values for RBACPolicyPermission.
+// Defines values for RBACPolicyMethod.
 const (
-	Asterisk RBACPolicyPermission = "*"
-	DELETE   RBACPolicyPermission = "DELETE"
-	GET      RBACPolicyPermission = "GET"
-	HEAD     RBACPolicyPermission = "HEAD"
-	PATCH    RBACPolicyPermission = "PATCH"
-	POST     RBACPolicyPermission = "POST"
+	Asterisk RBACPolicyMethod = "*"
+	DELETE   RBACPolicyMethod = "DELETE"
+	GET      RBACPolicyMethod = "GET"
+	HEAD     RBACPolicyMethod = "HEAD"
+	PATCH    RBACPolicyMethod = "PATCH"
+	POST     RBACPolicyMethod = "POST"
+	PUT      RBACPolicyMethod = "PUT"
 )
 
-// Artifact Metadata of an artifact.
+// Artifact Metadata of an artifact version.
 type Artifact struct {
-	// CreatedAt The creation timestamp of the artifact.
+	// CreatedAt Creation timestamp of the artifact.
 	CreatedAt time.Time `json:"createdAt"`
 
-	// Package Package name of an artifact.
-	Package PackageName `json:"package"`
+	// Name Name of the artifact.
+	Name string `json:"name"`
 
-	// Pulls The number of times the artifact has been pulled.
+	// Namespace Namespace of the artifact.
+	Namespace string `json:"namespace"`
+
+	// Pulls Number of times the artifact has been pulled.
 	Pulls int `json:"pulls"`
 
 	// Tags Tags associated with the artifact.
 	Tags []string `json:"tags"`
 
-	// VersionHash The version hash of the artifact.
+	// VersionHash Version hash of the artifact.
 	VersionHash string `json:"versionHash"`
 }
 
-// CreateUser defines model for CreateUser.
-type CreateUser struct {
-	// DisplayName The display name for the new user.
-	DisplayName string `json:"displayName"`
+// CreateTaskRequest defines model for CreateTaskRequest.
+type CreateTaskRequest struct {
+	// Args Argument list used to invoke the task.
+	Args *[]string `json:"args,omitempty"`
 
-	// Name The name of the user to create.
-	Name string `json:"name"`
+	// Callback Callback URL invoked on task completion.
+	Callback *string `json:"callback,omitempty"`
 
-	// Password The password for the new user.
-	Password string `json:"password"`
+	// Env Environment variables supplied to the task.
+	Env *[]EnvironmentVariable `json:"env,omitempty"`
+
+	// Params Parameters passed to the task.
+	Params *[]interface{} `json:"params,omitempty"`
+
+	// Retention Duration to retain the task after completion.
+	Retention *string `json:"retention,omitempty"`
+
+	// Retries Maximum number of retries before the task is moved to state archived
+	Retries *int `json:"retries,omitempty"`
+
+	// Source Task source in the form namespace:name/interface/function@<hash|tag>.
+	Source string `json:"source"`
+}
+
+// EnvironmentVariable defines model for EnvironmentVariable.
+type EnvironmentVariable struct {
+	// Key Environment variable name.
+	Key string `json:"key"`
+
+	// Value Environment variable value.
+	Value string `json:"value"`
 }
 
 // ErrField defines model for ErrField.
@@ -76,46 +100,64 @@ type ErrGeneric struct {
 	Error string `json:"error"`
 }
 
-// PackageName Package name of an artifact.
-type PackageName struct {
-	// Name The name of the artifact.
-	Name string `json:"name"`
-
-	// Namespace The namespace of the artifact.
-	Namespace string `json:"namespace"`
+// PatchArtifact defines model for PatchArtifact.
+type PatchArtifact struct {
+	// Tags Tags to assign to the artifact version. When set, replaces the existing tags.
+	Tags *[]string `json:"tags,omitempty"`
 }
 
 // PatchMe defines model for PatchMe.
 type PatchMe struct {
-	// NewDisplayName The new display name for the current user.
-	NewDisplayName *string `json:"newDisplayName,omitempty"`
+	// DisplayName The display name for the current user.
+	DisplayName *string `json:"displayName,omitempty"`
 
-	// NewName The new name for the current user.
-	NewName *string `json:"newName,omitempty"`
+	// Password The password for the current user.
+	Password *string `json:"password,omitempty"`
 
-	// NewPassword The new password for the current user.
-	NewPassword *string `json:"newPassword,omitempty"`
+	// Roles Roles assigned to the current user.
+	Roles *[]string `json:"roles,omitempty"`
 }
 
 // PatchUser defines model for PatchUser.
 type PatchUser struct {
-	// Id The uuid of the user to update.
-	Id string `json:"id"`
+	// DisplayName The display name for the user.
+	DisplayName *string `json:"displayName,omitempty"`
 
-	// NewDisplayName The new display name for the user.
-	NewDisplayName *string `json:"newDisplayName,omitempty"`
+	// Password The password for the user.
+	Password *string `json:"password,omitempty"`
 
-	// NewName The new name for the user.
-	NewName *string `json:"newName,omitempty"`
+	// Roles Roles assigned to the user.
+	Roles *[]string `json:"roles,omitempty"`
+}
 
-	// NewPassword The new password for the user.
-	NewPassword *string `json:"newPassword,omitempty"`
+// PutResourceGroupRequest defines model for PutResourceGroupRequest.
+type PutResourceGroupRequest struct {
+	// Endpoints Endpoints assigned to this resource group.
+	Endpoints []string `json:"endpoints"`
+}
+
+// PutRoleRequest defines model for PutRoleRequest.
+type PutRoleRequest struct {
+	// Users Usernames assigned to this role.
+	Users []string `json:"users"`
+}
+
+// PutUserRequest defines model for PutUserRequest.
+type PutUserRequest struct {
+	// DisplayName The display name for the new user.
+	DisplayName string `json:"displayName"`
+
+	// Password The password for the new user.
+	Password string `json:"password"`
+
+	// Roles Roles assigned to the new user.
+	Roles *[]string `json:"roles,omitempty"`
 }
 
 // RBACPolicy defines model for RBACPolicy.
 type RBACPolicy struct {
-	// Permission The allowed permission (e.g., "GET", "POST", "*").
-	Permission RBACPolicyPermission `json:"permission"`
+	// Method The allowed HTTP method (e.g., "GET", "POST", "*").
+	Method RBACPolicyMethod `json:"method"`
 
 	// ResourceGroup The name of the resource group. (or "*" for all resource groups)
 	ResourceGroup string `json:"resourceGroup"`
@@ -124,49 +166,98 @@ type RBACPolicy struct {
 	Role string `json:"role"`
 }
 
-// RBACPolicyPermission The allowed permission (e.g., "GET", "POST", "*").
-type RBACPolicyPermission string
+// RBACPolicyMethod The allowed HTTP method (e.g., "GET", "POST", "*").
+type RBACPolicyMethod string
 
-// RBACRole defines model for RBACRole.
-type RBACRole struct {
-	// Role The name of the role.
-	Role string `json:"role"`
+// ResourceGroupResource defines model for ResourceGroupResource.
+type ResourceGroupResource struct {
+	// Endpoints Endpoints assigned to this resource group.
+	Endpoints []string `json:"endpoints"`
+
+	// Name The resource group name.
+	Name string `json:"name"`
 }
 
-// TaskState defines model for TaskState.
-type TaskState struct {
-	// CreatedOn The timestamp when the task was created.
-	CreatedOn string `json:"created_on"`
+// RoleResource defines model for RoleResource.
+type RoleResource struct {
+	// Name The role name.
+	Name string `json:"name"`
 
-	// Id The unique identifier for the task.
+	// Users Usernames assigned to this role.
+	Users []string `json:"users"`
+}
+
+// Task defines model for Task.
+type Task struct {
+	// Args Argument list used to invoke the task.
+	Args *[]string `json:"args,omitempty"`
+
+	// Callback Callback URL invoked on task completion.
+	Callback *string `json:"callback,omitempty"`
+
+	// Env Environment variables supplied to the task.
+	Env *[]EnvironmentVariable `json:"env,omitempty"`
+
+	// Id Unique identifier for the task.
 	Id string `json:"id"`
 
-	// LastAction The last action performed on the task.
-	LastAction string `json:"last_action"`
+	// Params Parameters passed to the task.
+	Params *[]interface{} `json:"params,omitempty"`
 
-	// MaxRetries The maximum number of retries allowed.
-	MaxRetries int `json:"max_retries"`
+	// Retention Duration to retain the task after completion.
+	Retention *string `json:"retention,omitempty"`
 
-	// ResultPayload The result payload of the task.
-	ResultPayload string `json:"result_payload"`
+	// Retries Maximum number of retries before the task is moved to state archived
+	Retries *int `json:"retries,omitempty"`
 
-	// Retention The retention period for the task.
-	Retention string `json:"retention"`
+	// Source Task source in the form namespace:name/interface/function@<hash|tag>.
+	Source string     `json:"source"`
+	Status TaskStatus `json:"status"`
+}
 
-	// Retries The current number of retries.
+// TaskLog defines model for TaskLog.
+type TaskLog struct {
+	// Issuer Component that issued the log entry.
+	Issuer string `json:"issuer"`
+
+	// Level Log level (e.g., debug, info, warn, error, fatal).
+	Level string `json:"level"`
+
+	// Message Log message content.
+	Message string `json:"message"`
+
+	// Timestamp Time the log entry was created.
+	Timestamp time.Time `json:"timestamp"`
+}
+
+// TaskStatus defines model for TaskStatus.
+type TaskStatus struct {
+	// CompletedAt Time the task finished processing.
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
+
+	// LastError Error message from the last failure.
+	LastError *string `json:"last_error,omitempty"`
+
+	// LastFailedAt Time of the last failure.
+	LastFailedAt *time.Time `json:"last_failed_at,omitempty"`
+
+	// NextProcessAt Time the task is scheduled for processing next.
+	NextProcessAt *time.Time `json:"next_process_at,omitempty"`
+
+	// ResultPayload Result payload of the task.
+	ResultPayload *string `json:"result_payload,omitempty"`
+
+	// Retries Current retry count.
 	Retries int `json:"retries"`
 
-	// RunnerHost The host running the task.
-	RunnerHost string `json:"runner_host"`
-
-	// Status The current status of the task.
-	Status string `json:"status"`
+	// State Current status of the task.
+	State string `json:"state"`
 }
 
-// UserRequest defines model for UserRequest.
-type UserRequest struct {
-	// Id The uuid of the user to retrieve.
-	Id string `json:"id"`
+// UploadArtifactResponse defines model for UploadArtifactResponse.
+type UploadArtifactResponse struct {
+	// VersionHash Created version hash.
+	VersionHash string `json:"versionHash"`
 }
 
 // UserResponse defines model for UserResponse.
@@ -174,11 +265,11 @@ type UserResponse struct {
 	// DisplayName The display name of the user.
 	DisplayName string `json:"displayName"`
 
-	// Id The uuid of the user.
-	Id string `json:"id"`
-
 	// Name The name of the user.
 	Name string `json:"name"`
+
+	// Roles Roles assigned to the user.
+	Roles *[]string `json:"roles,omitempty"`
 }
 
 // FieldError defines model for FieldError.
@@ -195,254 +286,146 @@ type GenericNotFound = ErrGeneric
 // GenericTooLarge defines model for GenericTooLarge.
 type GenericTooLarge = ErrGeneric
 
-// DeleteArtifactJSONBody defines parameters for DeleteArtifact.
-type DeleteArtifactJSONBody struct {
-	// Identifier Either the version hash or tag of the artifact.
-	Identifier string `json:"identifier"`
+// GetV1ArtifactParams defines parameters for GetV1Artifact.
+type GetV1ArtifactParams struct {
+	// Limit Maximum number of namespaces to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Package Package name of an artifact.
-	Package PackageName `json:"package"`
+	// Offset Offset into the namespace list.
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
 }
 
-// GetArtifactParams defines parameters for GetArtifact.
-type GetArtifactParams struct {
-	// Namespace The namespace of the artifact.
-	Namespace string `form:"namespace" json:"namespace"`
+// GetV1ArtifactNamespaceParams defines parameters for GetV1ArtifactNamespace.
+type GetV1ArtifactNamespaceParams struct {
+	// Limit Maximum number of artifacts to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Name The name of the artifact.
-	Name string `form:"name" json:"name"`
-
-	// Identifier Either the version hash or tag of the artifact.
-	Identifier string `form:"identifier" json:"identifier"`
+	// Offset Offset into the artifact list.
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
 }
 
-// HeadArtifactParams defines parameters for HeadArtifact.
-type HeadArtifactParams struct {
-	// Namespace The namespace of the artifact.
-	Namespace string `form:"namespace" json:"namespace"`
+// GetV1ArtifactNamespaceNameParams defines parameters for GetV1ArtifactNamespaceName.
+type GetV1ArtifactNamespaceNameParams struct {
+	// Limit Maximum number of versions to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Name The name of the artifact.
-	Name string `form:"name" json:"name"`
-
-	// Identifier Either the version hash or tag of the artifact.
-	Identifier string `form:"identifier" json:"identifier"`
+	// Offset Offset into the version list.
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
 }
 
-// GetArtifactListParams defines parameters for GetArtifactList.
-type GetArtifactListParams struct {
-	// Namespace The namespace of the artifact.
-	Namespace *string `form:"namespace,omitempty" json:"namespace,omitempty"`
+// GetV1RbacPolicyParams defines parameters for GetV1RbacPolicy.
+type GetV1RbacPolicyParams struct {
+	// Limit Maximum number of policies to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Name The name of the artifact.
+	// Offset Offset into the policy list.
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Role Filter policies by role.
+	Role *string `form:"role,omitempty" json:"role,omitempty"`
+
+	// ResourceGroup Filter policies by resource group.
+	ResourceGroup *string `form:"resource-group,omitempty" json:"resource-group,omitempty"`
+
+	// Method Filter policies by HTTP method.
+	Method *string `form:"method,omitempty" json:"method,omitempty"`
+}
+
+// GetV1RbacResourceGroupParams defines parameters for GetV1RbacResourceGroup.
+type GetV1RbacResourceGroupParams struct {
+	// Limit Maximum number of policies to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Offset into the policy list.
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Role Filter policies by role.
+	Role *string `form:"role,omitempty" json:"role,omitempty"`
+}
+
+// GetV1RbacRoleParams defines parameters for GetV1RbacRole.
+type GetV1RbacRoleParams struct {
+	// Limit Maximum number of policies to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Offset into the policy list.
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Role Filter policies by role.
+	Role *string `form:"role,omitempty" json:"role,omitempty"`
+}
+
+// GetV1TaskParams defines parameters for GetV1Task.
+type GetV1TaskParams struct {
+	// Limit Maximum number of tasks to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Offset for pagination.
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// State Filter tasks by state (e.g., ACTIVE).
+	State *string `form:"state,omitempty" json:"state,omitempty"`
+}
+
+// GetV1TaskIdLogsParams defines parameters for GetV1TaskIdLogs.
+type GetV1TaskIdLogsParams struct {
+	// Level Filter logs by level.
+	Level *string `form:"level,omitempty" json:"level,omitempty"`
+
+	// Issuer Filter logs by issuer.
+	Issuer *string `form:"issuer,omitempty" json:"issuer,omitempty"`
+
+	// TimeRangeFrom Start of the time range filter. Must be used with time-range-to and be more recent.
+	TimeRangeFrom *time.Time `form:"time-range-from,omitempty" json:"time-range-from,omitempty"`
+
+	// TimeRangeTo End of the time range filter. Must be used with time-range-from and be less recent.
+	TimeRangeTo *time.Time `form:"time-range-to,omitempty" json:"time-range-to,omitempty"`
+}
+
+// GetV1UserParams defines parameters for GetV1User.
+type GetV1UserParams struct {
+	// Limit Maximum number of users to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Offset into the user list.
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Name Filter by exact username.
 	Name *string `form:"name,omitempty" json:"name,omitempty"`
+
+	// DisplayName Filter by display name.
+	DisplayName *string `form:"display-name,omitempty" json:"display-name,omitempty"`
 }
 
-// DeleteArtifactTagJSONBody defines parameters for DeleteArtifactTag.
-type DeleteArtifactTagJSONBody struct {
-	// Package Package name of an artifact.
-	Package PackageName `json:"package"`
+// PatchV1ArtifactNamespaceNameHashHashJSONRequestBody defines body for PatchV1ArtifactNamespaceNameHashHash for application/json ContentType.
+type PatchV1ArtifactNamespaceNameHashHashJSONRequestBody = PatchArtifact
 
-	// Tag The tag to remove from the artifact.
-	Tag string `json:"tag"`
+// PatchV1ArtifactNamespaceNameTagTagJSONRequestBody defines body for PatchV1ArtifactNamespaceNameTagTag for application/json ContentType.
+type PatchV1ArtifactNamespaceNameTagTagJSONRequestBody = PatchArtifact
 
-	// VersionHash The version hash of the artifact to untag.
-	VersionHash string `json:"versionHash"`
-}
+// DeleteV1RbacPolicyJSONRequestBody defines body for DeleteV1RbacPolicy for application/json ContentType.
+type DeleteV1RbacPolicyJSONRequestBody = RBACPolicy
 
-// PostArtifactTagJSONBody defines parameters for PostArtifactTag.
-type PostArtifactTagJSONBody struct {
-	// NewTag The new tag to assign to the artifact version.
-	NewTag string `json:"newTag"`
+// PutV1RbacPolicyJSONRequestBody defines body for PutV1RbacPolicy for application/json ContentType.
+type PutV1RbacPolicyJSONRequestBody = RBACPolicy
 
-	// Package Package name of an artifact.
-	Package PackageName `json:"package"`
+// PutV1RbacResourceGroupResourceGroupJSONRequestBody defines body for PutV1RbacResourceGroupResourceGroup for application/json ContentType.
+type PutV1RbacResourceGroupResourceGroupJSONRequestBody = PutResourceGroupRequest
 
-	// VersionHash The version hash of the artifact to tag.
-	VersionHash string `json:"versionHash"`
-}
+// PutV1RbacRoleRoleJSONRequestBody defines body for PutV1RbacRoleRole for application/json ContentType.
+type PutV1RbacRoleRoleJSONRequestBody = PutRoleRequest
 
-// GetArtifactUploadParams defines parameters for GetArtifactUpload.
-type GetArtifactUploadParams struct {
-	// Namespace The namespace of the artifact.
-	Namespace string `form:"namespace" json:"namespace"`
+// PostV1TaskJSONRequestBody defines body for PostV1Task for application/json ContentType.
+type PostV1TaskJSONRequestBody = CreateTaskRequest
 
-	// Name The name of the artifact.
-	Name string `form:"name" json:"name"`
+// PatchV1UserMeJSONRequestBody defines body for PatchV1UserMe for application/json ContentType.
+type PatchV1UserMeJSONRequestBody = PatchMe
 
-	// Identifier Either the version hash or tag of the artifact.
-	Identifier string `form:"identifier" json:"identifier"`
-}
+// PatchV1UserUsernameJSONRequestBody defines body for PatchV1UserUsername for application/json ContentType.
+type PatchV1UserUsernameJSONRequestBody = PatchUser
 
-// PostArtifactUploadMultipartBody defines parameters for PostArtifactUpload.
-type PostArtifactUploadMultipartBody struct {
-	// File The artifact file to upload.
-	File openapi_types.File `json:"file"`
-
-	// Name The name of the artifact.
-	Name string `json:"name"`
-
-	// Namespace The namespace of the artifact.
-	Namespace string `json:"namespace"`
-
-	// Tag Tags to assign to the artifact.
-	Tag *[]string `json:"tag,omitempty"`
-}
-
-// DeleteRbacEndpointJSONBody defines parameters for DeleteRbacEndpoint.
-type DeleteRbacEndpointJSONBody struct {
-	// Endpoint The endpoint to remove from its resource group.
-	Endpoint string `json:"endpoint"`
-
-	// ResourceGroup The name of the resource group.
-	ResourceGroup string `json:"resourceGroup"`
-}
-
-// GetRbacEndpointParams defines parameters for GetRbacEndpoint.
-type GetRbacEndpointParams struct {
-	// Endpoint The endpoint to query.
-	Endpoint string `form:"endpoint" json:"endpoint"`
-}
-
-// PostRbacEndpointJSONBody defines parameters for PostRbacEndpoint.
-type PostRbacEndpointJSONBody struct {
-	// Endpoint The endpoint to assign to the resource group.
-	Endpoint string `json:"endpoint"`
-
-	// ResourceGroup The name of the resource group.
-	ResourceGroup string `json:"resourceGroup"`
-}
-
-// DeleteRbacResourceGroupJSONBody defines parameters for DeleteRbacResourceGroup.
-type DeleteRbacResourceGroupJSONBody struct {
-	// ResourceGroup The name of the resource group.
-	ResourceGroup string `json:"resourceGroup"`
-}
-
-// GetRbacResourceGroupParams defines parameters for GetRbacResourceGroup.
-type GetRbacResourceGroupParams struct {
-	// ResourceGroup The name of the resource group.
-	ResourceGroup string `form:"resourceGroup" json:"resourceGroup"`
-}
-
-// HeadRbacResourceGroupJSONBody defines parameters for HeadRbacResourceGroup.
-type HeadRbacResourceGroupJSONBody struct {
-	// ResourceGroup The name of the resource group.
-	ResourceGroup string `json:"resourceGroup"`
-}
-
-// PostRbacResourceGroupJSONBody defines parameters for PostRbacResourceGroup.
-type PostRbacResourceGroupJSONBody struct {
-	// ResourceGroup The name of the resource group.
-	ResourceGroup string `json:"resourceGroup"`
-}
-
-// GetRbacRoleParams defines parameters for GetRbacRole.
-type GetRbacRoleParams struct {
-	// Role The name of the role.
-	Role string `form:"role" json:"role"`
-}
-
-// DeleteRbacUserJSONBody defines parameters for DeleteRbacUser.
-type DeleteRbacUserJSONBody struct {
-	// Role The name of the role to remove from the user.
-	Role string `json:"role"`
-
-	// UserId The uuid of the user.
-	UserId string `json:"userId"`
-}
-
-// GetRbacUserParams defines parameters for GetRbacUser.
-type GetRbacUserParams struct {
-	// UserId The uuid of the user.
-	UserId string `form:"userId" json:"userId"`
-}
-
-// PostRbacUserJSONBody defines parameters for PostRbacUser.
-type PostRbacUserJSONBody struct {
-	// Role The name of the role to assign to the user.
-	Role string `json:"role"`
-
-	// UserId The uuid of the user.
-	UserId string `json:"userId"`
-}
-
-// GetTasksTaskParams defines parameters for GetTasksTask.
-type GetTasksTaskParams struct {
-	// Id The unique identifier for the task to retrieve.
-	Id string `form:"id" json:"id"`
-}
-
-// GetUsersUserParams defines parameters for GetUsersUser.
-type GetUsersUserParams struct {
-	// UserId The uuid of the user to retrieve.
-	UserId *string `form:"userId,omitempty" json:"userId,omitempty"`
-
-	// Name The name of the user to retrieve.
-	Name *string `form:"name,omitempty" json:"name,omitempty"`
-}
-
-// DeleteArtifactJSONRequestBody defines body for DeleteArtifact for application/json ContentType.
-type DeleteArtifactJSONRequestBody DeleteArtifactJSONBody
-
-// DeleteArtifactTagJSONRequestBody defines body for DeleteArtifactTag for application/json ContentType.
-type DeleteArtifactTagJSONRequestBody DeleteArtifactTagJSONBody
-
-// PostArtifactTagJSONRequestBody defines body for PostArtifactTag for application/json ContentType.
-type PostArtifactTagJSONRequestBody PostArtifactTagJSONBody
-
-// PostArtifactUploadMultipartRequestBody defines body for PostArtifactUpload for multipart/form-data ContentType.
-type PostArtifactUploadMultipartRequestBody PostArtifactUploadMultipartBody
-
-// DeleteRbacEndpointJSONRequestBody defines body for DeleteRbacEndpoint for application/json ContentType.
-type DeleteRbacEndpointJSONRequestBody DeleteRbacEndpointJSONBody
-
-// PostRbacEndpointJSONRequestBody defines body for PostRbacEndpoint for application/json ContentType.
-type PostRbacEndpointJSONRequestBody PostRbacEndpointJSONBody
-
-// DeleteRbacPolicyJSONRequestBody defines body for DeleteRbacPolicy for application/json ContentType.
-type DeleteRbacPolicyJSONRequestBody = RBACPolicy
-
-// PostRbacPolicyJSONRequestBody defines body for PostRbacPolicy for application/json ContentType.
-type PostRbacPolicyJSONRequestBody = RBACPolicy
-
-// DeleteRbacResourceGroupJSONRequestBody defines body for DeleteRbacResourceGroup for application/json ContentType.
-type DeleteRbacResourceGroupJSONRequestBody DeleteRbacResourceGroupJSONBody
-
-// HeadRbacResourceGroupJSONRequestBody defines body for HeadRbacResourceGroup for application/json ContentType.
-type HeadRbacResourceGroupJSONRequestBody HeadRbacResourceGroupJSONBody
-
-// PostRbacResourceGroupJSONRequestBody defines body for PostRbacResourceGroup for application/json ContentType.
-type PostRbacResourceGroupJSONRequestBody PostRbacResourceGroupJSONBody
-
-// DeleteRbacRoleJSONRequestBody defines body for DeleteRbacRole for application/json ContentType.
-type DeleteRbacRoleJSONRequestBody = RBACRole
-
-// HeadRbacRoleJSONRequestBody defines body for HeadRbacRole for application/json ContentType.
-type HeadRbacRoleJSONRequestBody = RBACRole
-
-// PostRbacRoleJSONRequestBody defines body for PostRbacRole for application/json ContentType.
-type PostRbacRoleJSONRequestBody = RBACRole
-
-// DeleteRbacUserJSONRequestBody defines body for DeleteRbacUser for application/json ContentType.
-type DeleteRbacUserJSONRequestBody DeleteRbacUserJSONBody
-
-// PostRbacUserJSONRequestBody defines body for PostRbacUser for application/json ContentType.
-type PostRbacUserJSONRequestBody PostRbacUserJSONBody
-
-// PatchUsersMeJSONRequestBody defines body for PatchUsersMe for application/json ContentType.
-type PatchUsersMeJSONRequestBody = PatchMe
-
-// DeleteUsersUserJSONRequestBody defines body for DeleteUsersUser for application/json ContentType.
-type DeleteUsersUserJSONRequestBody = UserRequest
-
-// HeadUsersUserJSONRequestBody defines body for HeadUsersUser for application/json ContentType.
-type HeadUsersUserJSONRequestBody = UserRequest
-
-// PatchUsersUserJSONRequestBody defines body for PatchUsersUser for application/json ContentType.
-type PatchUsersUserJSONRequestBody = PatchUser
-
-// PostUsersUserJSONRequestBody defines body for PostUsersUser for application/json ContentType.
-type PostUsersUserJSONRequestBody = CreateUser
+// PutV1UserUsernameJSONRequestBody defines body for PutV1UserUsername for application/json ContentType.
+type PutV1UserUsernameJSONRequestBody = PutUserRequest
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -517,166 +500,143 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
-	// DeleteArtifactWithBody request with any body
-	DeleteArtifactWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetV1Artifact request
+	GetV1Artifact(ctx context.Context, params *GetV1ArtifactParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	DeleteArtifact(ctx context.Context, body DeleteArtifactJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// PostV1ArtifactRawNamespaceNameWithBody request with any body
+	PostV1ArtifactRawNamespaceNameWithBody(ctx context.Context, namespace string, name string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetArtifact request
-	GetArtifact(ctx context.Context, params *GetArtifactParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetV1ArtifactRawNamespaceNameHashHash request
+	GetV1ArtifactRawNamespaceNameHashHash(ctx context.Context, namespace string, name string, hash string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// HeadArtifact request
-	HeadArtifact(ctx context.Context, params *HeadArtifactParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetV1ArtifactRawNamespaceNameTagTag request
+	GetV1ArtifactRawNamespaceNameTagTag(ctx context.Context, namespace string, name string, tag string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetArtifactList request
-	GetArtifactList(ctx context.Context, params *GetArtifactListParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetV1ArtifactNamespace request
+	GetV1ArtifactNamespace(ctx context.Context, namespace string, params *GetV1ArtifactNamespaceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// DeleteArtifactTagWithBody request with any body
-	DeleteArtifactTagWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetV1ArtifactNamespaceName request
+	GetV1ArtifactNamespaceName(ctx context.Context, namespace string, name string, params *GetV1ArtifactNamespaceNameParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	DeleteArtifactTag(ctx context.Context, body DeleteArtifactTagJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// DeleteV1ArtifactNamespaceNameHashHash request
+	DeleteV1ArtifactNamespaceNameHashHash(ctx context.Context, namespace string, name string, hash string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PostArtifactTagWithBody request with any body
-	PostArtifactTagWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetV1ArtifactNamespaceNameHashHash request
+	GetV1ArtifactNamespaceNameHashHash(ctx context.Context, namespace string, name string, hash string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	PostArtifactTag(ctx context.Context, body PostArtifactTagJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// PatchV1ArtifactNamespaceNameHashHashWithBody request with any body
+	PatchV1ArtifactNamespaceNameHashHashWithBody(ctx context.Context, namespace string, name string, hash string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetArtifactUpload request
-	GetArtifactUpload(ctx context.Context, params *GetArtifactUploadParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	PatchV1ArtifactNamespaceNameHashHash(ctx context.Context, namespace string, name string, hash string, body PatchV1ArtifactNamespaceNameHashHashJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PostArtifactUploadWithBody request with any body
-	PostArtifactUploadWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// DeleteV1ArtifactNamespaceNameTagTag request
+	DeleteV1ArtifactNamespaceNameTagTag(ctx context.Context, namespace string, name string, tag string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PostManifestWithBody request with any body
-	PostManifestWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetV1ArtifactNamespaceNameTagTag request
+	GetV1ArtifactNamespaceNameTagTag(ctx context.Context, namespace string, name string, tag string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// DeleteRbacEndpointWithBody request with any body
-	DeleteRbacEndpointWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// PatchV1ArtifactNamespaceNameTagTagWithBody request with any body
+	PatchV1ArtifactNamespaceNameTagTagWithBody(ctx context.Context, namespace string, name string, tag string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	DeleteRbacEndpoint(ctx context.Context, body DeleteRbacEndpointJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	PatchV1ArtifactNamespaceNameTagTag(ctx context.Context, namespace string, name string, tag string, body PatchV1ArtifactNamespaceNameTagTagJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetRbacEndpoint request
-	GetRbacEndpoint(ctx context.Context, params *GetRbacEndpointParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// DeleteV1RbacPolicyWithBody request with any body
+	DeleteV1RbacPolicyWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PostRbacEndpointWithBody request with any body
-	PostRbacEndpointWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	DeleteV1RbacPolicy(ctx context.Context, body DeleteV1RbacPolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	PostRbacEndpoint(ctx context.Context, body PostRbacEndpointJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetV1RbacPolicy request
+	GetV1RbacPolicy(ctx context.Context, params *GetV1RbacPolicyParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetRbacListResourceGroups request
-	GetRbacListResourceGroups(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// PutV1RbacPolicyWithBody request with any body
+	PutV1RbacPolicyWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetRbacListRoles request
-	GetRbacListRoles(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+	PutV1RbacPolicy(ctx context.Context, body PutV1RbacPolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// DeleteRbacPolicyWithBody request with any body
-	DeleteRbacPolicyWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetV1RbacResourceGroup request
+	GetV1RbacResourceGroup(ctx context.Context, params *GetV1RbacResourceGroupParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	DeleteRbacPolicy(ctx context.Context, body DeleteRbacPolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// DeleteV1RbacResourceGroupResourceGroup request
+	DeleteV1RbacResourceGroupResourceGroup(ctx context.Context, resourceGroup string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetRbacPolicy request
-	GetRbacPolicy(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetV1RbacResourceGroupResourceGroup request
+	GetV1RbacResourceGroupResourceGroup(ctx context.Context, resourceGroup string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PostRbacPolicyWithBody request with any body
-	PostRbacPolicyWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// HeadV1RbacResourceGroupResourceGroup request
+	HeadV1RbacResourceGroupResourceGroup(ctx context.Context, resourceGroup string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	PostRbacPolicy(ctx context.Context, body PostRbacPolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// PutV1RbacResourceGroupResourceGroupWithBody request with any body
+	PutV1RbacResourceGroupResourceGroupWithBody(ctx context.Context, resourceGroup string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// DeleteRbacResourceGroupWithBody request with any body
-	DeleteRbacResourceGroupWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	PutV1RbacResourceGroupResourceGroup(ctx context.Context, resourceGroup string, body PutV1RbacResourceGroupResourceGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	DeleteRbacResourceGroup(ctx context.Context, body DeleteRbacResourceGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetV1RbacRole request
+	GetV1RbacRole(ctx context.Context, params *GetV1RbacRoleParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetRbacResourceGroup request
-	GetRbacResourceGroup(ctx context.Context, params *GetRbacResourceGroupParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// DeleteV1RbacRoleRole request
+	DeleteV1RbacRoleRole(ctx context.Context, role string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// HeadRbacResourceGroupWithBody request with any body
-	HeadRbacResourceGroupWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetV1RbacRoleRole request
+	GetV1RbacRoleRole(ctx context.Context, role string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	HeadRbacResourceGroup(ctx context.Context, body HeadRbacResourceGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// HeadV1RbacRoleRole request
+	HeadV1RbacRoleRole(ctx context.Context, role string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PostRbacResourceGroupWithBody request with any body
-	PostRbacResourceGroupWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// PutV1RbacRoleRoleWithBody request with any body
+	PutV1RbacRoleRoleWithBody(ctx context.Context, role string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	PostRbacResourceGroup(ctx context.Context, body PostRbacResourceGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	PutV1RbacRoleRole(ctx context.Context, role string, body PutV1RbacRoleRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// DeleteRbacRoleWithBody request with any body
-	DeleteRbacRoleWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetV1Task request
+	GetV1Task(ctx context.Context, params *GetV1TaskParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	DeleteRbacRole(ctx context.Context, body DeleteRbacRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// PostV1TaskWithBody request with any body
+	PostV1TaskWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetRbacRole request
-	GetRbacRole(ctx context.Context, params *GetRbacRoleParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	PostV1Task(ctx context.Context, body PostV1TaskJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// HeadRbacRoleWithBody request with any body
-	HeadRbacRoleWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetV1TaskId request
+	GetV1TaskId(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	HeadRbacRole(ctx context.Context, body HeadRbacRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetV1TaskIdLogs request
+	GetV1TaskIdLogs(ctx context.Context, id string, params *GetV1TaskIdLogsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PostRbacRoleWithBody request with any body
-	PostRbacRoleWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetV1User request
+	GetV1User(ctx context.Context, params *GetV1UserParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	PostRbacRole(ctx context.Context, body PostRbacRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// DeleteV1UserMe request
+	DeleteV1UserMe(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// DeleteRbacUserWithBody request with any body
-	DeleteRbacUserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetV1UserMe request
+	GetV1UserMe(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	DeleteRbacUser(ctx context.Context, body DeleteRbacUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// PatchV1UserMeWithBody request with any body
+	PatchV1UserMeWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetRbacUser request
-	GetRbacUser(ctx context.Context, params *GetRbacUserParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	PatchV1UserMe(ctx context.Context, body PatchV1UserMeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PostRbacUserWithBody request with any body
-	PostRbacUserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// DeleteV1UserUsername request
+	DeleteV1UserUsername(ctx context.Context, username string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	PostRbacUser(ctx context.Context, body PostRbacUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetV1UserUsername request
+	GetV1UserUsername(ctx context.Context, username string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetTasksList request
-	GetTasksList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// HeadV1UserUsername request
+	HeadV1UserUsername(ctx context.Context, username string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetTasksTask request
-	GetTasksTask(ctx context.Context, params *GetTasksTaskParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// PatchV1UserUsernameWithBody request with any body
+	PatchV1UserUsernameWithBody(ctx context.Context, username string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetUsersList request
-	GetUsersList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+	PatchV1UserUsername(ctx context.Context, username string, body PatchV1UserUsernameJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// DeleteUsersMe request
-	DeleteUsersMe(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// PutV1UserUsernameWithBody request with any body
+	PutV1UserUsernameWithBody(ctx context.Context, username string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetUsersMe request
-	GetUsersMe(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// PatchUsersMeWithBody request with any body
-	PatchUsersMeWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	PatchUsersMe(ctx context.Context, body PatchUsersMeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// DeleteUsersUserWithBody request with any body
-	DeleteUsersUserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	DeleteUsersUser(ctx context.Context, body DeleteUsersUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// GetUsersUser request
-	GetUsersUser(ctx context.Context, params *GetUsersUserParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// HeadUsersUserWithBody request with any body
-	HeadUsersUserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	HeadUsersUser(ctx context.Context, body HeadUsersUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// PatchUsersUserWithBody request with any body
-	PatchUsersUserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	PatchUsersUser(ctx context.Context, body PatchUsersUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// PostUsersUserWithBody request with any body
-	PostUsersUserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	PostUsersUser(ctx context.Context, body PostUsersUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	PutV1UserUsername(ctx context.Context, username string, body PutV1UserUsernameJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
-func (c *Client) DeleteArtifactWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteArtifactRequestWithBody(c.Server, contentType, body)
+func (c *Client) GetV1Artifact(ctx context.Context, params *GetV1ArtifactParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetV1ArtifactRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -687,8 +647,8 @@ func (c *Client) DeleteArtifactWithBody(ctx context.Context, contentType string,
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteArtifact(ctx context.Context, body DeleteArtifactJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteArtifactRequest(c.Server, body)
+func (c *Client) PostV1ArtifactRawNamespaceNameWithBody(ctx context.Context, namespace string, name string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostV1ArtifactRawNamespaceNameRequestWithBody(c.Server, namespace, name, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -699,8 +659,8 @@ func (c *Client) DeleteArtifact(ctx context.Context, body DeleteArtifactJSONRequ
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetArtifact(ctx context.Context, params *GetArtifactParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetArtifactRequest(c.Server, params)
+func (c *Client) GetV1ArtifactRawNamespaceNameHashHash(ctx context.Context, namespace string, name string, hash string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetV1ArtifactRawNamespaceNameHashHashRequest(c.Server, namespace, name, hash)
 	if err != nil {
 		return nil, err
 	}
@@ -711,8 +671,8 @@ func (c *Client) GetArtifact(ctx context.Context, params *GetArtifactParams, req
 	return c.Client.Do(req)
 }
 
-func (c *Client) HeadArtifact(ctx context.Context, params *HeadArtifactParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewHeadArtifactRequest(c.Server, params)
+func (c *Client) GetV1ArtifactRawNamespaceNameTagTag(ctx context.Context, namespace string, name string, tag string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetV1ArtifactRawNamespaceNameTagTagRequest(c.Server, namespace, name, tag)
 	if err != nil {
 		return nil, err
 	}
@@ -723,8 +683,8 @@ func (c *Client) HeadArtifact(ctx context.Context, params *HeadArtifactParams, r
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetArtifactList(ctx context.Context, params *GetArtifactListParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetArtifactListRequest(c.Server, params)
+func (c *Client) GetV1ArtifactNamespace(ctx context.Context, namespace string, params *GetV1ArtifactNamespaceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetV1ArtifactNamespaceRequest(c.Server, namespace, params)
 	if err != nil {
 		return nil, err
 	}
@@ -735,8 +695,8 @@ func (c *Client) GetArtifactList(ctx context.Context, params *GetArtifactListPar
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteArtifactTagWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteArtifactTagRequestWithBody(c.Server, contentType, body)
+func (c *Client) GetV1ArtifactNamespaceName(ctx context.Context, namespace string, name string, params *GetV1ArtifactNamespaceNameParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetV1ArtifactNamespaceNameRequest(c.Server, namespace, name, params)
 	if err != nil {
 		return nil, err
 	}
@@ -747,8 +707,8 @@ func (c *Client) DeleteArtifactTagWithBody(ctx context.Context, contentType stri
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteArtifactTag(ctx context.Context, body DeleteArtifactTagJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteArtifactTagRequest(c.Server, body)
+func (c *Client) DeleteV1ArtifactNamespaceNameHashHash(ctx context.Context, namespace string, name string, hash string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteV1ArtifactNamespaceNameHashHashRequest(c.Server, namespace, name, hash)
 	if err != nil {
 		return nil, err
 	}
@@ -759,8 +719,8 @@ func (c *Client) DeleteArtifactTag(ctx context.Context, body DeleteArtifactTagJS
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostArtifactTagWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostArtifactTagRequestWithBody(c.Server, contentType, body)
+func (c *Client) GetV1ArtifactNamespaceNameHashHash(ctx context.Context, namespace string, name string, hash string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetV1ArtifactNamespaceNameHashHashRequest(c.Server, namespace, name, hash)
 	if err != nil {
 		return nil, err
 	}
@@ -771,8 +731,8 @@ func (c *Client) PostArtifactTagWithBody(ctx context.Context, contentType string
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostArtifactTag(ctx context.Context, body PostArtifactTagJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostArtifactTagRequest(c.Server, body)
+func (c *Client) PatchV1ArtifactNamespaceNameHashHashWithBody(ctx context.Context, namespace string, name string, hash string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPatchV1ArtifactNamespaceNameHashHashRequestWithBody(c.Server, namespace, name, hash, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -783,8 +743,8 @@ func (c *Client) PostArtifactTag(ctx context.Context, body PostArtifactTagJSONRe
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetArtifactUpload(ctx context.Context, params *GetArtifactUploadParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetArtifactUploadRequest(c.Server, params)
+func (c *Client) PatchV1ArtifactNamespaceNameHashHash(ctx context.Context, namespace string, name string, hash string, body PatchV1ArtifactNamespaceNameHashHashJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPatchV1ArtifactNamespaceNameHashHashRequest(c.Server, namespace, name, hash, body)
 	if err != nil {
 		return nil, err
 	}
@@ -795,8 +755,8 @@ func (c *Client) GetArtifactUpload(ctx context.Context, params *GetArtifactUploa
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostArtifactUploadWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostArtifactUploadRequestWithBody(c.Server, contentType, body)
+func (c *Client) DeleteV1ArtifactNamespaceNameTagTag(ctx context.Context, namespace string, name string, tag string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteV1ArtifactNamespaceNameTagTagRequest(c.Server, namespace, name, tag)
 	if err != nil {
 		return nil, err
 	}
@@ -807,8 +767,8 @@ func (c *Client) PostArtifactUploadWithBody(ctx context.Context, contentType str
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostManifestWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostManifestRequestWithBody(c.Server, contentType, body)
+func (c *Client) GetV1ArtifactNamespaceNameTagTag(ctx context.Context, namespace string, name string, tag string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetV1ArtifactNamespaceNameTagTagRequest(c.Server, namespace, name, tag)
 	if err != nil {
 		return nil, err
 	}
@@ -819,8 +779,8 @@ func (c *Client) PostManifestWithBody(ctx context.Context, contentType string, b
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteRbacEndpointWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteRbacEndpointRequestWithBody(c.Server, contentType, body)
+func (c *Client) PatchV1ArtifactNamespaceNameTagTagWithBody(ctx context.Context, namespace string, name string, tag string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPatchV1ArtifactNamespaceNameTagTagRequestWithBody(c.Server, namespace, name, tag, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -831,8 +791,8 @@ func (c *Client) DeleteRbacEndpointWithBody(ctx context.Context, contentType str
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteRbacEndpoint(ctx context.Context, body DeleteRbacEndpointJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteRbacEndpointRequest(c.Server, body)
+func (c *Client) PatchV1ArtifactNamespaceNameTagTag(ctx context.Context, namespace string, name string, tag string, body PatchV1ArtifactNamespaceNameTagTagJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPatchV1ArtifactNamespaceNameTagTagRequest(c.Server, namespace, name, tag, body)
 	if err != nil {
 		return nil, err
 	}
@@ -843,8 +803,8 @@ func (c *Client) DeleteRbacEndpoint(ctx context.Context, body DeleteRbacEndpoint
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetRbacEndpoint(ctx context.Context, params *GetRbacEndpointParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetRbacEndpointRequest(c.Server, params)
+func (c *Client) DeleteV1RbacPolicyWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteV1RbacPolicyRequestWithBody(c.Server, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -855,8 +815,8 @@ func (c *Client) GetRbacEndpoint(ctx context.Context, params *GetRbacEndpointPar
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostRbacEndpointWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostRbacEndpointRequestWithBody(c.Server, contentType, body)
+func (c *Client) DeleteV1RbacPolicy(ctx context.Context, body DeleteV1RbacPolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteV1RbacPolicyRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -867,8 +827,8 @@ func (c *Client) PostRbacEndpointWithBody(ctx context.Context, contentType strin
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostRbacEndpoint(ctx context.Context, body PostRbacEndpointJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostRbacEndpointRequest(c.Server, body)
+func (c *Client) GetV1RbacPolicy(ctx context.Context, params *GetV1RbacPolicyParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetV1RbacPolicyRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -879,8 +839,8 @@ func (c *Client) PostRbacEndpoint(ctx context.Context, body PostRbacEndpointJSON
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetRbacListResourceGroups(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetRbacListResourceGroupsRequest(c.Server)
+func (c *Client) PutV1RbacPolicyWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutV1RbacPolicyRequestWithBody(c.Server, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -891,8 +851,8 @@ func (c *Client) GetRbacListResourceGroups(ctx context.Context, reqEditors ...Re
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetRbacListRoles(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetRbacListRolesRequest(c.Server)
+func (c *Client) PutV1RbacPolicy(ctx context.Context, body PutV1RbacPolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutV1RbacPolicyRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -903,8 +863,8 @@ func (c *Client) GetRbacListRoles(ctx context.Context, reqEditors ...RequestEdit
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteRbacPolicyWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteRbacPolicyRequestWithBody(c.Server, contentType, body)
+func (c *Client) GetV1RbacResourceGroup(ctx context.Context, params *GetV1RbacResourceGroupParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetV1RbacResourceGroupRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -915,8 +875,8 @@ func (c *Client) DeleteRbacPolicyWithBody(ctx context.Context, contentType strin
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteRbacPolicy(ctx context.Context, body DeleteRbacPolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteRbacPolicyRequest(c.Server, body)
+func (c *Client) DeleteV1RbacResourceGroupResourceGroup(ctx context.Context, resourceGroup string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteV1RbacResourceGroupResourceGroupRequest(c.Server, resourceGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -927,8 +887,8 @@ func (c *Client) DeleteRbacPolicy(ctx context.Context, body DeleteRbacPolicyJSON
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetRbacPolicy(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetRbacPolicyRequest(c.Server)
+func (c *Client) GetV1RbacResourceGroupResourceGroup(ctx context.Context, resourceGroup string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetV1RbacResourceGroupResourceGroupRequest(c.Server, resourceGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -939,8 +899,8 @@ func (c *Client) GetRbacPolicy(ctx context.Context, reqEditors ...RequestEditorF
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostRbacPolicyWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostRbacPolicyRequestWithBody(c.Server, contentType, body)
+func (c *Client) HeadV1RbacResourceGroupResourceGroup(ctx context.Context, resourceGroup string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewHeadV1RbacResourceGroupResourceGroupRequest(c.Server, resourceGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -951,8 +911,8 @@ func (c *Client) PostRbacPolicyWithBody(ctx context.Context, contentType string,
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostRbacPolicy(ctx context.Context, body PostRbacPolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostRbacPolicyRequest(c.Server, body)
+func (c *Client) PutV1RbacResourceGroupResourceGroupWithBody(ctx context.Context, resourceGroup string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutV1RbacResourceGroupResourceGroupRequestWithBody(c.Server, resourceGroup, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -963,8 +923,8 @@ func (c *Client) PostRbacPolicy(ctx context.Context, body PostRbacPolicyJSONRequ
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteRbacResourceGroupWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteRbacResourceGroupRequestWithBody(c.Server, contentType, body)
+func (c *Client) PutV1RbacResourceGroupResourceGroup(ctx context.Context, resourceGroup string, body PutV1RbacResourceGroupResourceGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutV1RbacResourceGroupResourceGroupRequest(c.Server, resourceGroup, body)
 	if err != nil {
 		return nil, err
 	}
@@ -975,8 +935,8 @@ func (c *Client) DeleteRbacResourceGroupWithBody(ctx context.Context, contentTyp
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteRbacResourceGroup(ctx context.Context, body DeleteRbacResourceGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteRbacResourceGroupRequest(c.Server, body)
+func (c *Client) GetV1RbacRole(ctx context.Context, params *GetV1RbacRoleParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetV1RbacRoleRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -987,8 +947,8 @@ func (c *Client) DeleteRbacResourceGroup(ctx context.Context, body DeleteRbacRes
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetRbacResourceGroup(ctx context.Context, params *GetRbacResourceGroupParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetRbacResourceGroupRequest(c.Server, params)
+func (c *Client) DeleteV1RbacRoleRole(ctx context.Context, role string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteV1RbacRoleRoleRequest(c.Server, role)
 	if err != nil {
 		return nil, err
 	}
@@ -999,8 +959,8 @@ func (c *Client) GetRbacResourceGroup(ctx context.Context, params *GetRbacResour
 	return c.Client.Do(req)
 }
 
-func (c *Client) HeadRbacResourceGroupWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewHeadRbacResourceGroupRequestWithBody(c.Server, contentType, body)
+func (c *Client) GetV1RbacRoleRole(ctx context.Context, role string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetV1RbacRoleRoleRequest(c.Server, role)
 	if err != nil {
 		return nil, err
 	}
@@ -1011,8 +971,8 @@ func (c *Client) HeadRbacResourceGroupWithBody(ctx context.Context, contentType 
 	return c.Client.Do(req)
 }
 
-func (c *Client) HeadRbacResourceGroup(ctx context.Context, body HeadRbacResourceGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewHeadRbacResourceGroupRequest(c.Server, body)
+func (c *Client) HeadV1RbacRoleRole(ctx context.Context, role string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewHeadV1RbacRoleRoleRequest(c.Server, role)
 	if err != nil {
 		return nil, err
 	}
@@ -1023,8 +983,8 @@ func (c *Client) HeadRbacResourceGroup(ctx context.Context, body HeadRbacResourc
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostRbacResourceGroupWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostRbacResourceGroupRequestWithBody(c.Server, contentType, body)
+func (c *Client) PutV1RbacRoleRoleWithBody(ctx context.Context, role string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutV1RbacRoleRoleRequestWithBody(c.Server, role, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1035,8 +995,8 @@ func (c *Client) PostRbacResourceGroupWithBody(ctx context.Context, contentType 
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostRbacResourceGroup(ctx context.Context, body PostRbacResourceGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostRbacResourceGroupRequest(c.Server, body)
+func (c *Client) PutV1RbacRoleRole(ctx context.Context, role string, body PutV1RbacRoleRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutV1RbacRoleRoleRequest(c.Server, role, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1047,8 +1007,8 @@ func (c *Client) PostRbacResourceGroup(ctx context.Context, body PostRbacResourc
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteRbacRoleWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteRbacRoleRequestWithBody(c.Server, contentType, body)
+func (c *Client) GetV1Task(ctx context.Context, params *GetV1TaskParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetV1TaskRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -1059,8 +1019,8 @@ func (c *Client) DeleteRbacRoleWithBody(ctx context.Context, contentType string,
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteRbacRole(ctx context.Context, body DeleteRbacRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteRbacRoleRequest(c.Server, body)
+func (c *Client) PostV1TaskWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostV1TaskRequestWithBody(c.Server, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1071,8 +1031,8 @@ func (c *Client) DeleteRbacRole(ctx context.Context, body DeleteRbacRoleJSONRequ
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetRbacRole(ctx context.Context, params *GetRbacRoleParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetRbacRoleRequest(c.Server, params)
+func (c *Client) PostV1Task(ctx context.Context, body PostV1TaskJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostV1TaskRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1083,8 +1043,8 @@ func (c *Client) GetRbacRole(ctx context.Context, params *GetRbacRoleParams, req
 	return c.Client.Do(req)
 }
 
-func (c *Client) HeadRbacRoleWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewHeadRbacRoleRequestWithBody(c.Server, contentType, body)
+func (c *Client) GetV1TaskId(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetV1TaskIdRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -1095,8 +1055,8 @@ func (c *Client) HeadRbacRoleWithBody(ctx context.Context, contentType string, b
 	return c.Client.Do(req)
 }
 
-func (c *Client) HeadRbacRole(ctx context.Context, body HeadRbacRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewHeadRbacRoleRequest(c.Server, body)
+func (c *Client) GetV1TaskIdLogs(ctx context.Context, id string, params *GetV1TaskIdLogsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetV1TaskIdLogsRequest(c.Server, id, params)
 	if err != nil {
 		return nil, err
 	}
@@ -1107,8 +1067,8 @@ func (c *Client) HeadRbacRole(ctx context.Context, body HeadRbacRoleJSONRequestB
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostRbacRoleWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostRbacRoleRequestWithBody(c.Server, contentType, body)
+func (c *Client) GetV1User(ctx context.Context, params *GetV1UserParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetV1UserRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -1119,8 +1079,8 @@ func (c *Client) PostRbacRoleWithBody(ctx context.Context, contentType string, b
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostRbacRole(ctx context.Context, body PostRbacRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostRbacRoleRequest(c.Server, body)
+func (c *Client) DeleteV1UserMe(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteV1UserMeRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -1131,8 +1091,8 @@ func (c *Client) PostRbacRole(ctx context.Context, body PostRbacRoleJSONRequestB
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteRbacUserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteRbacUserRequestWithBody(c.Server, contentType, body)
+func (c *Client) GetV1UserMe(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetV1UserMeRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -1143,8 +1103,8 @@ func (c *Client) DeleteRbacUserWithBody(ctx context.Context, contentType string,
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteRbacUser(ctx context.Context, body DeleteRbacUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteRbacUserRequest(c.Server, body)
+func (c *Client) PatchV1UserMeWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPatchV1UserMeRequestWithBody(c.Server, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1155,8 +1115,8 @@ func (c *Client) DeleteRbacUser(ctx context.Context, body DeleteRbacUserJSONRequ
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetRbacUser(ctx context.Context, params *GetRbacUserParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetRbacUserRequest(c.Server, params)
+func (c *Client) PatchV1UserMe(ctx context.Context, body PatchV1UserMeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPatchV1UserMeRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1167,8 +1127,8 @@ func (c *Client) GetRbacUser(ctx context.Context, params *GetRbacUserParams, req
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostRbacUserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostRbacUserRequestWithBody(c.Server, contentType, body)
+func (c *Client) DeleteV1UserUsername(ctx context.Context, username string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteV1UserUsernameRequest(c.Server, username)
 	if err != nil {
 		return nil, err
 	}
@@ -1179,8 +1139,8 @@ func (c *Client) PostRbacUserWithBody(ctx context.Context, contentType string, b
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostRbacUser(ctx context.Context, body PostRbacUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostRbacUserRequest(c.Server, body)
+func (c *Client) GetV1UserUsername(ctx context.Context, username string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetV1UserUsernameRequest(c.Server, username)
 	if err != nil {
 		return nil, err
 	}
@@ -1191,8 +1151,8 @@ func (c *Client) PostRbacUser(ctx context.Context, body PostRbacUserJSONRequestB
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetTasksList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetTasksListRequest(c.Server)
+func (c *Client) HeadV1UserUsername(ctx context.Context, username string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewHeadV1UserUsernameRequest(c.Server, username)
 	if err != nil {
 		return nil, err
 	}
@@ -1203,8 +1163,8 @@ func (c *Client) GetTasksList(ctx context.Context, reqEditors ...RequestEditorFn
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetTasksTask(ctx context.Context, params *GetTasksTaskParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetTasksTaskRequest(c.Server, params)
+func (c *Client) PatchV1UserUsernameWithBody(ctx context.Context, username string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPatchV1UserUsernameRequestWithBody(c.Server, username, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1215,8 +1175,8 @@ func (c *Client) GetTasksTask(ctx context.Context, params *GetTasksTaskParams, r
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetUsersList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetUsersListRequest(c.Server)
+func (c *Client) PatchV1UserUsername(ctx context.Context, username string, body PatchV1UserUsernameJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPatchV1UserUsernameRequest(c.Server, username, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1227,8 +1187,8 @@ func (c *Client) GetUsersList(ctx context.Context, reqEditors ...RequestEditorFn
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteUsersMe(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteUsersMeRequest(c.Server)
+func (c *Client) PutV1UserUsernameWithBody(ctx context.Context, username string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutV1UserUsernameRequestWithBody(c.Server, username, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1239,8 +1199,8 @@ func (c *Client) DeleteUsersMe(ctx context.Context, reqEditors ...RequestEditorF
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetUsersMe(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetUsersMeRequest(c.Server)
+func (c *Client) PutV1UserUsername(ctx context.Context, username string, body PutV1UserUsernameJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutV1UserUsernameRequest(c.Server, username, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1251,151 +1211,8 @@ func (c *Client) GetUsersMe(ctx context.Context, reqEditors ...RequestEditorFn) 
 	return c.Client.Do(req)
 }
 
-func (c *Client) PatchUsersMeWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPatchUsersMeRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PatchUsersMe(ctx context.Context, body PatchUsersMeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPatchUsersMeRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) DeleteUsersUserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteUsersUserRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) DeleteUsersUser(ctx context.Context, body DeleteUsersUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteUsersUserRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetUsersUser(ctx context.Context, params *GetUsersUserParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetUsersUserRequest(c.Server, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) HeadUsersUserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewHeadUsersUserRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) HeadUsersUser(ctx context.Context, body HeadUsersUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewHeadUsersUserRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PatchUsersUserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPatchUsersUserRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PatchUsersUser(ctx context.Context, body PatchUsersUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPatchUsersUserRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PostUsersUserWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostUsersUserRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PostUsersUser(ctx context.Context, body PostUsersUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostUsersUserRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// NewDeleteArtifactRequest calls the generic DeleteArtifact builder with application/json body
-func NewDeleteArtifactRequest(server string, body DeleteArtifactJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewDeleteArtifactRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewDeleteArtifactRequestWithBody generates requests for DeleteArtifact with any type of body
-func NewDeleteArtifactRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewGetV1ArtifactRequest generates requests for GetV1Artifact
+func NewGetV1ArtifactRequest(server string, params *GetV1ArtifactParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -1403,36 +1220,7 @@ func NewDeleteArtifactRequestWithBody(server string, contentType string, body io
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/artifact")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("DELETE", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewGetArtifactRequest generates requests for GetArtifact
-func NewGetArtifactRequest(server string, params *GetArtifactParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/artifact")
+	operationPath := fmt.Sprintf("/v1/artifact")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -1445,147 +1233,9 @@ func NewGetArtifactRequest(server string, params *GetArtifactParams) (*http.Requ
 	if params != nil {
 		queryValues := queryURL.Query()
 
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "namespace", runtime.ParamLocationQuery, params.Namespace); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
+		if params.Limit != nil {
 
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, params.Name); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "identifier", runtime.ParamLocationQuery, params.Identifier); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewHeadArtifactRequest generates requests for HeadArtifact
-func NewHeadArtifactRequest(server string, params *HeadArtifactParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/artifact")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "namespace", runtime.ParamLocationQuery, params.Namespace); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, params.Name); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "identifier", runtime.ParamLocationQuery, params.Identifier); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("HEAD", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewGetArtifactListRequest generates requests for GetArtifactList
-func NewGetArtifactListRequest(server string, params *GetArtifactListParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/artifact/list")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.Namespace != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "namespace", runtime.ParamLocationQuery, *params.Namespace); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -1599,9 +1249,9 @@ func NewGetArtifactListRequest(server string, params *GetArtifactListParams) (*h
 
 		}
 
-		if params.Name != nil {
+		if params.Offset != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -1626,67 +1276,30 @@ func NewGetArtifactListRequest(server string, params *GetArtifactListParams) (*h
 	return req, nil
 }
 
-// NewDeleteArtifactTagRequest calls the generic DeleteArtifactTag builder with application/json body
-func NewDeleteArtifactTagRequest(server string, body DeleteArtifactTagJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
+// NewPostV1ArtifactRawNamespaceNameRequestWithBody generates requests for PostV1ArtifactRawNamespaceName with any type of body
+func NewPostV1ArtifactRawNamespaceNameRequestWithBody(server string, namespace string, name string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "namespace", runtime.ParamLocationPath, namespace)
 	if err != nil {
 		return nil, err
 	}
-	bodyReader = bytes.NewReader(buf)
-	return NewDeleteArtifactTagRequestWithBody(server, "application/json", bodyReader)
-}
 
-// NewDeleteArtifactTagRequestWithBody generates requests for DeleteArtifactTag with any type of body
-func NewDeleteArtifactTagRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "name", runtime.ParamLocationPath, name)
+	if err != nil {
+		return nil, err
+	}
 
 	serverURL, err := url.Parse(server)
 	if err != nil {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/artifact/tag")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("DELETE", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewPostArtifactTagRequest calls the generic PostArtifactTag builder with application/json body
-func NewPostArtifactTagRequest(server string, body PostArtifactTagJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewPostArtifactTagRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewPostArtifactTagRequestWithBody generates requests for PostArtifactTag with any type of body
-func NewPostArtifactTagRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/artifact/tag")
+	operationPath := fmt.Sprintf("/v1/artifact/raw/%s/%s", pathParam0, pathParam1)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -1706,16 +1319,119 @@ func NewPostArtifactTagRequestWithBody(server string, contentType string, body i
 	return req, nil
 }
 
-// NewGetArtifactUploadRequest generates requests for GetArtifactUpload
-func NewGetArtifactUploadRequest(server string, params *GetArtifactUploadParams) (*http.Request, error) {
+// NewGetV1ArtifactRawNamespaceNameHashHashRequest generates requests for GetV1ArtifactRawNamespaceNameHashHash
+func NewGetV1ArtifactRawNamespaceNameHashHashRequest(server string, namespace string, name string, hash string) (*http.Request, error) {
 	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "namespace", runtime.ParamLocationPath, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "name", runtime.ParamLocationPath, name)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "hash", runtime.ParamLocationPath, hash)
+	if err != nil {
+		return nil, err
+	}
 
 	serverURL, err := url.Parse(server)
 	if err != nil {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/artifact/upload")
+	operationPath := fmt.Sprintf("/v1/artifact/raw/%s/%s/hash/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetV1ArtifactRawNamespaceNameTagTagRequest generates requests for GetV1ArtifactRawNamespaceNameTagTag
+func NewGetV1ArtifactRawNamespaceNameTagTagRequest(server string, namespace string, name string, tag string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "namespace", runtime.ParamLocationPath, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "name", runtime.ParamLocationPath, name)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "tag", runtime.ParamLocationPath, tag)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/artifact/raw/%s/%s/tag/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetV1ArtifactNamespaceRequest generates requests for GetV1ArtifactNamespace
+func NewGetV1ArtifactNamespaceRequest(server string, namespace string, params *GetV1ArtifactNamespaceParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "namespace", runtime.ParamLocationPath, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/artifact/%s", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -1728,40 +1444,36 @@ func NewGetArtifactUploadRequest(server string, params *GetArtifactUploadParams)
 	if params != nil {
 		queryValues := queryURL.Query()
 
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "namespace", runtime.ParamLocationQuery, params.Namespace); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
 				}
 			}
+
 		}
 
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, params.Name); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
+		if params.Offset != nil {
 
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "identifier", runtime.ParamLocationQuery, params.Identifier); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
 				}
 			}
+
 		}
 
 		queryURL.RawQuery = queryValues.Encode()
@@ -1775,114 +1487,30 @@ func NewGetArtifactUploadRequest(server string, params *GetArtifactUploadParams)
 	return req, nil
 }
 
-// NewPostArtifactUploadRequestWithBody generates requests for PostArtifactUpload with any type of body
-func NewPostArtifactUploadRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewGetV1ArtifactNamespaceNameRequest generates requests for GetV1ArtifactNamespaceName
+func NewGetV1ArtifactNamespaceNameRequest(server string, namespace string, name string, params *GetV1ArtifactNamespaceNameParams) (*http.Request, error) {
 	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "namespace", runtime.ParamLocationPath, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "name", runtime.ParamLocationPath, name)
+	if err != nil {
+		return nil, err
+	}
 
 	serverURL, err := url.Parse(server)
 	if err != nil {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/artifact/upload")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewPostManifestRequestWithBody generates requests for PostManifest with any type of body
-func NewPostManifestRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/manifest")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewDeleteRbacEndpointRequest calls the generic DeleteRbacEndpoint builder with application/json body
-func NewDeleteRbacEndpointRequest(server string, body DeleteRbacEndpointJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewDeleteRbacEndpointRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewDeleteRbacEndpointRequestWithBody generates requests for DeleteRbacEndpoint with any type of body
-func NewDeleteRbacEndpointRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/rbac/endpoint")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("DELETE", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewGetRbacEndpointRequest generates requests for GetRbacEndpoint
-func NewGetRbacEndpointRequest(server string, params *GetRbacEndpointParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/rbac/endpoint")
+	operationPath := fmt.Sprintf("/v1/artifact/%s/%s", pathParam0, pathParam1)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -1895,16 +1523,36 @@ func NewGetRbacEndpointRequest(server string, params *GetRbacEndpointParams) (*h
 	if params != nil {
 		queryValues := queryURL.Query()
 
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "endpoint", runtime.ParamLocationQuery, params.Endpoint); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
 				}
 			}
+
+		}
+
+		if params.Offset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
 		}
 
 		queryURL.RawQuery = queryValues.Encode()
@@ -1918,771 +1566,37 @@ func NewGetRbacEndpointRequest(server string, params *GetRbacEndpointParams) (*h
 	return req, nil
 }
 
-// NewPostRbacEndpointRequest calls the generic PostRbacEndpoint builder with application/json body
-func NewPostRbacEndpointRequest(server string, body PostRbacEndpointJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
+// NewDeleteV1ArtifactNamespaceNameHashHashRequest generates requests for DeleteV1ArtifactNamespaceNameHashHash
+func NewDeleteV1ArtifactNamespaceNameHashHashRequest(server string, namespace string, name string, hash string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "namespace", runtime.ParamLocationPath, namespace)
 	if err != nil {
 		return nil, err
 	}
-	bodyReader = bytes.NewReader(buf)
-	return NewPostRbacEndpointRequestWithBody(server, "application/json", bodyReader)
-}
 
-// NewPostRbacEndpointRequestWithBody generates requests for PostRbacEndpoint with any type of body
-func NewPostRbacEndpointRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "name", runtime.ParamLocationPath, name)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "hash", runtime.ParamLocationPath, hash)
+	if err != nil {
+		return nil, err
+	}
 
 	serverURL, err := url.Parse(server)
 	if err != nil {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/rbac/endpoint")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewGetRbacListResourceGroupsRequest generates requests for GetRbacListResourceGroups
-func NewGetRbacListResourceGroupsRequest(server string) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/rbac/list-resource-groups")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewGetRbacListRolesRequest generates requests for GetRbacListRoles
-func NewGetRbacListRolesRequest(server string) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/rbac/list-roles")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewDeleteRbacPolicyRequest calls the generic DeleteRbacPolicy builder with application/json body
-func NewDeleteRbacPolicyRequest(server string, body DeleteRbacPolicyJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewDeleteRbacPolicyRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewDeleteRbacPolicyRequestWithBody generates requests for DeleteRbacPolicy with any type of body
-func NewDeleteRbacPolicyRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/rbac/policy")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("DELETE", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewGetRbacPolicyRequest generates requests for GetRbacPolicy
-func NewGetRbacPolicyRequest(server string) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/rbac/policy")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewPostRbacPolicyRequest calls the generic PostRbacPolicy builder with application/json body
-func NewPostRbacPolicyRequest(server string, body PostRbacPolicyJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewPostRbacPolicyRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewPostRbacPolicyRequestWithBody generates requests for PostRbacPolicy with any type of body
-func NewPostRbacPolicyRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/rbac/policy")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewDeleteRbacResourceGroupRequest calls the generic DeleteRbacResourceGroup builder with application/json body
-func NewDeleteRbacResourceGroupRequest(server string, body DeleteRbacResourceGroupJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewDeleteRbacResourceGroupRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewDeleteRbacResourceGroupRequestWithBody generates requests for DeleteRbacResourceGroup with any type of body
-func NewDeleteRbacResourceGroupRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/rbac/resource-group")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("DELETE", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewGetRbacResourceGroupRequest generates requests for GetRbacResourceGroup
-func NewGetRbacResourceGroupRequest(server string, params *GetRbacResourceGroupParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/rbac/resource-group")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "resourceGroup", runtime.ParamLocationQuery, params.ResourceGroup); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewHeadRbacResourceGroupRequest calls the generic HeadRbacResourceGroup builder with application/json body
-func NewHeadRbacResourceGroupRequest(server string, body HeadRbacResourceGroupJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewHeadRbacResourceGroupRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewHeadRbacResourceGroupRequestWithBody generates requests for HeadRbacResourceGroup with any type of body
-func NewHeadRbacResourceGroupRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/rbac/resource-group")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("HEAD", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewPostRbacResourceGroupRequest calls the generic PostRbacResourceGroup builder with application/json body
-func NewPostRbacResourceGroupRequest(server string, body PostRbacResourceGroupJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewPostRbacResourceGroupRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewPostRbacResourceGroupRequestWithBody generates requests for PostRbacResourceGroup with any type of body
-func NewPostRbacResourceGroupRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/rbac/resource-group")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewDeleteRbacRoleRequest calls the generic DeleteRbacRole builder with application/json body
-func NewDeleteRbacRoleRequest(server string, body DeleteRbacRoleJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewDeleteRbacRoleRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewDeleteRbacRoleRequestWithBody generates requests for DeleteRbacRole with any type of body
-func NewDeleteRbacRoleRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/rbac/role")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("DELETE", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewGetRbacRoleRequest generates requests for GetRbacRole
-func NewGetRbacRoleRequest(server string, params *GetRbacRoleParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/rbac/role")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "role", runtime.ParamLocationQuery, params.Role); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewHeadRbacRoleRequest calls the generic HeadRbacRole builder with application/json body
-func NewHeadRbacRoleRequest(server string, body HeadRbacRoleJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewHeadRbacRoleRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewHeadRbacRoleRequestWithBody generates requests for HeadRbacRole with any type of body
-func NewHeadRbacRoleRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/rbac/role")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("HEAD", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewPostRbacRoleRequest calls the generic PostRbacRole builder with application/json body
-func NewPostRbacRoleRequest(server string, body PostRbacRoleJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewPostRbacRoleRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewPostRbacRoleRequestWithBody generates requests for PostRbacRole with any type of body
-func NewPostRbacRoleRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/rbac/role")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewDeleteRbacUserRequest calls the generic DeleteRbacUser builder with application/json body
-func NewDeleteRbacUserRequest(server string, body DeleteRbacUserJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewDeleteRbacUserRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewDeleteRbacUserRequestWithBody generates requests for DeleteRbacUser with any type of body
-func NewDeleteRbacUserRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/rbac/user")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("DELETE", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewGetRbacUserRequest generates requests for GetRbacUser
-func NewGetRbacUserRequest(server string, params *GetRbacUserParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/rbac/user")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "userId", runtime.ParamLocationQuery, params.UserId); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewPostRbacUserRequest calls the generic PostRbacUser builder with application/json body
-func NewPostRbacUserRequest(server string, body PostRbacUserJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewPostRbacUserRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewPostRbacUserRequestWithBody generates requests for PostRbacUser with any type of body
-func NewPostRbacUserRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/rbac/user")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewGetTasksListRequest generates requests for GetTasksList
-func NewGetTasksListRequest(server string) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tasks/list")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewGetTasksTaskRequest generates requests for GetTasksTask
-func NewGetTasksTaskRequest(server string, params *GetTasksTaskParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tasks/task")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "id", runtime.ParamLocationQuery, params.Id); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewGetUsersListRequest generates requests for GetUsersList
-func NewGetUsersListRequest(server string) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/users/list")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewDeleteUsersMeRequest generates requests for DeleteUsersMe
-func NewDeleteUsersMeRequest(server string) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/users/me")
+	operationPath := fmt.Sprintf("/v1/artifact/%s/%s/hash/%s", pathParam0, pathParam1, pathParam2)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -2700,16 +1614,37 @@ func NewDeleteUsersMeRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
-// NewGetUsersMeRequest generates requests for GetUsersMe
-func NewGetUsersMeRequest(server string) (*http.Request, error) {
+// NewGetV1ArtifactNamespaceNameHashHashRequest generates requests for GetV1ArtifactNamespaceNameHashHash
+func NewGetV1ArtifactNamespaceNameHashHashRequest(server string, namespace string, name string, hash string) (*http.Request, error) {
 	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "namespace", runtime.ParamLocationPath, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "name", runtime.ParamLocationPath, name)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "hash", runtime.ParamLocationPath, hash)
+	if err != nil {
+		return nil, err
+	}
 
 	serverURL, err := url.Parse(server)
 	if err != nil {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/users/me")
+	operationPath := fmt.Sprintf("/v1/artifact/%s/%s/hash/%s", pathParam0, pathParam1, pathParam2)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -2727,27 +1662,48 @@ func NewGetUsersMeRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
-// NewPatchUsersMeRequest calls the generic PatchUsersMe builder with application/json body
-func NewPatchUsersMeRequest(server string, body PatchUsersMeJSONRequestBody) (*http.Request, error) {
+// NewPatchV1ArtifactNamespaceNameHashHashRequest calls the generic PatchV1ArtifactNamespaceNameHashHash builder with application/json body
+func NewPatchV1ArtifactNamespaceNameHashHashRequest(server string, namespace string, name string, hash string, body PatchV1ArtifactNamespaceNameHashHashJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewPatchUsersMeRequestWithBody(server, "application/json", bodyReader)
+	return NewPatchV1ArtifactNamespaceNameHashHashRequestWithBody(server, namespace, name, hash, "application/json", bodyReader)
 }
 
-// NewPatchUsersMeRequestWithBody generates requests for PatchUsersMe with any type of body
-func NewPatchUsersMeRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewPatchV1ArtifactNamespaceNameHashHashRequestWithBody generates requests for PatchV1ArtifactNamespaceNameHashHash with any type of body
+func NewPatchV1ArtifactNamespaceNameHashHashRequestWithBody(server string, namespace string, name string, hash string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "namespace", runtime.ParamLocationPath, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "name", runtime.ParamLocationPath, name)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "hash", runtime.ParamLocationPath, hash)
+	if err != nil {
+		return nil, err
+	}
 
 	serverURL, err := url.Parse(server)
 	if err != nil {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/users/me")
+	operationPath := fmt.Sprintf("/v1/artifact/%s/%s/hash/%s", pathParam0, pathParam1, pathParam2)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -2767,19 +1723,176 @@ func NewPatchUsersMeRequestWithBody(server string, contentType string, body io.R
 	return req, nil
 }
 
-// NewDeleteUsersUserRequest calls the generic DeleteUsersUser builder with application/json body
-func NewDeleteUsersUserRequest(server string, body DeleteUsersUserJSONRequestBody) (*http.Request, error) {
+// NewDeleteV1ArtifactNamespaceNameTagTagRequest generates requests for DeleteV1ArtifactNamespaceNameTagTag
+func NewDeleteV1ArtifactNamespaceNameTagTagRequest(server string, namespace string, name string, tag string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "namespace", runtime.ParamLocationPath, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "name", runtime.ParamLocationPath, name)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "tag", runtime.ParamLocationPath, tag)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/artifact/%s/%s/tag/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetV1ArtifactNamespaceNameTagTagRequest generates requests for GetV1ArtifactNamespaceNameTagTag
+func NewGetV1ArtifactNamespaceNameTagTagRequest(server string, namespace string, name string, tag string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "namespace", runtime.ParamLocationPath, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "name", runtime.ParamLocationPath, name)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "tag", runtime.ParamLocationPath, tag)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/artifact/%s/%s/tag/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPatchV1ArtifactNamespaceNameTagTagRequest calls the generic PatchV1ArtifactNamespaceNameTagTag builder with application/json body
+func NewPatchV1ArtifactNamespaceNameTagTagRequest(server string, namespace string, name string, tag string, body PatchV1ArtifactNamespaceNameTagTagJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewDeleteUsersUserRequestWithBody(server, "application/json", bodyReader)
+	return NewPatchV1ArtifactNamespaceNameTagTagRequestWithBody(server, namespace, name, tag, "application/json", bodyReader)
 }
 
-// NewDeleteUsersUserRequestWithBody generates requests for DeleteUsersUser with any type of body
-func NewDeleteUsersUserRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewPatchV1ArtifactNamespaceNameTagTagRequestWithBody generates requests for PatchV1ArtifactNamespaceNameTagTag with any type of body
+func NewPatchV1ArtifactNamespaceNameTagTagRequestWithBody(server string, namespace string, name string, tag string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "namespace", runtime.ParamLocationPath, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "name", runtime.ParamLocationPath, name)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "tag", runtime.ParamLocationPath, tag)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/artifact/%s/%s/tag/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteV1RbacPolicyRequest calls the generic DeleteV1RbacPolicy builder with application/json body
+func NewDeleteV1RbacPolicyRequest(server string, body DeleteV1RbacPolicyJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewDeleteV1RbacPolicyRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewDeleteV1RbacPolicyRequestWithBody generates requests for DeleteV1RbacPolicy with any type of body
+func NewDeleteV1RbacPolicyRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -2787,7 +1900,7 @@ func NewDeleteUsersUserRequestWithBody(server string, contentType string, body i
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/users/user")
+	operationPath := fmt.Sprintf("/v1/rbac/policy")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -2807,8 +1920,8 @@ func NewDeleteUsersUserRequestWithBody(server string, contentType string, body i
 	return req, nil
 }
 
-// NewGetUsersUserRequest generates requests for GetUsersUser
-func NewGetUsersUserRequest(server string, params *GetUsersUserParams) (*http.Request, error) {
+// NewGetV1RbacPolicyRequest generates requests for GetV1RbacPolicy
+func NewGetV1RbacPolicyRequest(server string, params *GetV1RbacPolicyParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -2816,7 +1929,7 @@ func NewGetUsersUserRequest(server string, params *GetUsersUserParams) (*http.Re
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/users/user")
+	operationPath := fmt.Sprintf("/v1/rbac/policy")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -2829,9 +1942,897 @@ func NewGetUsersUserRequest(server string, params *GetUsersUserParams) (*http.Re
 	if params != nil {
 		queryValues := queryURL.Query()
 
-		if params.UserId != nil {
+		if params.Limit != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "userId", runtime.ParamLocationQuery, *params.UserId); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Offset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Role != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "role", runtime.ParamLocationQuery, *params.Role); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.ResourceGroup != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "resource-group", runtime.ParamLocationQuery, *params.ResourceGroup); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Method != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "method", runtime.ParamLocationQuery, *params.Method); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPutV1RbacPolicyRequest calls the generic PutV1RbacPolicy builder with application/json body
+func NewPutV1RbacPolicyRequest(server string, body PutV1RbacPolicyJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutV1RbacPolicyRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPutV1RbacPolicyRequestWithBody generates requests for PutV1RbacPolicy with any type of body
+func NewPutV1RbacPolicyRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/rbac/policy")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetV1RbacResourceGroupRequest generates requests for GetV1RbacResourceGroup
+func NewGetV1RbacResourceGroupRequest(server string, params *GetV1RbacResourceGroupParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/rbac/resource-group")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Offset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Role != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "role", runtime.ParamLocationQuery, *params.Role); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDeleteV1RbacResourceGroupResourceGroupRequest generates requests for DeleteV1RbacResourceGroupResourceGroup
+func NewDeleteV1RbacResourceGroupResourceGroupRequest(server string, resourceGroup string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "resourceGroup", runtime.ParamLocationPath, resourceGroup)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/rbac/resource-group/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetV1RbacResourceGroupResourceGroupRequest generates requests for GetV1RbacResourceGroupResourceGroup
+func NewGetV1RbacResourceGroupResourceGroupRequest(server string, resourceGroup string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "resourceGroup", runtime.ParamLocationPath, resourceGroup)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/rbac/resource-group/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewHeadV1RbacResourceGroupResourceGroupRequest generates requests for HeadV1RbacResourceGroupResourceGroup
+func NewHeadV1RbacResourceGroupResourceGroupRequest(server string, resourceGroup string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "resourceGroup", runtime.ParamLocationPath, resourceGroup)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/rbac/resource-group/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("HEAD", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPutV1RbacResourceGroupResourceGroupRequest calls the generic PutV1RbacResourceGroupResourceGroup builder with application/json body
+func NewPutV1RbacResourceGroupResourceGroupRequest(server string, resourceGroup string, body PutV1RbacResourceGroupResourceGroupJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutV1RbacResourceGroupResourceGroupRequestWithBody(server, resourceGroup, "application/json", bodyReader)
+}
+
+// NewPutV1RbacResourceGroupResourceGroupRequestWithBody generates requests for PutV1RbacResourceGroupResourceGroup with any type of body
+func NewPutV1RbacResourceGroupResourceGroupRequestWithBody(server string, resourceGroup string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "resourceGroup", runtime.ParamLocationPath, resourceGroup)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/rbac/resource-group/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetV1RbacRoleRequest generates requests for GetV1RbacRole
+func NewGetV1RbacRoleRequest(server string, params *GetV1RbacRoleParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/rbac/role")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Offset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Role != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "role", runtime.ParamLocationQuery, *params.Role); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDeleteV1RbacRoleRoleRequest generates requests for DeleteV1RbacRoleRole
+func NewDeleteV1RbacRoleRoleRequest(server string, role string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "role", runtime.ParamLocationPath, role)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/rbac/role/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetV1RbacRoleRoleRequest generates requests for GetV1RbacRoleRole
+func NewGetV1RbacRoleRoleRequest(server string, role string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "role", runtime.ParamLocationPath, role)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/rbac/role/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewHeadV1RbacRoleRoleRequest generates requests for HeadV1RbacRoleRole
+func NewHeadV1RbacRoleRoleRequest(server string, role string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "role", runtime.ParamLocationPath, role)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/rbac/role/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("HEAD", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPutV1RbacRoleRoleRequest calls the generic PutV1RbacRoleRole builder with application/json body
+func NewPutV1RbacRoleRoleRequest(server string, role string, body PutV1RbacRoleRoleJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutV1RbacRoleRoleRequestWithBody(server, role, "application/json", bodyReader)
+}
+
+// NewPutV1RbacRoleRoleRequestWithBody generates requests for PutV1RbacRoleRole with any type of body
+func NewPutV1RbacRoleRoleRequestWithBody(server string, role string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "role", runtime.ParamLocationPath, role)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/rbac/role/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetV1TaskRequest generates requests for GetV1Task
+func NewGetV1TaskRequest(server string, params *GetV1TaskParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/task")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Offset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.State != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "state", runtime.ParamLocationQuery, *params.State); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPostV1TaskRequest calls the generic PostV1Task builder with application/json body
+func NewPostV1TaskRequest(server string, body PostV1TaskJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostV1TaskRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPostV1TaskRequestWithBody generates requests for PostV1Task with any type of body
+func NewPostV1TaskRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/task")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetV1TaskIdRequest generates requests for GetV1TaskId
+func NewGetV1TaskIdRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/task/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetV1TaskIdLogsRequest generates requests for GetV1TaskIdLogs
+func NewGetV1TaskIdLogsRequest(server string, id string, params *GetV1TaskIdLogsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/task/%s/logs", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Level != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "level", runtime.ParamLocationQuery, *params.Level); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Issuer != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "issuer", runtime.ParamLocationQuery, *params.Issuer); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.TimeRangeFrom != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "time-range-from", runtime.ParamLocationQuery, *params.TimeRangeFrom); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.TimeRangeTo != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "time-range-to", runtime.ParamLocationQuery, *params.TimeRangeTo); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetV1UserRequest generates requests for GetV1User
+func NewGetV1UserRequest(server string, params *GetV1UserParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/user")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Offset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -2861,6 +2862,22 @@ func NewGetUsersUserRequest(server string, params *GetUsersUserParams) (*http.Re
 
 		}
 
+		if params.DisplayName != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "display-name", runtime.ParamLocationQuery, *params.DisplayName); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		queryURL.RawQuery = queryValues.Encode()
 	}
 
@@ -2872,19 +2889,8 @@ func NewGetUsersUserRequest(server string, params *GetUsersUserParams) (*http.Re
 	return req, nil
 }
 
-// NewHeadUsersUserRequest calls the generic HeadUsersUser builder with application/json body
-func NewHeadUsersUserRequest(server string, body HeadUsersUserJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewHeadUsersUserRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewHeadUsersUserRequestWithBody generates requests for HeadUsersUser with any type of body
-func NewHeadUsersUserRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewDeleteV1UserMeRequest generates requests for DeleteV1UserMe
+func NewDeleteV1UserMeRequest(server string) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -2892,7 +2898,7 @@ func NewHeadUsersUserRequestWithBody(server string, contentType string, body io.
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/users/user")
+	operationPath := fmt.Sprintf("/v1/user/me")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -2902,29 +2908,16 @@ func NewHeadUsersUserRequestWithBody(server string, contentType string, body io.
 		return nil, err
 	}
 
-	req, err := http.NewRequest("HEAD", queryURL.String(), body)
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
-
-	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
 
-// NewPatchUsersUserRequest calls the generic PatchUsersUser builder with application/json body
-func NewPatchUsersUserRequest(server string, body PatchUsersUserJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewPatchUsersUserRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewPatchUsersUserRequestWithBody generates requests for PatchUsersUser with any type of body
-func NewPatchUsersUserRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewGetV1UserMeRequest generates requests for GetV1UserMe
+func NewGetV1UserMeRequest(server string) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -2932,7 +2925,45 @@ func NewPatchUsersUserRequestWithBody(server string, contentType string, body io
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/users/user")
+	operationPath := fmt.Sprintf("/v1/user/me")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPatchV1UserMeRequest calls the generic PatchV1UserMe builder with application/json body
+func NewPatchV1UserMeRequest(server string, body PatchV1UserMeJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPatchV1UserMeRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPatchV1UserMeRequestWithBody generates requests for PatchV1UserMe with any type of body
+func NewPatchV1UserMeRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/user/me")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -2952,27 +2983,23 @@ func NewPatchUsersUserRequestWithBody(server string, contentType string, body io
 	return req, nil
 }
 
-// NewPostUsersUserRequest calls the generic PostUsersUser builder with application/json body
-func NewPostUsersUserRequest(server string, body PostUsersUserJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
+// NewDeleteV1UserUsernameRequest generates requests for DeleteV1UserUsername
+func NewDeleteV1UserUsernameRequest(server string, username string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "username", runtime.ParamLocationPath, username)
 	if err != nil {
 		return nil, err
 	}
-	bodyReader = bytes.NewReader(buf)
-	return NewPostUsersUserRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewPostUsersUserRequestWithBody generates requests for PostUsersUser with any type of body
-func NewPostUsersUserRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
 
 	serverURL, err := url.Parse(server)
 	if err != nil {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/users/user")
+	operationPath := fmt.Sprintf("/v1/user/%s", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -2982,7 +3009,167 @@ func NewPostUsersUserRequestWithBody(server string, contentType string, body io.
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", queryURL.String(), body)
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetV1UserUsernameRequest generates requests for GetV1UserUsername
+func NewGetV1UserUsernameRequest(server string, username string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "username", runtime.ParamLocationPath, username)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/user/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewHeadV1UserUsernameRequest generates requests for HeadV1UserUsername
+func NewHeadV1UserUsernameRequest(server string, username string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "username", runtime.ParamLocationPath, username)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/user/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("HEAD", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPatchV1UserUsernameRequest calls the generic PatchV1UserUsername builder with application/json body
+func NewPatchV1UserUsernameRequest(server string, username string, body PatchV1UserUsernameJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPatchV1UserUsernameRequestWithBody(server, username, "application/json", bodyReader)
+}
+
+// NewPatchV1UserUsernameRequestWithBody generates requests for PatchV1UserUsername with any type of body
+func NewPatchV1UserUsernameRequestWithBody(server string, username string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "username", runtime.ParamLocationPath, username)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/user/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPutV1UserUsernameRequest calls the generic PutV1UserUsername builder with application/json body
+func NewPutV1UserUsernameRequest(server string, username string, body PutV1UserUsernameJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutV1UserUsernameRequestWithBody(server, username, "application/json", bodyReader)
+}
+
+// NewPutV1UserUsernameRequestWithBody generates requests for PutV1UserUsername with any type of body
+func NewPutV1UserUsernameRequestWithBody(server string, username string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "username", runtime.ParamLocationPath, username)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/user/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
 	if err != nil {
 		return nil, err
 	}
@@ -3035,237 +3222,142 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
-	// DeleteArtifactWithBodyWithResponse request with any body
-	DeleteArtifactWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteArtifactResponse, error)
+	// GetV1ArtifactWithResponse request
+	GetV1ArtifactWithResponse(ctx context.Context, params *GetV1ArtifactParams, reqEditors ...RequestEditorFn) (*GetV1ArtifactResponse, error)
 
-	DeleteArtifactWithResponse(ctx context.Context, body DeleteArtifactJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteArtifactResponse, error)
+	// PostV1ArtifactRawNamespaceNameWithBodyWithResponse request with any body
+	PostV1ArtifactRawNamespaceNameWithBodyWithResponse(ctx context.Context, namespace string, name string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostV1ArtifactRawNamespaceNameResponse, error)
 
-	// GetArtifactWithResponse request
-	GetArtifactWithResponse(ctx context.Context, params *GetArtifactParams, reqEditors ...RequestEditorFn) (*GetArtifactResponse, error)
+	// GetV1ArtifactRawNamespaceNameHashHashWithResponse request
+	GetV1ArtifactRawNamespaceNameHashHashWithResponse(ctx context.Context, namespace string, name string, hash string, reqEditors ...RequestEditorFn) (*GetV1ArtifactRawNamespaceNameHashHashResponse, error)
 
-	// HeadArtifactWithResponse request
-	HeadArtifactWithResponse(ctx context.Context, params *HeadArtifactParams, reqEditors ...RequestEditorFn) (*HeadArtifactResponse, error)
+	// GetV1ArtifactRawNamespaceNameTagTagWithResponse request
+	GetV1ArtifactRawNamespaceNameTagTagWithResponse(ctx context.Context, namespace string, name string, tag string, reqEditors ...RequestEditorFn) (*GetV1ArtifactRawNamespaceNameTagTagResponse, error)
 
-	// GetArtifactListWithResponse request
-	GetArtifactListWithResponse(ctx context.Context, params *GetArtifactListParams, reqEditors ...RequestEditorFn) (*GetArtifactListResponse, error)
+	// GetV1ArtifactNamespaceWithResponse request
+	GetV1ArtifactNamespaceWithResponse(ctx context.Context, namespace string, params *GetV1ArtifactNamespaceParams, reqEditors ...RequestEditorFn) (*GetV1ArtifactNamespaceResponse, error)
 
-	// DeleteArtifactTagWithBodyWithResponse request with any body
-	DeleteArtifactTagWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteArtifactTagResponse, error)
+	// GetV1ArtifactNamespaceNameWithResponse request
+	GetV1ArtifactNamespaceNameWithResponse(ctx context.Context, namespace string, name string, params *GetV1ArtifactNamespaceNameParams, reqEditors ...RequestEditorFn) (*GetV1ArtifactNamespaceNameResponse, error)
 
-	DeleteArtifactTagWithResponse(ctx context.Context, body DeleteArtifactTagJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteArtifactTagResponse, error)
+	// DeleteV1ArtifactNamespaceNameHashHashWithResponse request
+	DeleteV1ArtifactNamespaceNameHashHashWithResponse(ctx context.Context, namespace string, name string, hash string, reqEditors ...RequestEditorFn) (*DeleteV1ArtifactNamespaceNameHashHashResponse, error)
 
-	// PostArtifactTagWithBodyWithResponse request with any body
-	PostArtifactTagWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostArtifactTagResponse, error)
+	// GetV1ArtifactNamespaceNameHashHashWithResponse request
+	GetV1ArtifactNamespaceNameHashHashWithResponse(ctx context.Context, namespace string, name string, hash string, reqEditors ...RequestEditorFn) (*GetV1ArtifactNamespaceNameHashHashResponse, error)
 
-	PostArtifactTagWithResponse(ctx context.Context, body PostArtifactTagJSONRequestBody, reqEditors ...RequestEditorFn) (*PostArtifactTagResponse, error)
+	// PatchV1ArtifactNamespaceNameHashHashWithBodyWithResponse request with any body
+	PatchV1ArtifactNamespaceNameHashHashWithBodyWithResponse(ctx context.Context, namespace string, name string, hash string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchV1ArtifactNamespaceNameHashHashResponse, error)
 
-	// GetArtifactUploadWithResponse request
-	GetArtifactUploadWithResponse(ctx context.Context, params *GetArtifactUploadParams, reqEditors ...RequestEditorFn) (*GetArtifactUploadResponse, error)
+	PatchV1ArtifactNamespaceNameHashHashWithResponse(ctx context.Context, namespace string, name string, hash string, body PatchV1ArtifactNamespaceNameHashHashJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchV1ArtifactNamespaceNameHashHashResponse, error)
 
-	// PostArtifactUploadWithBodyWithResponse request with any body
-	PostArtifactUploadWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostArtifactUploadResponse, error)
+	// DeleteV1ArtifactNamespaceNameTagTagWithResponse request
+	DeleteV1ArtifactNamespaceNameTagTagWithResponse(ctx context.Context, namespace string, name string, tag string, reqEditors ...RequestEditorFn) (*DeleteV1ArtifactNamespaceNameTagTagResponse, error)
 
-	// PostManifestWithBodyWithResponse request with any body
-	PostManifestWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostManifestResponse, error)
+	// GetV1ArtifactNamespaceNameTagTagWithResponse request
+	GetV1ArtifactNamespaceNameTagTagWithResponse(ctx context.Context, namespace string, name string, tag string, reqEditors ...RequestEditorFn) (*GetV1ArtifactNamespaceNameTagTagResponse, error)
 
-	// DeleteRbacEndpointWithBodyWithResponse request with any body
-	DeleteRbacEndpointWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteRbacEndpointResponse, error)
+	// PatchV1ArtifactNamespaceNameTagTagWithBodyWithResponse request with any body
+	PatchV1ArtifactNamespaceNameTagTagWithBodyWithResponse(ctx context.Context, namespace string, name string, tag string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchV1ArtifactNamespaceNameTagTagResponse, error)
 
-	DeleteRbacEndpointWithResponse(ctx context.Context, body DeleteRbacEndpointJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteRbacEndpointResponse, error)
+	PatchV1ArtifactNamespaceNameTagTagWithResponse(ctx context.Context, namespace string, name string, tag string, body PatchV1ArtifactNamespaceNameTagTagJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchV1ArtifactNamespaceNameTagTagResponse, error)
 
-	// GetRbacEndpointWithResponse request
-	GetRbacEndpointWithResponse(ctx context.Context, params *GetRbacEndpointParams, reqEditors ...RequestEditorFn) (*GetRbacEndpointResponse, error)
+	// DeleteV1RbacPolicyWithBodyWithResponse request with any body
+	DeleteV1RbacPolicyWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteV1RbacPolicyResponse, error)
 
-	// PostRbacEndpointWithBodyWithResponse request with any body
-	PostRbacEndpointWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostRbacEndpointResponse, error)
+	DeleteV1RbacPolicyWithResponse(ctx context.Context, body DeleteV1RbacPolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteV1RbacPolicyResponse, error)
 
-	PostRbacEndpointWithResponse(ctx context.Context, body PostRbacEndpointJSONRequestBody, reqEditors ...RequestEditorFn) (*PostRbacEndpointResponse, error)
+	// GetV1RbacPolicyWithResponse request
+	GetV1RbacPolicyWithResponse(ctx context.Context, params *GetV1RbacPolicyParams, reqEditors ...RequestEditorFn) (*GetV1RbacPolicyResponse, error)
 
-	// GetRbacListResourceGroupsWithResponse request
-	GetRbacListResourceGroupsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetRbacListResourceGroupsResponse, error)
+	// PutV1RbacPolicyWithBodyWithResponse request with any body
+	PutV1RbacPolicyWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutV1RbacPolicyResponse, error)
 
-	// GetRbacListRolesWithResponse request
-	GetRbacListRolesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetRbacListRolesResponse, error)
+	PutV1RbacPolicyWithResponse(ctx context.Context, body PutV1RbacPolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*PutV1RbacPolicyResponse, error)
 
-	// DeleteRbacPolicyWithBodyWithResponse request with any body
-	DeleteRbacPolicyWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteRbacPolicyResponse, error)
+	// GetV1RbacResourceGroupWithResponse request
+	GetV1RbacResourceGroupWithResponse(ctx context.Context, params *GetV1RbacResourceGroupParams, reqEditors ...RequestEditorFn) (*GetV1RbacResourceGroupResponse, error)
 
-	DeleteRbacPolicyWithResponse(ctx context.Context, body DeleteRbacPolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteRbacPolicyResponse, error)
+	// DeleteV1RbacResourceGroupResourceGroupWithResponse request
+	DeleteV1RbacResourceGroupResourceGroupWithResponse(ctx context.Context, resourceGroup string, reqEditors ...RequestEditorFn) (*DeleteV1RbacResourceGroupResourceGroupResponse, error)
 
-	// GetRbacPolicyWithResponse request
-	GetRbacPolicyWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetRbacPolicyResponse, error)
+	// GetV1RbacResourceGroupResourceGroupWithResponse request
+	GetV1RbacResourceGroupResourceGroupWithResponse(ctx context.Context, resourceGroup string, reqEditors ...RequestEditorFn) (*GetV1RbacResourceGroupResourceGroupResponse, error)
 
-	// PostRbacPolicyWithBodyWithResponse request with any body
-	PostRbacPolicyWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostRbacPolicyResponse, error)
+	// HeadV1RbacResourceGroupResourceGroupWithResponse request
+	HeadV1RbacResourceGroupResourceGroupWithResponse(ctx context.Context, resourceGroup string, reqEditors ...RequestEditorFn) (*HeadV1RbacResourceGroupResourceGroupResponse, error)
 
-	PostRbacPolicyWithResponse(ctx context.Context, body PostRbacPolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*PostRbacPolicyResponse, error)
+	// PutV1RbacResourceGroupResourceGroupWithBodyWithResponse request with any body
+	PutV1RbacResourceGroupResourceGroupWithBodyWithResponse(ctx context.Context, resourceGroup string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutV1RbacResourceGroupResourceGroupResponse, error)
 
-	// DeleteRbacResourceGroupWithBodyWithResponse request with any body
-	DeleteRbacResourceGroupWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteRbacResourceGroupResponse, error)
+	PutV1RbacResourceGroupResourceGroupWithResponse(ctx context.Context, resourceGroup string, body PutV1RbacResourceGroupResourceGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*PutV1RbacResourceGroupResourceGroupResponse, error)
 
-	DeleteRbacResourceGroupWithResponse(ctx context.Context, body DeleteRbacResourceGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteRbacResourceGroupResponse, error)
+	// GetV1RbacRoleWithResponse request
+	GetV1RbacRoleWithResponse(ctx context.Context, params *GetV1RbacRoleParams, reqEditors ...RequestEditorFn) (*GetV1RbacRoleResponse, error)
 
-	// GetRbacResourceGroupWithResponse request
-	GetRbacResourceGroupWithResponse(ctx context.Context, params *GetRbacResourceGroupParams, reqEditors ...RequestEditorFn) (*GetRbacResourceGroupResponse, error)
+	// DeleteV1RbacRoleRoleWithResponse request
+	DeleteV1RbacRoleRoleWithResponse(ctx context.Context, role string, reqEditors ...RequestEditorFn) (*DeleteV1RbacRoleRoleResponse, error)
 
-	// HeadRbacResourceGroupWithBodyWithResponse request with any body
-	HeadRbacResourceGroupWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*HeadRbacResourceGroupResponse, error)
+	// GetV1RbacRoleRoleWithResponse request
+	GetV1RbacRoleRoleWithResponse(ctx context.Context, role string, reqEditors ...RequestEditorFn) (*GetV1RbacRoleRoleResponse, error)
 
-	HeadRbacResourceGroupWithResponse(ctx context.Context, body HeadRbacResourceGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*HeadRbacResourceGroupResponse, error)
+	// HeadV1RbacRoleRoleWithResponse request
+	HeadV1RbacRoleRoleWithResponse(ctx context.Context, role string, reqEditors ...RequestEditorFn) (*HeadV1RbacRoleRoleResponse, error)
 
-	// PostRbacResourceGroupWithBodyWithResponse request with any body
-	PostRbacResourceGroupWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostRbacResourceGroupResponse, error)
+	// PutV1RbacRoleRoleWithBodyWithResponse request with any body
+	PutV1RbacRoleRoleWithBodyWithResponse(ctx context.Context, role string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutV1RbacRoleRoleResponse, error)
 
-	PostRbacResourceGroupWithResponse(ctx context.Context, body PostRbacResourceGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*PostRbacResourceGroupResponse, error)
+	PutV1RbacRoleRoleWithResponse(ctx context.Context, role string, body PutV1RbacRoleRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*PutV1RbacRoleRoleResponse, error)
 
-	// DeleteRbacRoleWithBodyWithResponse request with any body
-	DeleteRbacRoleWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteRbacRoleResponse, error)
+	// GetV1TaskWithResponse request
+	GetV1TaskWithResponse(ctx context.Context, params *GetV1TaskParams, reqEditors ...RequestEditorFn) (*GetV1TaskResponse, error)
 
-	DeleteRbacRoleWithResponse(ctx context.Context, body DeleteRbacRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteRbacRoleResponse, error)
+	// PostV1TaskWithBodyWithResponse request with any body
+	PostV1TaskWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostV1TaskResponse, error)
 
-	// GetRbacRoleWithResponse request
-	GetRbacRoleWithResponse(ctx context.Context, params *GetRbacRoleParams, reqEditors ...RequestEditorFn) (*GetRbacRoleResponse, error)
+	PostV1TaskWithResponse(ctx context.Context, body PostV1TaskJSONRequestBody, reqEditors ...RequestEditorFn) (*PostV1TaskResponse, error)
 
-	// HeadRbacRoleWithBodyWithResponse request with any body
-	HeadRbacRoleWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*HeadRbacRoleResponse, error)
+	// GetV1TaskIdWithResponse request
+	GetV1TaskIdWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetV1TaskIdResponse, error)
 
-	HeadRbacRoleWithResponse(ctx context.Context, body HeadRbacRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*HeadRbacRoleResponse, error)
+	// GetV1TaskIdLogsWithResponse request
+	GetV1TaskIdLogsWithResponse(ctx context.Context, id string, params *GetV1TaskIdLogsParams, reqEditors ...RequestEditorFn) (*GetV1TaskIdLogsResponse, error)
 
-	// PostRbacRoleWithBodyWithResponse request with any body
-	PostRbacRoleWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostRbacRoleResponse, error)
+	// GetV1UserWithResponse request
+	GetV1UserWithResponse(ctx context.Context, params *GetV1UserParams, reqEditors ...RequestEditorFn) (*GetV1UserResponse, error)
 
-	PostRbacRoleWithResponse(ctx context.Context, body PostRbacRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*PostRbacRoleResponse, error)
+	// DeleteV1UserMeWithResponse request
+	DeleteV1UserMeWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*DeleteV1UserMeResponse, error)
 
-	// DeleteRbacUserWithBodyWithResponse request with any body
-	DeleteRbacUserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteRbacUserResponse, error)
+	// GetV1UserMeWithResponse request
+	GetV1UserMeWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetV1UserMeResponse, error)
 
-	DeleteRbacUserWithResponse(ctx context.Context, body DeleteRbacUserJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteRbacUserResponse, error)
+	// PatchV1UserMeWithBodyWithResponse request with any body
+	PatchV1UserMeWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchV1UserMeResponse, error)
 
-	// GetRbacUserWithResponse request
-	GetRbacUserWithResponse(ctx context.Context, params *GetRbacUserParams, reqEditors ...RequestEditorFn) (*GetRbacUserResponse, error)
+	PatchV1UserMeWithResponse(ctx context.Context, body PatchV1UserMeJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchV1UserMeResponse, error)
 
-	// PostRbacUserWithBodyWithResponse request with any body
-	PostRbacUserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostRbacUserResponse, error)
+	// DeleteV1UserUsernameWithResponse request
+	DeleteV1UserUsernameWithResponse(ctx context.Context, username string, reqEditors ...RequestEditorFn) (*DeleteV1UserUsernameResponse, error)
 
-	PostRbacUserWithResponse(ctx context.Context, body PostRbacUserJSONRequestBody, reqEditors ...RequestEditorFn) (*PostRbacUserResponse, error)
+	// GetV1UserUsernameWithResponse request
+	GetV1UserUsernameWithResponse(ctx context.Context, username string, reqEditors ...RequestEditorFn) (*GetV1UserUsernameResponse, error)
 
-	// GetTasksListWithResponse request
-	GetTasksListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetTasksListResponse, error)
+	// HeadV1UserUsernameWithResponse request
+	HeadV1UserUsernameWithResponse(ctx context.Context, username string, reqEditors ...RequestEditorFn) (*HeadV1UserUsernameResponse, error)
 
-	// GetTasksTaskWithResponse request
-	GetTasksTaskWithResponse(ctx context.Context, params *GetTasksTaskParams, reqEditors ...RequestEditorFn) (*GetTasksTaskResponse, error)
+	// PatchV1UserUsernameWithBodyWithResponse request with any body
+	PatchV1UserUsernameWithBodyWithResponse(ctx context.Context, username string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchV1UserUsernameResponse, error)
 
-	// GetUsersListWithResponse request
-	GetUsersListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetUsersListResponse, error)
+	PatchV1UserUsernameWithResponse(ctx context.Context, username string, body PatchV1UserUsernameJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchV1UserUsernameResponse, error)
 
-	// DeleteUsersMeWithResponse request
-	DeleteUsersMeWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*DeleteUsersMeResponse, error)
+	// PutV1UserUsernameWithBodyWithResponse request with any body
+	PutV1UserUsernameWithBodyWithResponse(ctx context.Context, username string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutV1UserUsernameResponse, error)
 
-	// GetUsersMeWithResponse request
-	GetUsersMeWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetUsersMeResponse, error)
-
-	// PatchUsersMeWithBodyWithResponse request with any body
-	PatchUsersMeWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchUsersMeResponse, error)
-
-	PatchUsersMeWithResponse(ctx context.Context, body PatchUsersMeJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchUsersMeResponse, error)
-
-	// DeleteUsersUserWithBodyWithResponse request with any body
-	DeleteUsersUserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteUsersUserResponse, error)
-
-	DeleteUsersUserWithResponse(ctx context.Context, body DeleteUsersUserJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteUsersUserResponse, error)
-
-	// GetUsersUserWithResponse request
-	GetUsersUserWithResponse(ctx context.Context, params *GetUsersUserParams, reqEditors ...RequestEditorFn) (*GetUsersUserResponse, error)
-
-	// HeadUsersUserWithBodyWithResponse request with any body
-	HeadUsersUserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*HeadUsersUserResponse, error)
-
-	HeadUsersUserWithResponse(ctx context.Context, body HeadUsersUserJSONRequestBody, reqEditors ...RequestEditorFn) (*HeadUsersUserResponse, error)
-
-	// PatchUsersUserWithBodyWithResponse request with any body
-	PatchUsersUserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchUsersUserResponse, error)
-
-	PatchUsersUserWithResponse(ctx context.Context, body PatchUsersUserJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchUsersUserResponse, error)
-
-	// PostUsersUserWithBodyWithResponse request with any body
-	PostUsersUserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostUsersUserResponse, error)
-
-	PostUsersUserWithResponse(ctx context.Context, body PostUsersUserJSONRequestBody, reqEditors ...RequestEditorFn) (*PostUsersUserResponse, error)
+	PutV1UserUsernameWithResponse(ctx context.Context, username string, body PutV1UserUsernameJSONRequestBody, reqEditors ...RequestEditorFn) (*PutV1UserUsernameResponse, error)
 }
 
-type DeleteArtifactResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *Artifact
-	JSON400      *GenericBadRequest
-	JSON404      *GenericNotFound
-	JSON413      *GenericTooLarge
-}
-
-// Status returns HTTPResponse.Status
-func (r DeleteArtifactResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r DeleteArtifactResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetArtifactResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *Artifact
-	JSON400      *GenericBadRequest
-	JSON404      *GenericNotFound
-	JSON413      *GenericTooLarge
-}
-
-// Status returns HTTPResponse.Status
-func (r GetArtifactResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetArtifactResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type HeadArtifactResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON413      *GenericTooLarge
-}
-
-// Status returns HTTPResponse.Status
-func (r HeadArtifactResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r HeadArtifactResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetArtifactListResponse struct {
+type GetV1ArtifactResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *[]Artifact
@@ -3274,7 +3366,7 @@ type GetArtifactListResponse struct {
 }
 
 // Status returns HTTPResponse.Status
-func (r GetArtifactListResponse) Status() string {
+func (r GetV1ArtifactResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3282,96 +3374,24 @@ func (r GetArtifactListResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r GetArtifactListResponse) StatusCode() int {
+func (r GetV1ArtifactResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type DeleteArtifactTagResponse struct {
+type PostV1ArtifactRawNamespaceNameResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON400      *GenericBadRequest
-	JSON404      *GenericNotFound
-	JSON413      *GenericTooLarge
-}
-
-// Status returns HTTPResponse.Status
-func (r DeleteArtifactTagResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r DeleteArtifactTagResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type PostArtifactTagResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON400      *GenericBadRequest
-	JSON404      *GenericNotFound
-	JSON413      *GenericTooLarge
-}
-
-// Status returns HTTPResponse.Status
-func (r PostArtifactTagResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r PostArtifactTagResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetArtifactUploadResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON400      *GenericBadRequest
-	JSON404      *GenericNotFound
-	JSON413      *GenericTooLarge
-}
-
-// Status returns HTTPResponse.Status
-func (r GetArtifactUploadResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetArtifactUploadResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type PostArtifactUploadResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON201      *Artifact
+	JSON201      *UploadArtifactResponse
 	JSON400      *GenericBadRequest
 	JSON409      *ErrGeneric
 	JSON413      *GenericTooLarge
 }
 
 // Status returns HTTPResponse.Status
-func (r PostArtifactUploadResponse) Status() string {
+func (r PostV1ArtifactRawNamespaceNameResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3379,46 +3399,269 @@ func (r PostArtifactUploadResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r PostArtifactUploadResponse) StatusCode() int {
+func (r PostV1ArtifactRawNamespaceNameResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type PostManifestResponse struct {
+type GetV1ArtifactRawNamespaceNameHashHashResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *GenericBadRequest
+	JSON404      *GenericNotFound
+	JSON413      *GenericTooLarge
+}
+
+// Status returns HTTPResponse.Status
+func (r GetV1ArtifactRawNamespaceNameHashHashResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetV1ArtifactRawNamespaceNameHashHashResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetV1ArtifactRawNamespaceNameTagTagResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *GenericBadRequest
+	JSON404      *GenericNotFound
+	JSON413      *GenericTooLarge
+}
+
+// Status returns HTTPResponse.Status
+func (r GetV1ArtifactRawNamespaceNameTagTagResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetV1ArtifactRawNamespaceNameTagTagResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetV1ArtifactNamespaceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]Artifact
+	JSON400      *GenericBadRequest
+	JSON413      *GenericTooLarge
+}
+
+// Status returns HTTPResponse.Status
+func (r GetV1ArtifactNamespaceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetV1ArtifactNamespaceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetV1ArtifactNamespaceNameResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]Artifact
+	JSON400      *GenericBadRequest
+	JSON413      *GenericTooLarge
+}
+
+// Status returns HTTPResponse.Status
+func (r GetV1ArtifactNamespaceNameResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetV1ArtifactNamespaceNameResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteV1ArtifactNamespaceNameHashHashResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Artifact
+	JSON400      *GenericBadRequest
+	JSON404      *GenericNotFound
+	JSON413      *GenericTooLarge
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteV1ArtifactNamespaceNameHashHashResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteV1ArtifactNamespaceNameHashHashResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetV1ArtifactNamespaceNameHashHashResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Artifact
+	JSON400      *GenericBadRequest
+	JSON404      *GenericNotFound
+	JSON413      *GenericTooLarge
+}
+
+// Status returns HTTPResponse.Status
+func (r GetV1ArtifactNamespaceNameHashHashResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetV1ArtifactNamespaceNameHashHashResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PatchV1ArtifactNamespaceNameHashHashResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Artifact
+	JSON400      *GenericBadRequest
+	JSON404      *GenericNotFound
+	JSON413      *GenericTooLarge
+}
+
+// Status returns HTTPResponse.Status
+func (r PatchV1ArtifactNamespaceNameHashHashResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PatchV1ArtifactNamespaceNameHashHashResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteV1ArtifactNamespaceNameTagTagResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Artifact
+	JSON400      *GenericBadRequest
+	JSON404      *GenericNotFound
+	JSON413      *GenericTooLarge
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteV1ArtifactNamespaceNameTagTagResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteV1ArtifactNamespaceNameTagTagResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetV1ArtifactNamespaceNameTagTagResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Artifact
+	JSON400      *GenericBadRequest
+	JSON404      *GenericNotFound
+	JSON413      *GenericTooLarge
+}
+
+// Status returns HTTPResponse.Status
+func (r GetV1ArtifactNamespaceNameTagTagResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetV1ArtifactNamespaceNameTagTagResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PatchV1ArtifactNamespaceNameTagTagResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Artifact
+	JSON400      *GenericBadRequest
+	JSON404      *GenericNotFound
+	JSON413      *GenericTooLarge
+}
+
+// Status returns HTTPResponse.Status
+func (r PatchV1ArtifactNamespaceNameTagTagResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PatchV1ArtifactNamespaceNameTagTagResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteV1RbacPolicyResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON400      *GenericBadRequest
 	JSON409      *ErrGeneric
-}
-
-// Status returns HTTPResponse.Status
-func (r PostManifestResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r PostManifestResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type DeleteRbacEndpointResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON400      *GenericBadRequest
-	JSON404      *GenericNotFound
 	JSON413      *GenericTooLarge
 }
 
 // Status returns HTTPResponse.Status
-func (r DeleteRbacEndpointResponse) Status() string {
+func (r DeleteV1RbacPolicyResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3426,131 +3669,14 @@ func (r DeleteRbacEndpointResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r DeleteRbacEndpointResponse) StatusCode() int {
+func (r DeleteV1RbacPolicyResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type GetRbacEndpointResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *[]string
-	JSON400      *GenericBadRequest
-	JSON413      *GenericTooLarge
-}
-
-// Status returns HTTPResponse.Status
-func (r GetRbacEndpointResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetRbacEndpointResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type PostRbacEndpointResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON400      *GenericBadRequest
-	JSON404      *GenericNotFound
-	JSON413      *GenericTooLarge
-}
-
-// Status returns HTTPResponse.Status
-func (r PostRbacEndpointResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r PostRbacEndpointResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetRbacListResourceGroupsResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *[]string
-	JSON413      *GenericTooLarge
-}
-
-// Status returns HTTPResponse.Status
-func (r GetRbacListResourceGroupsResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetRbacListResourceGroupsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetRbacListRolesResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *[]string
-	JSON413      *GenericTooLarge
-}
-
-// Status returns HTTPResponse.Status
-func (r GetRbacListRolesResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetRbacListRolesResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type DeleteRbacPolicyResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON400      *GenericBadRequest
-	JSON413      *GenericTooLarge
-}
-
-// Status returns HTTPResponse.Status
-func (r DeleteRbacPolicyResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r DeleteRbacPolicyResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetRbacPolicyResponse struct {
+type GetV1RbacPolicyResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *[]RBACPolicy
@@ -3558,7 +3684,7 @@ type GetRbacPolicyResponse struct {
 }
 
 // Status returns HTTPResponse.Status
-func (r GetRbacPolicyResponse) Status() string {
+func (r GetV1RbacPolicyResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3566,14 +3692,14 @@ func (r GetRbacPolicyResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r GetRbacPolicyResponse) StatusCode() int {
+func (r GetV1RbacPolicyResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type PostRbacPolicyResponse struct {
+type PutV1RbacPolicyResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON400      *GenericBadRequest
@@ -3582,7 +3708,7 @@ type PostRbacPolicyResponse struct {
 }
 
 // Status returns HTTPResponse.Status
-func (r PostRbacPolicyResponse) Status() string {
+func (r PutV1RbacPolicyResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3590,23 +3716,47 @@ func (r PostRbacPolicyResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r PostRbacPolicyResponse) StatusCode() int {
+func (r PutV1RbacPolicyResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type DeleteRbacResourceGroupResponse struct {
+type GetV1RbacResourceGroupResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *[]ResourceGroupResource
+	JSON413      *GenericTooLarge
+}
+
+// Status returns HTTPResponse.Status
+func (r GetV1RbacResourceGroupResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetV1RbacResourceGroupResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteV1RbacResourceGroupResourceGroupResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ResourceGroupResource
 	JSON400      *GenericBadRequest
 	JSON404      *GenericNotFound
 	JSON413      *GenericTooLarge
 }
 
 // Status returns HTTPResponse.Status
-func (r DeleteRbacResourceGroupResponse) Status() string {
+func (r DeleteV1RbacResourceGroupResourceGroupResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3614,24 +3764,24 @@ func (r DeleteRbacResourceGroupResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r DeleteRbacResourceGroupResponse) StatusCode() int {
+func (r DeleteV1RbacResourceGroupResourceGroupResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type GetRbacResourceGroupResponse struct {
+type GetV1RbacResourceGroupResourceGroupResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *[]string
+	JSON200      *ResourceGroupResource
 	JSON400      *GenericBadRequest
 	JSON404      *GenericNotFound
 	JSON413      *GenericTooLarge
 }
 
 // Status returns HTTPResponse.Status
-func (r GetRbacResourceGroupResponse) Status() string {
+func (r GetV1RbacResourceGroupResourceGroupResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3639,21 +3789,21 @@ func (r GetRbacResourceGroupResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r GetRbacResourceGroupResponse) StatusCode() int {
+func (r GetV1RbacResourceGroupResourceGroupResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type HeadRbacResourceGroupResponse struct {
+type HeadV1RbacResourceGroupResourceGroupResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON413      *GenericTooLarge
 }
 
 // Status returns HTTPResponse.Status
-func (r HeadRbacResourceGroupResponse) Status() string {
+func (r HeadV1RbacResourceGroupResourceGroupResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3661,23 +3811,24 @@ func (r HeadRbacResourceGroupResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r HeadRbacResourceGroupResponse) StatusCode() int {
+func (r HeadV1RbacResourceGroupResourceGroupResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type PostRbacResourceGroupResponse struct {
+type PutV1RbacResourceGroupResourceGroupResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON201      *ResourceGroupResource
 	JSON400      *GenericBadRequest
 	JSON409      *ErrGeneric
 	JSON413      *GenericTooLarge
 }
 
 // Status returns HTTPResponse.Status
-func (r PostRbacResourceGroupResponse) Status() string {
+func (r PutV1RbacResourceGroupResourceGroupResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3685,16 +3836,40 @@ func (r PostRbacResourceGroupResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r PostRbacResourceGroupResponse) StatusCode() int {
+func (r PutV1RbacResourceGroupResourceGroupResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type DeleteRbacRoleResponse struct {
+type GetV1RbacRoleResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *[]RoleResource
+	JSON413      *GenericTooLarge
+}
+
+// Status returns HTTPResponse.Status
+func (r GetV1RbacRoleResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetV1RbacRoleResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteV1RbacRoleRoleResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *RoleResource
 	JSON400      *GenericBadRequest
 	JSON404      *GenericNotFound
 	JSON409      *ErrGeneric
@@ -3702,7 +3877,7 @@ type DeleteRbacRoleResponse struct {
 }
 
 // Status returns HTTPResponse.Status
-func (r DeleteRbacRoleResponse) Status() string {
+func (r DeleteV1RbacRoleRoleResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3710,24 +3885,24 @@ func (r DeleteRbacRoleResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r DeleteRbacRoleResponse) StatusCode() int {
+func (r DeleteV1RbacRoleRoleResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type GetRbacRoleResponse struct {
+type GetV1RbacRoleRoleResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *[]string
+	JSON200      *RoleResource
 	JSON400      *GenericBadRequest
 	JSON404      *GenericNotFound
 	JSON413      *GenericTooLarge
 }
 
 // Status returns HTTPResponse.Status
-func (r GetRbacRoleResponse) Status() string {
+func (r GetV1RbacRoleRoleResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3735,21 +3910,21 @@ func (r GetRbacRoleResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r GetRbacRoleResponse) StatusCode() int {
+func (r GetV1RbacRoleRoleResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type HeadRbacRoleResponse struct {
+type HeadV1RbacRoleRoleResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON413      *GenericTooLarge
 }
 
 // Status returns HTTPResponse.Status
-func (r HeadRbacRoleResponse) Status() string {
+func (r HeadV1RbacRoleRoleResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3757,23 +3932,24 @@ func (r HeadRbacRoleResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r HeadRbacRoleResponse) StatusCode() int {
+func (r HeadV1RbacRoleRoleResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type PostRbacRoleResponse struct {
+type PutV1RbacRoleRoleResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON201      *RoleResource
 	JSON400      *GenericBadRequest
 	JSON409      *ErrGeneric
 	JSON413      *GenericTooLarge
 }
 
 // Status returns HTTPResponse.Status
-func (r PostRbacRoleResponse) Status() string {
+func (r PutV1RbacRoleRoleResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3781,23 +3957,46 @@ func (r PostRbacRoleResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r PostRbacRoleResponse) StatusCode() int {
+func (r PutV1RbacRoleRoleResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type DeleteRbacUserResponse struct {
+type GetV1TaskResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *[]Task
 	JSON400      *GenericBadRequest
-	JSON404      *GenericNotFound
+}
+
+// Status returns HTTPResponse.Status
+func (r GetV1TaskResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetV1TaskResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostV1TaskResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *Task
+	JSON400      *GenericBadRequest
 	JSON413      *GenericTooLarge
 }
 
 // Status returns HTTPResponse.Status
-func (r DeleteRbacUserResponse) Status() string {
+func (r PostV1TaskResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3805,95 +4004,23 @@ func (r DeleteRbacUserResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r DeleteRbacUserResponse) StatusCode() int {
+func (r PostV1TaskResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type GetRbacUserResponse struct {
+type GetV1TaskIdResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *[]string
-	JSON400      *GenericBadRequest
-	JSON404      *GenericNotFound
-	JSON413      *GenericTooLarge
-}
-
-// Status returns HTTPResponse.Status
-func (r GetRbacUserResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetRbacUserResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type PostRbacUserResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON400      *GenericBadRequest
-	JSON404      *GenericNotFound
-	JSON413      *GenericTooLarge
-}
-
-// Status returns HTTPResponse.Status
-func (r PostRbacUserResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r PostRbacUserResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetTasksListResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *[]TaskState
-	JSON400      *GenericBadRequest
-}
-
-// Status returns HTTPResponse.Status
-func (r GetTasksListResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetTasksListResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetTasksTaskResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *TaskState
+	JSON200      *Task
 	JSON400      *GenericBadRequest
 	JSON404      *GenericNotFound
 }
 
 // Status returns HTTPResponse.Status
-func (r GetTasksTaskResponse) Status() string {
+func (r GetV1TaskIdResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3901,22 +4028,47 @@ func (r GetTasksTaskResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r GetTasksTaskResponse) StatusCode() int {
+func (r GetV1TaskIdResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type GetUsersListResponse struct {
+type GetV1TaskIdLogsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]TaskLog
+	JSON400      *GenericBadRequest
+	JSON404      *GenericNotFound
+}
+
+// Status returns HTTPResponse.Status
+func (r GetV1TaskIdLogsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetV1TaskIdLogsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetV1UserResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *[]UserResponse
+	JSON400      *GenericBadRequest
 	JSON413      *GenericTooLarge
 }
 
 // Status returns HTTPResponse.Status
-func (r GetUsersListResponse) Status() string {
+func (r GetV1UserResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3924,14 +4076,14 @@ func (r GetUsersListResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r GetUsersListResponse) StatusCode() int {
+func (r GetV1UserResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type DeleteUsersMeResponse struct {
+type DeleteV1UserMeResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *UserResponse
@@ -3939,7 +4091,7 @@ type DeleteUsersMeResponse struct {
 }
 
 // Status returns HTTPResponse.Status
-func (r DeleteUsersMeResponse) Status() string {
+func (r DeleteV1UserMeResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3947,14 +4099,14 @@ func (r DeleteUsersMeResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r DeleteUsersMeResponse) StatusCode() int {
+func (r DeleteV1UserMeResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type GetUsersMeResponse struct {
+type GetV1UserMeResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *UserResponse
@@ -3962,7 +4114,7 @@ type GetUsersMeResponse struct {
 }
 
 // Status returns HTTPResponse.Status
-func (r GetUsersMeResponse) Status() string {
+func (r GetV1UserMeResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3970,14 +4122,14 @@ func (r GetUsersMeResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r GetUsersMeResponse) StatusCode() int {
+func (r GetV1UserMeResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type PatchUsersMeResponse struct {
+type PatchV1UserMeResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *UserResponse
@@ -3987,7 +4139,7 @@ type PatchUsersMeResponse struct {
 }
 
 // Status returns HTTPResponse.Status
-func (r PatchUsersMeResponse) Status() string {
+func (r PatchV1UserMeResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3995,14 +4147,14 @@ func (r PatchUsersMeResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r PatchUsersMeResponse) StatusCode() int {
+func (r PatchV1UserMeResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type DeleteUsersUserResponse struct {
+type DeleteV1UserUsernameResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *UserResponse
@@ -4012,7 +4164,7 @@ type DeleteUsersUserResponse struct {
 }
 
 // Status returns HTTPResponse.Status
-func (r DeleteUsersUserResponse) Status() string {
+func (r DeleteV1UserUsernameResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -4020,14 +4172,14 @@ func (r DeleteUsersUserResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r DeleteUsersUserResponse) StatusCode() int {
+func (r DeleteV1UserUsernameResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type GetUsersUserResponse struct {
+type GetV1UserUsernameResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *UserResponse
@@ -4037,7 +4189,7 @@ type GetUsersUserResponse struct {
 }
 
 // Status returns HTTPResponse.Status
-func (r GetUsersUserResponse) Status() string {
+func (r GetV1UserUsernameResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -4045,21 +4197,21 @@ func (r GetUsersUserResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r GetUsersUserResponse) StatusCode() int {
+func (r GetV1UserUsernameResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type HeadUsersUserResponse struct {
+type HeadV1UserUsernameResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON413      *GenericTooLarge
 }
 
 // Status returns HTTPResponse.Status
-func (r HeadUsersUserResponse) Status() string {
+func (r HeadV1UserUsernameResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -4067,14 +4219,14 @@ func (r HeadUsersUserResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r HeadUsersUserResponse) StatusCode() int {
+func (r HeadV1UserUsernameResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type PatchUsersUserResponse struct {
+type PatchV1UserUsernameResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *UserResponse
@@ -4085,7 +4237,7 @@ type PatchUsersUserResponse struct {
 }
 
 // Status returns HTTPResponse.Status
-func (r PatchUsersUserResponse) Status() string {
+func (r PatchV1UserUsernameResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -4093,14 +4245,14 @@ func (r PatchUsersUserResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r PatchUsersUserResponse) StatusCode() int {
+func (r PatchV1UserUsernameResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type PostUsersUserResponse struct {
+type PutV1UserUsernameResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON201      *UserResponse
@@ -4110,7 +4262,7 @@ type PostUsersUserResponse struct {
 }
 
 // Status returns HTTPResponse.Status
-func (r PostUsersUserResponse) Status() string {
+func (r PutV1UserUsernameResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -4118,653 +4270,444 @@ func (r PostUsersUserResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r PostUsersUserResponse) StatusCode() int {
+func (r PutV1UserUsernameResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-// DeleteArtifactWithBodyWithResponse request with arbitrary body returning *DeleteArtifactResponse
-func (c *ClientWithResponses) DeleteArtifactWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteArtifactResponse, error) {
-	rsp, err := c.DeleteArtifactWithBody(ctx, contentType, body, reqEditors...)
+// GetV1ArtifactWithResponse request returning *GetV1ArtifactResponse
+func (c *ClientWithResponses) GetV1ArtifactWithResponse(ctx context.Context, params *GetV1ArtifactParams, reqEditors ...RequestEditorFn) (*GetV1ArtifactResponse, error) {
+	rsp, err := c.GetV1Artifact(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseDeleteArtifactResponse(rsp)
+	return ParseGetV1ArtifactResponse(rsp)
 }
 
-func (c *ClientWithResponses) DeleteArtifactWithResponse(ctx context.Context, body DeleteArtifactJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteArtifactResponse, error) {
-	rsp, err := c.DeleteArtifact(ctx, body, reqEditors...)
+// PostV1ArtifactRawNamespaceNameWithBodyWithResponse request with arbitrary body returning *PostV1ArtifactRawNamespaceNameResponse
+func (c *ClientWithResponses) PostV1ArtifactRawNamespaceNameWithBodyWithResponse(ctx context.Context, namespace string, name string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostV1ArtifactRawNamespaceNameResponse, error) {
+	rsp, err := c.PostV1ArtifactRawNamespaceNameWithBody(ctx, namespace, name, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseDeleteArtifactResponse(rsp)
+	return ParsePostV1ArtifactRawNamespaceNameResponse(rsp)
 }
 
-// GetArtifactWithResponse request returning *GetArtifactResponse
-func (c *ClientWithResponses) GetArtifactWithResponse(ctx context.Context, params *GetArtifactParams, reqEditors ...RequestEditorFn) (*GetArtifactResponse, error) {
-	rsp, err := c.GetArtifact(ctx, params, reqEditors...)
+// GetV1ArtifactRawNamespaceNameHashHashWithResponse request returning *GetV1ArtifactRawNamespaceNameHashHashResponse
+func (c *ClientWithResponses) GetV1ArtifactRawNamespaceNameHashHashWithResponse(ctx context.Context, namespace string, name string, hash string, reqEditors ...RequestEditorFn) (*GetV1ArtifactRawNamespaceNameHashHashResponse, error) {
+	rsp, err := c.GetV1ArtifactRawNamespaceNameHashHash(ctx, namespace, name, hash, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetArtifactResponse(rsp)
+	return ParseGetV1ArtifactRawNamespaceNameHashHashResponse(rsp)
 }
 
-// HeadArtifactWithResponse request returning *HeadArtifactResponse
-func (c *ClientWithResponses) HeadArtifactWithResponse(ctx context.Context, params *HeadArtifactParams, reqEditors ...RequestEditorFn) (*HeadArtifactResponse, error) {
-	rsp, err := c.HeadArtifact(ctx, params, reqEditors...)
+// GetV1ArtifactRawNamespaceNameTagTagWithResponse request returning *GetV1ArtifactRawNamespaceNameTagTagResponse
+func (c *ClientWithResponses) GetV1ArtifactRawNamespaceNameTagTagWithResponse(ctx context.Context, namespace string, name string, tag string, reqEditors ...RequestEditorFn) (*GetV1ArtifactRawNamespaceNameTagTagResponse, error) {
+	rsp, err := c.GetV1ArtifactRawNamespaceNameTagTag(ctx, namespace, name, tag, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseHeadArtifactResponse(rsp)
+	return ParseGetV1ArtifactRawNamespaceNameTagTagResponse(rsp)
 }
 
-// GetArtifactListWithResponse request returning *GetArtifactListResponse
-func (c *ClientWithResponses) GetArtifactListWithResponse(ctx context.Context, params *GetArtifactListParams, reqEditors ...RequestEditorFn) (*GetArtifactListResponse, error) {
-	rsp, err := c.GetArtifactList(ctx, params, reqEditors...)
+// GetV1ArtifactNamespaceWithResponse request returning *GetV1ArtifactNamespaceResponse
+func (c *ClientWithResponses) GetV1ArtifactNamespaceWithResponse(ctx context.Context, namespace string, params *GetV1ArtifactNamespaceParams, reqEditors ...RequestEditorFn) (*GetV1ArtifactNamespaceResponse, error) {
+	rsp, err := c.GetV1ArtifactNamespace(ctx, namespace, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetArtifactListResponse(rsp)
+	return ParseGetV1ArtifactNamespaceResponse(rsp)
 }
 
-// DeleteArtifactTagWithBodyWithResponse request with arbitrary body returning *DeleteArtifactTagResponse
-func (c *ClientWithResponses) DeleteArtifactTagWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteArtifactTagResponse, error) {
-	rsp, err := c.DeleteArtifactTagWithBody(ctx, contentType, body, reqEditors...)
+// GetV1ArtifactNamespaceNameWithResponse request returning *GetV1ArtifactNamespaceNameResponse
+func (c *ClientWithResponses) GetV1ArtifactNamespaceNameWithResponse(ctx context.Context, namespace string, name string, params *GetV1ArtifactNamespaceNameParams, reqEditors ...RequestEditorFn) (*GetV1ArtifactNamespaceNameResponse, error) {
+	rsp, err := c.GetV1ArtifactNamespaceName(ctx, namespace, name, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseDeleteArtifactTagResponse(rsp)
+	return ParseGetV1ArtifactNamespaceNameResponse(rsp)
 }
 
-func (c *ClientWithResponses) DeleteArtifactTagWithResponse(ctx context.Context, body DeleteArtifactTagJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteArtifactTagResponse, error) {
-	rsp, err := c.DeleteArtifactTag(ctx, body, reqEditors...)
+// DeleteV1ArtifactNamespaceNameHashHashWithResponse request returning *DeleteV1ArtifactNamespaceNameHashHashResponse
+func (c *ClientWithResponses) DeleteV1ArtifactNamespaceNameHashHashWithResponse(ctx context.Context, namespace string, name string, hash string, reqEditors ...RequestEditorFn) (*DeleteV1ArtifactNamespaceNameHashHashResponse, error) {
+	rsp, err := c.DeleteV1ArtifactNamespaceNameHashHash(ctx, namespace, name, hash, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseDeleteArtifactTagResponse(rsp)
+	return ParseDeleteV1ArtifactNamespaceNameHashHashResponse(rsp)
 }
 
-// PostArtifactTagWithBodyWithResponse request with arbitrary body returning *PostArtifactTagResponse
-func (c *ClientWithResponses) PostArtifactTagWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostArtifactTagResponse, error) {
-	rsp, err := c.PostArtifactTagWithBody(ctx, contentType, body, reqEditors...)
+// GetV1ArtifactNamespaceNameHashHashWithResponse request returning *GetV1ArtifactNamespaceNameHashHashResponse
+func (c *ClientWithResponses) GetV1ArtifactNamespaceNameHashHashWithResponse(ctx context.Context, namespace string, name string, hash string, reqEditors ...RequestEditorFn) (*GetV1ArtifactNamespaceNameHashHashResponse, error) {
+	rsp, err := c.GetV1ArtifactNamespaceNameHashHash(ctx, namespace, name, hash, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostArtifactTagResponse(rsp)
+	return ParseGetV1ArtifactNamespaceNameHashHashResponse(rsp)
 }
 
-func (c *ClientWithResponses) PostArtifactTagWithResponse(ctx context.Context, body PostArtifactTagJSONRequestBody, reqEditors ...RequestEditorFn) (*PostArtifactTagResponse, error) {
-	rsp, err := c.PostArtifactTag(ctx, body, reqEditors...)
+// PatchV1ArtifactNamespaceNameHashHashWithBodyWithResponse request with arbitrary body returning *PatchV1ArtifactNamespaceNameHashHashResponse
+func (c *ClientWithResponses) PatchV1ArtifactNamespaceNameHashHashWithBodyWithResponse(ctx context.Context, namespace string, name string, hash string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchV1ArtifactNamespaceNameHashHashResponse, error) {
+	rsp, err := c.PatchV1ArtifactNamespaceNameHashHashWithBody(ctx, namespace, name, hash, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostArtifactTagResponse(rsp)
+	return ParsePatchV1ArtifactNamespaceNameHashHashResponse(rsp)
 }
 
-// GetArtifactUploadWithResponse request returning *GetArtifactUploadResponse
-func (c *ClientWithResponses) GetArtifactUploadWithResponse(ctx context.Context, params *GetArtifactUploadParams, reqEditors ...RequestEditorFn) (*GetArtifactUploadResponse, error) {
-	rsp, err := c.GetArtifactUpload(ctx, params, reqEditors...)
+func (c *ClientWithResponses) PatchV1ArtifactNamespaceNameHashHashWithResponse(ctx context.Context, namespace string, name string, hash string, body PatchV1ArtifactNamespaceNameHashHashJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchV1ArtifactNamespaceNameHashHashResponse, error) {
+	rsp, err := c.PatchV1ArtifactNamespaceNameHashHash(ctx, namespace, name, hash, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetArtifactUploadResponse(rsp)
+	return ParsePatchV1ArtifactNamespaceNameHashHashResponse(rsp)
 }
 
-// PostArtifactUploadWithBodyWithResponse request with arbitrary body returning *PostArtifactUploadResponse
-func (c *ClientWithResponses) PostArtifactUploadWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostArtifactUploadResponse, error) {
-	rsp, err := c.PostArtifactUploadWithBody(ctx, contentType, body, reqEditors...)
+// DeleteV1ArtifactNamespaceNameTagTagWithResponse request returning *DeleteV1ArtifactNamespaceNameTagTagResponse
+func (c *ClientWithResponses) DeleteV1ArtifactNamespaceNameTagTagWithResponse(ctx context.Context, namespace string, name string, tag string, reqEditors ...RequestEditorFn) (*DeleteV1ArtifactNamespaceNameTagTagResponse, error) {
+	rsp, err := c.DeleteV1ArtifactNamespaceNameTagTag(ctx, namespace, name, tag, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostArtifactUploadResponse(rsp)
+	return ParseDeleteV1ArtifactNamespaceNameTagTagResponse(rsp)
 }
 
-// PostManifestWithBodyWithResponse request with arbitrary body returning *PostManifestResponse
-func (c *ClientWithResponses) PostManifestWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostManifestResponse, error) {
-	rsp, err := c.PostManifestWithBody(ctx, contentType, body, reqEditors...)
+// GetV1ArtifactNamespaceNameTagTagWithResponse request returning *GetV1ArtifactNamespaceNameTagTagResponse
+func (c *ClientWithResponses) GetV1ArtifactNamespaceNameTagTagWithResponse(ctx context.Context, namespace string, name string, tag string, reqEditors ...RequestEditorFn) (*GetV1ArtifactNamespaceNameTagTagResponse, error) {
+	rsp, err := c.GetV1ArtifactNamespaceNameTagTag(ctx, namespace, name, tag, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostManifestResponse(rsp)
+	return ParseGetV1ArtifactNamespaceNameTagTagResponse(rsp)
 }
 
-// DeleteRbacEndpointWithBodyWithResponse request with arbitrary body returning *DeleteRbacEndpointResponse
-func (c *ClientWithResponses) DeleteRbacEndpointWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteRbacEndpointResponse, error) {
-	rsp, err := c.DeleteRbacEndpointWithBody(ctx, contentType, body, reqEditors...)
+// PatchV1ArtifactNamespaceNameTagTagWithBodyWithResponse request with arbitrary body returning *PatchV1ArtifactNamespaceNameTagTagResponse
+func (c *ClientWithResponses) PatchV1ArtifactNamespaceNameTagTagWithBodyWithResponse(ctx context.Context, namespace string, name string, tag string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchV1ArtifactNamespaceNameTagTagResponse, error) {
+	rsp, err := c.PatchV1ArtifactNamespaceNameTagTagWithBody(ctx, namespace, name, tag, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseDeleteRbacEndpointResponse(rsp)
+	return ParsePatchV1ArtifactNamespaceNameTagTagResponse(rsp)
 }
 
-func (c *ClientWithResponses) DeleteRbacEndpointWithResponse(ctx context.Context, body DeleteRbacEndpointJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteRbacEndpointResponse, error) {
-	rsp, err := c.DeleteRbacEndpoint(ctx, body, reqEditors...)
+func (c *ClientWithResponses) PatchV1ArtifactNamespaceNameTagTagWithResponse(ctx context.Context, namespace string, name string, tag string, body PatchV1ArtifactNamespaceNameTagTagJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchV1ArtifactNamespaceNameTagTagResponse, error) {
+	rsp, err := c.PatchV1ArtifactNamespaceNameTagTag(ctx, namespace, name, tag, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseDeleteRbacEndpointResponse(rsp)
+	return ParsePatchV1ArtifactNamespaceNameTagTagResponse(rsp)
 }
 
-// GetRbacEndpointWithResponse request returning *GetRbacEndpointResponse
-func (c *ClientWithResponses) GetRbacEndpointWithResponse(ctx context.Context, params *GetRbacEndpointParams, reqEditors ...RequestEditorFn) (*GetRbacEndpointResponse, error) {
-	rsp, err := c.GetRbacEndpoint(ctx, params, reqEditors...)
+// DeleteV1RbacPolicyWithBodyWithResponse request with arbitrary body returning *DeleteV1RbacPolicyResponse
+func (c *ClientWithResponses) DeleteV1RbacPolicyWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteV1RbacPolicyResponse, error) {
+	rsp, err := c.DeleteV1RbacPolicyWithBody(ctx, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetRbacEndpointResponse(rsp)
+	return ParseDeleteV1RbacPolicyResponse(rsp)
 }
 
-// PostRbacEndpointWithBodyWithResponse request with arbitrary body returning *PostRbacEndpointResponse
-func (c *ClientWithResponses) PostRbacEndpointWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostRbacEndpointResponse, error) {
-	rsp, err := c.PostRbacEndpointWithBody(ctx, contentType, body, reqEditors...)
+func (c *ClientWithResponses) DeleteV1RbacPolicyWithResponse(ctx context.Context, body DeleteV1RbacPolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteV1RbacPolicyResponse, error) {
+	rsp, err := c.DeleteV1RbacPolicy(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostRbacEndpointResponse(rsp)
+	return ParseDeleteV1RbacPolicyResponse(rsp)
 }
 
-func (c *ClientWithResponses) PostRbacEndpointWithResponse(ctx context.Context, body PostRbacEndpointJSONRequestBody, reqEditors ...RequestEditorFn) (*PostRbacEndpointResponse, error) {
-	rsp, err := c.PostRbacEndpoint(ctx, body, reqEditors...)
+// GetV1RbacPolicyWithResponse request returning *GetV1RbacPolicyResponse
+func (c *ClientWithResponses) GetV1RbacPolicyWithResponse(ctx context.Context, params *GetV1RbacPolicyParams, reqEditors ...RequestEditorFn) (*GetV1RbacPolicyResponse, error) {
+	rsp, err := c.GetV1RbacPolicy(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostRbacEndpointResponse(rsp)
+	return ParseGetV1RbacPolicyResponse(rsp)
 }
 
-// GetRbacListResourceGroupsWithResponse request returning *GetRbacListResourceGroupsResponse
-func (c *ClientWithResponses) GetRbacListResourceGroupsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetRbacListResourceGroupsResponse, error) {
-	rsp, err := c.GetRbacListResourceGroups(ctx, reqEditors...)
+// PutV1RbacPolicyWithBodyWithResponse request with arbitrary body returning *PutV1RbacPolicyResponse
+func (c *ClientWithResponses) PutV1RbacPolicyWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutV1RbacPolicyResponse, error) {
+	rsp, err := c.PutV1RbacPolicyWithBody(ctx, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetRbacListResourceGroupsResponse(rsp)
+	return ParsePutV1RbacPolicyResponse(rsp)
 }
 
-// GetRbacListRolesWithResponse request returning *GetRbacListRolesResponse
-func (c *ClientWithResponses) GetRbacListRolesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetRbacListRolesResponse, error) {
-	rsp, err := c.GetRbacListRoles(ctx, reqEditors...)
+func (c *ClientWithResponses) PutV1RbacPolicyWithResponse(ctx context.Context, body PutV1RbacPolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*PutV1RbacPolicyResponse, error) {
+	rsp, err := c.PutV1RbacPolicy(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetRbacListRolesResponse(rsp)
+	return ParsePutV1RbacPolicyResponse(rsp)
 }
 
-// DeleteRbacPolicyWithBodyWithResponse request with arbitrary body returning *DeleteRbacPolicyResponse
-func (c *ClientWithResponses) DeleteRbacPolicyWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteRbacPolicyResponse, error) {
-	rsp, err := c.DeleteRbacPolicyWithBody(ctx, contentType, body, reqEditors...)
+// GetV1RbacResourceGroupWithResponse request returning *GetV1RbacResourceGroupResponse
+func (c *ClientWithResponses) GetV1RbacResourceGroupWithResponse(ctx context.Context, params *GetV1RbacResourceGroupParams, reqEditors ...RequestEditorFn) (*GetV1RbacResourceGroupResponse, error) {
+	rsp, err := c.GetV1RbacResourceGroup(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseDeleteRbacPolicyResponse(rsp)
+	return ParseGetV1RbacResourceGroupResponse(rsp)
 }
 
-func (c *ClientWithResponses) DeleteRbacPolicyWithResponse(ctx context.Context, body DeleteRbacPolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteRbacPolicyResponse, error) {
-	rsp, err := c.DeleteRbacPolicy(ctx, body, reqEditors...)
+// DeleteV1RbacResourceGroupResourceGroupWithResponse request returning *DeleteV1RbacResourceGroupResourceGroupResponse
+func (c *ClientWithResponses) DeleteV1RbacResourceGroupResourceGroupWithResponse(ctx context.Context, resourceGroup string, reqEditors ...RequestEditorFn) (*DeleteV1RbacResourceGroupResourceGroupResponse, error) {
+	rsp, err := c.DeleteV1RbacResourceGroupResourceGroup(ctx, resourceGroup, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseDeleteRbacPolicyResponse(rsp)
+	return ParseDeleteV1RbacResourceGroupResourceGroupResponse(rsp)
 }
 
-// GetRbacPolicyWithResponse request returning *GetRbacPolicyResponse
-func (c *ClientWithResponses) GetRbacPolicyWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetRbacPolicyResponse, error) {
-	rsp, err := c.GetRbacPolicy(ctx, reqEditors...)
+// GetV1RbacResourceGroupResourceGroupWithResponse request returning *GetV1RbacResourceGroupResourceGroupResponse
+func (c *ClientWithResponses) GetV1RbacResourceGroupResourceGroupWithResponse(ctx context.Context, resourceGroup string, reqEditors ...RequestEditorFn) (*GetV1RbacResourceGroupResourceGroupResponse, error) {
+	rsp, err := c.GetV1RbacResourceGroupResourceGroup(ctx, resourceGroup, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetRbacPolicyResponse(rsp)
+	return ParseGetV1RbacResourceGroupResourceGroupResponse(rsp)
 }
 
-// PostRbacPolicyWithBodyWithResponse request with arbitrary body returning *PostRbacPolicyResponse
-func (c *ClientWithResponses) PostRbacPolicyWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostRbacPolicyResponse, error) {
-	rsp, err := c.PostRbacPolicyWithBody(ctx, contentType, body, reqEditors...)
+// HeadV1RbacResourceGroupResourceGroupWithResponse request returning *HeadV1RbacResourceGroupResourceGroupResponse
+func (c *ClientWithResponses) HeadV1RbacResourceGroupResourceGroupWithResponse(ctx context.Context, resourceGroup string, reqEditors ...RequestEditorFn) (*HeadV1RbacResourceGroupResourceGroupResponse, error) {
+	rsp, err := c.HeadV1RbacResourceGroupResourceGroup(ctx, resourceGroup, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostRbacPolicyResponse(rsp)
+	return ParseHeadV1RbacResourceGroupResourceGroupResponse(rsp)
 }
 
-func (c *ClientWithResponses) PostRbacPolicyWithResponse(ctx context.Context, body PostRbacPolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*PostRbacPolicyResponse, error) {
-	rsp, err := c.PostRbacPolicy(ctx, body, reqEditors...)
+// PutV1RbacResourceGroupResourceGroupWithBodyWithResponse request with arbitrary body returning *PutV1RbacResourceGroupResourceGroupResponse
+func (c *ClientWithResponses) PutV1RbacResourceGroupResourceGroupWithBodyWithResponse(ctx context.Context, resourceGroup string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutV1RbacResourceGroupResourceGroupResponse, error) {
+	rsp, err := c.PutV1RbacResourceGroupResourceGroupWithBody(ctx, resourceGroup, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostRbacPolicyResponse(rsp)
+	return ParsePutV1RbacResourceGroupResourceGroupResponse(rsp)
 }
 
-// DeleteRbacResourceGroupWithBodyWithResponse request with arbitrary body returning *DeleteRbacResourceGroupResponse
-func (c *ClientWithResponses) DeleteRbacResourceGroupWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteRbacResourceGroupResponse, error) {
-	rsp, err := c.DeleteRbacResourceGroupWithBody(ctx, contentType, body, reqEditors...)
+func (c *ClientWithResponses) PutV1RbacResourceGroupResourceGroupWithResponse(ctx context.Context, resourceGroup string, body PutV1RbacResourceGroupResourceGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*PutV1RbacResourceGroupResourceGroupResponse, error) {
+	rsp, err := c.PutV1RbacResourceGroupResourceGroup(ctx, resourceGroup, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseDeleteRbacResourceGroupResponse(rsp)
+	return ParsePutV1RbacResourceGroupResourceGroupResponse(rsp)
 }
 
-func (c *ClientWithResponses) DeleteRbacResourceGroupWithResponse(ctx context.Context, body DeleteRbacResourceGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteRbacResourceGroupResponse, error) {
-	rsp, err := c.DeleteRbacResourceGroup(ctx, body, reqEditors...)
+// GetV1RbacRoleWithResponse request returning *GetV1RbacRoleResponse
+func (c *ClientWithResponses) GetV1RbacRoleWithResponse(ctx context.Context, params *GetV1RbacRoleParams, reqEditors ...RequestEditorFn) (*GetV1RbacRoleResponse, error) {
+	rsp, err := c.GetV1RbacRole(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseDeleteRbacResourceGroupResponse(rsp)
+	return ParseGetV1RbacRoleResponse(rsp)
 }
 
-// GetRbacResourceGroupWithResponse request returning *GetRbacResourceGroupResponse
-func (c *ClientWithResponses) GetRbacResourceGroupWithResponse(ctx context.Context, params *GetRbacResourceGroupParams, reqEditors ...RequestEditorFn) (*GetRbacResourceGroupResponse, error) {
-	rsp, err := c.GetRbacResourceGroup(ctx, params, reqEditors...)
+// DeleteV1RbacRoleRoleWithResponse request returning *DeleteV1RbacRoleRoleResponse
+func (c *ClientWithResponses) DeleteV1RbacRoleRoleWithResponse(ctx context.Context, role string, reqEditors ...RequestEditorFn) (*DeleteV1RbacRoleRoleResponse, error) {
+	rsp, err := c.DeleteV1RbacRoleRole(ctx, role, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetRbacResourceGroupResponse(rsp)
+	return ParseDeleteV1RbacRoleRoleResponse(rsp)
 }
 
-// HeadRbacResourceGroupWithBodyWithResponse request with arbitrary body returning *HeadRbacResourceGroupResponse
-func (c *ClientWithResponses) HeadRbacResourceGroupWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*HeadRbacResourceGroupResponse, error) {
-	rsp, err := c.HeadRbacResourceGroupWithBody(ctx, contentType, body, reqEditors...)
+// GetV1RbacRoleRoleWithResponse request returning *GetV1RbacRoleRoleResponse
+func (c *ClientWithResponses) GetV1RbacRoleRoleWithResponse(ctx context.Context, role string, reqEditors ...RequestEditorFn) (*GetV1RbacRoleRoleResponse, error) {
+	rsp, err := c.GetV1RbacRoleRole(ctx, role, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseHeadRbacResourceGroupResponse(rsp)
+	return ParseGetV1RbacRoleRoleResponse(rsp)
 }
 
-func (c *ClientWithResponses) HeadRbacResourceGroupWithResponse(ctx context.Context, body HeadRbacResourceGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*HeadRbacResourceGroupResponse, error) {
-	rsp, err := c.HeadRbacResourceGroup(ctx, body, reqEditors...)
+// HeadV1RbacRoleRoleWithResponse request returning *HeadV1RbacRoleRoleResponse
+func (c *ClientWithResponses) HeadV1RbacRoleRoleWithResponse(ctx context.Context, role string, reqEditors ...RequestEditorFn) (*HeadV1RbacRoleRoleResponse, error) {
+	rsp, err := c.HeadV1RbacRoleRole(ctx, role, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseHeadRbacResourceGroupResponse(rsp)
+	return ParseHeadV1RbacRoleRoleResponse(rsp)
 }
 
-// PostRbacResourceGroupWithBodyWithResponse request with arbitrary body returning *PostRbacResourceGroupResponse
-func (c *ClientWithResponses) PostRbacResourceGroupWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostRbacResourceGroupResponse, error) {
-	rsp, err := c.PostRbacResourceGroupWithBody(ctx, contentType, body, reqEditors...)
+// PutV1RbacRoleRoleWithBodyWithResponse request with arbitrary body returning *PutV1RbacRoleRoleResponse
+func (c *ClientWithResponses) PutV1RbacRoleRoleWithBodyWithResponse(ctx context.Context, role string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutV1RbacRoleRoleResponse, error) {
+	rsp, err := c.PutV1RbacRoleRoleWithBody(ctx, role, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostRbacResourceGroupResponse(rsp)
+	return ParsePutV1RbacRoleRoleResponse(rsp)
 }
 
-func (c *ClientWithResponses) PostRbacResourceGroupWithResponse(ctx context.Context, body PostRbacResourceGroupJSONRequestBody, reqEditors ...RequestEditorFn) (*PostRbacResourceGroupResponse, error) {
-	rsp, err := c.PostRbacResourceGroup(ctx, body, reqEditors...)
+func (c *ClientWithResponses) PutV1RbacRoleRoleWithResponse(ctx context.Context, role string, body PutV1RbacRoleRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*PutV1RbacRoleRoleResponse, error) {
+	rsp, err := c.PutV1RbacRoleRole(ctx, role, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostRbacResourceGroupResponse(rsp)
+	return ParsePutV1RbacRoleRoleResponse(rsp)
 }
 
-// DeleteRbacRoleWithBodyWithResponse request with arbitrary body returning *DeleteRbacRoleResponse
-func (c *ClientWithResponses) DeleteRbacRoleWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteRbacRoleResponse, error) {
-	rsp, err := c.DeleteRbacRoleWithBody(ctx, contentType, body, reqEditors...)
+// GetV1TaskWithResponse request returning *GetV1TaskResponse
+func (c *ClientWithResponses) GetV1TaskWithResponse(ctx context.Context, params *GetV1TaskParams, reqEditors ...RequestEditorFn) (*GetV1TaskResponse, error) {
+	rsp, err := c.GetV1Task(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseDeleteRbacRoleResponse(rsp)
+	return ParseGetV1TaskResponse(rsp)
 }
 
-func (c *ClientWithResponses) DeleteRbacRoleWithResponse(ctx context.Context, body DeleteRbacRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteRbacRoleResponse, error) {
-	rsp, err := c.DeleteRbacRole(ctx, body, reqEditors...)
+// PostV1TaskWithBodyWithResponse request with arbitrary body returning *PostV1TaskResponse
+func (c *ClientWithResponses) PostV1TaskWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostV1TaskResponse, error) {
+	rsp, err := c.PostV1TaskWithBody(ctx, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseDeleteRbacRoleResponse(rsp)
+	return ParsePostV1TaskResponse(rsp)
 }
 
-// GetRbacRoleWithResponse request returning *GetRbacRoleResponse
-func (c *ClientWithResponses) GetRbacRoleWithResponse(ctx context.Context, params *GetRbacRoleParams, reqEditors ...RequestEditorFn) (*GetRbacRoleResponse, error) {
-	rsp, err := c.GetRbacRole(ctx, params, reqEditors...)
+func (c *ClientWithResponses) PostV1TaskWithResponse(ctx context.Context, body PostV1TaskJSONRequestBody, reqEditors ...RequestEditorFn) (*PostV1TaskResponse, error) {
+	rsp, err := c.PostV1Task(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetRbacRoleResponse(rsp)
+	return ParsePostV1TaskResponse(rsp)
 }
 
-// HeadRbacRoleWithBodyWithResponse request with arbitrary body returning *HeadRbacRoleResponse
-func (c *ClientWithResponses) HeadRbacRoleWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*HeadRbacRoleResponse, error) {
-	rsp, err := c.HeadRbacRoleWithBody(ctx, contentType, body, reqEditors...)
+// GetV1TaskIdWithResponse request returning *GetV1TaskIdResponse
+func (c *ClientWithResponses) GetV1TaskIdWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetV1TaskIdResponse, error) {
+	rsp, err := c.GetV1TaskId(ctx, id, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseHeadRbacRoleResponse(rsp)
+	return ParseGetV1TaskIdResponse(rsp)
 }
 
-func (c *ClientWithResponses) HeadRbacRoleWithResponse(ctx context.Context, body HeadRbacRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*HeadRbacRoleResponse, error) {
-	rsp, err := c.HeadRbacRole(ctx, body, reqEditors...)
+// GetV1TaskIdLogsWithResponse request returning *GetV1TaskIdLogsResponse
+func (c *ClientWithResponses) GetV1TaskIdLogsWithResponse(ctx context.Context, id string, params *GetV1TaskIdLogsParams, reqEditors ...RequestEditorFn) (*GetV1TaskIdLogsResponse, error) {
+	rsp, err := c.GetV1TaskIdLogs(ctx, id, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseHeadRbacRoleResponse(rsp)
+	return ParseGetV1TaskIdLogsResponse(rsp)
 }
 
-// PostRbacRoleWithBodyWithResponse request with arbitrary body returning *PostRbacRoleResponse
-func (c *ClientWithResponses) PostRbacRoleWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostRbacRoleResponse, error) {
-	rsp, err := c.PostRbacRoleWithBody(ctx, contentType, body, reqEditors...)
+// GetV1UserWithResponse request returning *GetV1UserResponse
+func (c *ClientWithResponses) GetV1UserWithResponse(ctx context.Context, params *GetV1UserParams, reqEditors ...RequestEditorFn) (*GetV1UserResponse, error) {
+	rsp, err := c.GetV1User(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostRbacRoleResponse(rsp)
+	return ParseGetV1UserResponse(rsp)
 }
 
-func (c *ClientWithResponses) PostRbacRoleWithResponse(ctx context.Context, body PostRbacRoleJSONRequestBody, reqEditors ...RequestEditorFn) (*PostRbacRoleResponse, error) {
-	rsp, err := c.PostRbacRole(ctx, body, reqEditors...)
+// DeleteV1UserMeWithResponse request returning *DeleteV1UserMeResponse
+func (c *ClientWithResponses) DeleteV1UserMeWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*DeleteV1UserMeResponse, error) {
+	rsp, err := c.DeleteV1UserMe(ctx, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostRbacRoleResponse(rsp)
+	return ParseDeleteV1UserMeResponse(rsp)
 }
 
-// DeleteRbacUserWithBodyWithResponse request with arbitrary body returning *DeleteRbacUserResponse
-func (c *ClientWithResponses) DeleteRbacUserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteRbacUserResponse, error) {
-	rsp, err := c.DeleteRbacUserWithBody(ctx, contentType, body, reqEditors...)
+// GetV1UserMeWithResponse request returning *GetV1UserMeResponse
+func (c *ClientWithResponses) GetV1UserMeWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetV1UserMeResponse, error) {
+	rsp, err := c.GetV1UserMe(ctx, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseDeleteRbacUserResponse(rsp)
+	return ParseGetV1UserMeResponse(rsp)
 }
 
-func (c *ClientWithResponses) DeleteRbacUserWithResponse(ctx context.Context, body DeleteRbacUserJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteRbacUserResponse, error) {
-	rsp, err := c.DeleteRbacUser(ctx, body, reqEditors...)
+// PatchV1UserMeWithBodyWithResponse request with arbitrary body returning *PatchV1UserMeResponse
+func (c *ClientWithResponses) PatchV1UserMeWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchV1UserMeResponse, error) {
+	rsp, err := c.PatchV1UserMeWithBody(ctx, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseDeleteRbacUserResponse(rsp)
+	return ParsePatchV1UserMeResponse(rsp)
 }
 
-// GetRbacUserWithResponse request returning *GetRbacUserResponse
-func (c *ClientWithResponses) GetRbacUserWithResponse(ctx context.Context, params *GetRbacUserParams, reqEditors ...RequestEditorFn) (*GetRbacUserResponse, error) {
-	rsp, err := c.GetRbacUser(ctx, params, reqEditors...)
+func (c *ClientWithResponses) PatchV1UserMeWithResponse(ctx context.Context, body PatchV1UserMeJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchV1UserMeResponse, error) {
+	rsp, err := c.PatchV1UserMe(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetRbacUserResponse(rsp)
+	return ParsePatchV1UserMeResponse(rsp)
 }
 
-// PostRbacUserWithBodyWithResponse request with arbitrary body returning *PostRbacUserResponse
-func (c *ClientWithResponses) PostRbacUserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostRbacUserResponse, error) {
-	rsp, err := c.PostRbacUserWithBody(ctx, contentType, body, reqEditors...)
+// DeleteV1UserUsernameWithResponse request returning *DeleteV1UserUsernameResponse
+func (c *ClientWithResponses) DeleteV1UserUsernameWithResponse(ctx context.Context, username string, reqEditors ...RequestEditorFn) (*DeleteV1UserUsernameResponse, error) {
+	rsp, err := c.DeleteV1UserUsername(ctx, username, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostRbacUserResponse(rsp)
+	return ParseDeleteV1UserUsernameResponse(rsp)
 }
 
-func (c *ClientWithResponses) PostRbacUserWithResponse(ctx context.Context, body PostRbacUserJSONRequestBody, reqEditors ...RequestEditorFn) (*PostRbacUserResponse, error) {
-	rsp, err := c.PostRbacUser(ctx, body, reqEditors...)
+// GetV1UserUsernameWithResponse request returning *GetV1UserUsernameResponse
+func (c *ClientWithResponses) GetV1UserUsernameWithResponse(ctx context.Context, username string, reqEditors ...RequestEditorFn) (*GetV1UserUsernameResponse, error) {
+	rsp, err := c.GetV1UserUsername(ctx, username, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostRbacUserResponse(rsp)
+	return ParseGetV1UserUsernameResponse(rsp)
 }
 
-// GetTasksListWithResponse request returning *GetTasksListResponse
-func (c *ClientWithResponses) GetTasksListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetTasksListResponse, error) {
-	rsp, err := c.GetTasksList(ctx, reqEditors...)
+// HeadV1UserUsernameWithResponse request returning *HeadV1UserUsernameResponse
+func (c *ClientWithResponses) HeadV1UserUsernameWithResponse(ctx context.Context, username string, reqEditors ...RequestEditorFn) (*HeadV1UserUsernameResponse, error) {
+	rsp, err := c.HeadV1UserUsername(ctx, username, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetTasksListResponse(rsp)
+	return ParseHeadV1UserUsernameResponse(rsp)
 }
 
-// GetTasksTaskWithResponse request returning *GetTasksTaskResponse
-func (c *ClientWithResponses) GetTasksTaskWithResponse(ctx context.Context, params *GetTasksTaskParams, reqEditors ...RequestEditorFn) (*GetTasksTaskResponse, error) {
-	rsp, err := c.GetTasksTask(ctx, params, reqEditors...)
+// PatchV1UserUsernameWithBodyWithResponse request with arbitrary body returning *PatchV1UserUsernameResponse
+func (c *ClientWithResponses) PatchV1UserUsernameWithBodyWithResponse(ctx context.Context, username string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchV1UserUsernameResponse, error) {
+	rsp, err := c.PatchV1UserUsernameWithBody(ctx, username, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetTasksTaskResponse(rsp)
+	return ParsePatchV1UserUsernameResponse(rsp)
 }
 
-// GetUsersListWithResponse request returning *GetUsersListResponse
-func (c *ClientWithResponses) GetUsersListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetUsersListResponse, error) {
-	rsp, err := c.GetUsersList(ctx, reqEditors...)
+func (c *ClientWithResponses) PatchV1UserUsernameWithResponse(ctx context.Context, username string, body PatchV1UserUsernameJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchV1UserUsernameResponse, error) {
+	rsp, err := c.PatchV1UserUsername(ctx, username, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetUsersListResponse(rsp)
+	return ParsePatchV1UserUsernameResponse(rsp)
 }
 
-// DeleteUsersMeWithResponse request returning *DeleteUsersMeResponse
-func (c *ClientWithResponses) DeleteUsersMeWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*DeleteUsersMeResponse, error) {
-	rsp, err := c.DeleteUsersMe(ctx, reqEditors...)
+// PutV1UserUsernameWithBodyWithResponse request with arbitrary body returning *PutV1UserUsernameResponse
+func (c *ClientWithResponses) PutV1UserUsernameWithBodyWithResponse(ctx context.Context, username string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutV1UserUsernameResponse, error) {
+	rsp, err := c.PutV1UserUsernameWithBody(ctx, username, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseDeleteUsersMeResponse(rsp)
+	return ParsePutV1UserUsernameResponse(rsp)
 }
 
-// GetUsersMeWithResponse request returning *GetUsersMeResponse
-func (c *ClientWithResponses) GetUsersMeWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetUsersMeResponse, error) {
-	rsp, err := c.GetUsersMe(ctx, reqEditors...)
+func (c *ClientWithResponses) PutV1UserUsernameWithResponse(ctx context.Context, username string, body PutV1UserUsernameJSONRequestBody, reqEditors ...RequestEditorFn) (*PutV1UserUsernameResponse, error) {
+	rsp, err := c.PutV1UserUsername(ctx, username, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetUsersMeResponse(rsp)
+	return ParsePutV1UserUsernameResponse(rsp)
 }
 
-// PatchUsersMeWithBodyWithResponse request with arbitrary body returning *PatchUsersMeResponse
-func (c *ClientWithResponses) PatchUsersMeWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchUsersMeResponse, error) {
-	rsp, err := c.PatchUsersMeWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePatchUsersMeResponse(rsp)
-}
-
-func (c *ClientWithResponses) PatchUsersMeWithResponse(ctx context.Context, body PatchUsersMeJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchUsersMeResponse, error) {
-	rsp, err := c.PatchUsersMe(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePatchUsersMeResponse(rsp)
-}
-
-// DeleteUsersUserWithBodyWithResponse request with arbitrary body returning *DeleteUsersUserResponse
-func (c *ClientWithResponses) DeleteUsersUserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteUsersUserResponse, error) {
-	rsp, err := c.DeleteUsersUserWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseDeleteUsersUserResponse(rsp)
-}
-
-func (c *ClientWithResponses) DeleteUsersUserWithResponse(ctx context.Context, body DeleteUsersUserJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteUsersUserResponse, error) {
-	rsp, err := c.DeleteUsersUser(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseDeleteUsersUserResponse(rsp)
-}
-
-// GetUsersUserWithResponse request returning *GetUsersUserResponse
-func (c *ClientWithResponses) GetUsersUserWithResponse(ctx context.Context, params *GetUsersUserParams, reqEditors ...RequestEditorFn) (*GetUsersUserResponse, error) {
-	rsp, err := c.GetUsersUser(ctx, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetUsersUserResponse(rsp)
-}
-
-// HeadUsersUserWithBodyWithResponse request with arbitrary body returning *HeadUsersUserResponse
-func (c *ClientWithResponses) HeadUsersUserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*HeadUsersUserResponse, error) {
-	rsp, err := c.HeadUsersUserWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseHeadUsersUserResponse(rsp)
-}
-
-func (c *ClientWithResponses) HeadUsersUserWithResponse(ctx context.Context, body HeadUsersUserJSONRequestBody, reqEditors ...RequestEditorFn) (*HeadUsersUserResponse, error) {
-	rsp, err := c.HeadUsersUser(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseHeadUsersUserResponse(rsp)
-}
-
-// PatchUsersUserWithBodyWithResponse request with arbitrary body returning *PatchUsersUserResponse
-func (c *ClientWithResponses) PatchUsersUserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchUsersUserResponse, error) {
-	rsp, err := c.PatchUsersUserWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePatchUsersUserResponse(rsp)
-}
-
-func (c *ClientWithResponses) PatchUsersUserWithResponse(ctx context.Context, body PatchUsersUserJSONRequestBody, reqEditors ...RequestEditorFn) (*PatchUsersUserResponse, error) {
-	rsp, err := c.PatchUsersUser(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePatchUsersUserResponse(rsp)
-}
-
-// PostUsersUserWithBodyWithResponse request with arbitrary body returning *PostUsersUserResponse
-func (c *ClientWithResponses) PostUsersUserWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostUsersUserResponse, error) {
-	rsp, err := c.PostUsersUserWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePostUsersUserResponse(rsp)
-}
-
-func (c *ClientWithResponses) PostUsersUserWithResponse(ctx context.Context, body PostUsersUserJSONRequestBody, reqEditors ...RequestEditorFn) (*PostUsersUserResponse, error) {
-	rsp, err := c.PostUsersUser(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePostUsersUserResponse(rsp)
-}
-
-// ParseDeleteArtifactResponse parses an HTTP response from a DeleteArtifactWithResponse call
-func ParseDeleteArtifactResponse(rsp *http.Response) (*DeleteArtifactResponse, error) {
+// ParseGetV1ArtifactResponse parses an HTTP response from a GetV1ArtifactWithResponse call
+func ParseGetV1ArtifactResponse(rsp *http.Response) (*GetV1ArtifactResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &DeleteArtifactResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Artifact
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest GenericBadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest GenericNotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
-		var dest GenericTooLarge
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON413 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetArtifactResponse parses an HTTP response from a GetArtifactWithResponse call
-func ParseGetArtifactResponse(rsp *http.Response) (*GetArtifactResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetArtifactResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Artifact
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest GenericBadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest GenericNotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
-		var dest GenericTooLarge
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON413 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseHeadArtifactResponse parses an HTTP response from a HeadArtifactWithResponse call
-func ParseHeadArtifactResponse(rsp *http.Response) (*HeadArtifactResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &HeadArtifactResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
-		var dest GenericTooLarge
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON413 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetArtifactListResponse parses an HTTP response from a GetArtifactListWithResponse call
-func ParseGetArtifactListResponse(rsp *http.Response) (*GetArtifactListResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetArtifactListResponse{
+	response := &GetV1ArtifactResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -4796,142 +4739,22 @@ func ParseGetArtifactListResponse(rsp *http.Response) (*GetArtifactListResponse,
 	return response, nil
 }
 
-// ParseDeleteArtifactTagResponse parses an HTTP response from a DeleteArtifactTagWithResponse call
-func ParseDeleteArtifactTagResponse(rsp *http.Response) (*DeleteArtifactTagResponse, error) {
+// ParsePostV1ArtifactRawNamespaceNameResponse parses an HTTP response from a PostV1ArtifactRawNamespaceNameWithResponse call
+func ParsePostV1ArtifactRawNamespaceNameResponse(rsp *http.Response) (*PostV1ArtifactRawNamespaceNameResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &DeleteArtifactTagResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest GenericBadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest GenericNotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
-		var dest GenericTooLarge
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON413 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParsePostArtifactTagResponse parses an HTTP response from a PostArtifactTagWithResponse call
-func ParsePostArtifactTagResponse(rsp *http.Response) (*PostArtifactTagResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &PostArtifactTagResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest GenericBadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest GenericNotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
-		var dest GenericTooLarge
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON413 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetArtifactUploadResponse parses an HTTP response from a GetArtifactUploadWithResponse call
-func ParseGetArtifactUploadResponse(rsp *http.Response) (*GetArtifactUploadResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetArtifactUploadResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest GenericBadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest GenericNotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
-		var dest GenericTooLarge
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON413 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParsePostArtifactUploadResponse parses an HTTP response from a PostArtifactUploadWithResponse call
-func ParsePostArtifactUploadResponse(rsp *http.Response) (*PostArtifactUploadResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &PostArtifactUploadResponse{
+	response := &PostV1ArtifactRawNamespaceNameResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest Artifact
+		var dest UploadArtifactResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -4963,15 +4786,457 @@ func ParsePostArtifactUploadResponse(rsp *http.Response) (*PostArtifactUploadRes
 	return response, nil
 }
 
-// ParsePostManifestResponse parses an HTTP response from a PostManifestWithResponse call
-func ParsePostManifestResponse(rsp *http.Response) (*PostManifestResponse, error) {
+// ParseGetV1ArtifactRawNamespaceNameHashHashResponse parses an HTTP response from a GetV1ArtifactRawNamespaceNameHashHashWithResponse call
+func ParseGetV1ArtifactRawNamespaceNameHashHashResponse(rsp *http.Response) (*GetV1ArtifactRawNamespaceNameHashHashResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &PostManifestResponse{
+	response := &GetV1ArtifactRawNamespaceNameHashHashResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest GenericBadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest GenericNotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest GenericTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetV1ArtifactRawNamespaceNameTagTagResponse parses an HTTP response from a GetV1ArtifactRawNamespaceNameTagTagWithResponse call
+func ParseGetV1ArtifactRawNamespaceNameTagTagResponse(rsp *http.Response) (*GetV1ArtifactRawNamespaceNameTagTagResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetV1ArtifactRawNamespaceNameTagTagResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest GenericBadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest GenericNotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest GenericTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetV1ArtifactNamespaceResponse parses an HTTP response from a GetV1ArtifactNamespaceWithResponse call
+func ParseGetV1ArtifactNamespaceResponse(rsp *http.Response) (*GetV1ArtifactNamespaceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetV1ArtifactNamespaceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []Artifact
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest GenericBadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest GenericTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetV1ArtifactNamespaceNameResponse parses an HTTP response from a GetV1ArtifactNamespaceNameWithResponse call
+func ParseGetV1ArtifactNamespaceNameResponse(rsp *http.Response) (*GetV1ArtifactNamespaceNameResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetV1ArtifactNamespaceNameResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []Artifact
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest GenericBadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest GenericTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteV1ArtifactNamespaceNameHashHashResponse parses an HTTP response from a DeleteV1ArtifactNamespaceNameHashHashWithResponse call
+func ParseDeleteV1ArtifactNamespaceNameHashHashResponse(rsp *http.Response) (*DeleteV1ArtifactNamespaceNameHashHashResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteV1ArtifactNamespaceNameHashHashResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Artifact
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest GenericBadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest GenericNotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest GenericTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetV1ArtifactNamespaceNameHashHashResponse parses an HTTP response from a GetV1ArtifactNamespaceNameHashHashWithResponse call
+func ParseGetV1ArtifactNamespaceNameHashHashResponse(rsp *http.Response) (*GetV1ArtifactNamespaceNameHashHashResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetV1ArtifactNamespaceNameHashHashResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Artifact
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest GenericBadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest GenericNotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest GenericTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePatchV1ArtifactNamespaceNameHashHashResponse parses an HTTP response from a PatchV1ArtifactNamespaceNameHashHashWithResponse call
+func ParsePatchV1ArtifactNamespaceNameHashHashResponse(rsp *http.Response) (*PatchV1ArtifactNamespaceNameHashHashResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PatchV1ArtifactNamespaceNameHashHashResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Artifact
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest GenericBadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest GenericNotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest GenericTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteV1ArtifactNamespaceNameTagTagResponse parses an HTTP response from a DeleteV1ArtifactNamespaceNameTagTagWithResponse call
+func ParseDeleteV1ArtifactNamespaceNameTagTagResponse(rsp *http.Response) (*DeleteV1ArtifactNamespaceNameTagTagResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteV1ArtifactNamespaceNameTagTagResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Artifact
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest GenericBadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest GenericNotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest GenericTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetV1ArtifactNamespaceNameTagTagResponse parses an HTTP response from a GetV1ArtifactNamespaceNameTagTagWithResponse call
+func ParseGetV1ArtifactNamespaceNameTagTagResponse(rsp *http.Response) (*GetV1ArtifactNamespaceNameTagTagResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetV1ArtifactNamespaceNameTagTagResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Artifact
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest GenericBadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest GenericNotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest GenericTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePatchV1ArtifactNamespaceNameTagTagResponse parses an HTTP response from a PatchV1ArtifactNamespaceNameTagTagWithResponse call
+func ParsePatchV1ArtifactNamespaceNameTagTagResponse(rsp *http.Response) (*PatchV1ArtifactNamespaceNameTagTagResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PatchV1ArtifactNamespaceNameTagTagResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Artifact
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest GenericBadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest GenericNotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest GenericTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteV1RbacPolicyResponse parses an HTTP response from a DeleteV1RbacPolicyWithResponse call
+func ParseDeleteV1RbacPolicyResponse(rsp *http.Response) (*DeleteV1RbacPolicyResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteV1RbacPolicyResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -4991,39 +5256,6 @@ func ParsePostManifestResponse(rsp *http.Response) (*PostManifestResponse, error
 		}
 		response.JSON409 = &dest
 
-	}
-
-	return response, nil
-}
-
-// ParseDeleteRbacEndpointResponse parses an HTTP response from a DeleteRbacEndpointWithResponse call
-func ParseDeleteRbacEndpointResponse(rsp *http.Response) (*DeleteRbacEndpointResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &DeleteRbacEndpointResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest GenericBadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest GenericNotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
 		var dest GenericTooLarge
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -5036,194 +5268,15 @@ func ParseDeleteRbacEndpointResponse(rsp *http.Response) (*DeleteRbacEndpointRes
 	return response, nil
 }
 
-// ParseGetRbacEndpointResponse parses an HTTP response from a GetRbacEndpointWithResponse call
-func ParseGetRbacEndpointResponse(rsp *http.Response) (*GetRbacEndpointResponse, error) {
+// ParseGetV1RbacPolicyResponse parses an HTTP response from a GetV1RbacPolicyWithResponse call
+func ParseGetV1RbacPolicyResponse(rsp *http.Response) (*GetV1RbacPolicyResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &GetRbacEndpointResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []string
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest GenericBadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
-		var dest GenericTooLarge
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON413 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParsePostRbacEndpointResponse parses an HTTP response from a PostRbacEndpointWithResponse call
-func ParsePostRbacEndpointResponse(rsp *http.Response) (*PostRbacEndpointResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &PostRbacEndpointResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest GenericBadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest GenericNotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
-		var dest GenericTooLarge
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON413 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetRbacListResourceGroupsResponse parses an HTTP response from a GetRbacListResourceGroupsWithResponse call
-func ParseGetRbacListResourceGroupsResponse(rsp *http.Response) (*GetRbacListResourceGroupsResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetRbacListResourceGroupsResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []string
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
-		var dest GenericTooLarge
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON413 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetRbacListRolesResponse parses an HTTP response from a GetRbacListRolesWithResponse call
-func ParseGetRbacListRolesResponse(rsp *http.Response) (*GetRbacListRolesResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetRbacListRolesResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []string
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
-		var dest GenericTooLarge
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON413 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseDeleteRbacPolicyResponse parses an HTTP response from a DeleteRbacPolicyWithResponse call
-func ParseDeleteRbacPolicyResponse(rsp *http.Response) (*DeleteRbacPolicyResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &DeleteRbacPolicyResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest GenericBadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
-		var dest GenericTooLarge
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON413 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetRbacPolicyResponse parses an HTTP response from a GetRbacPolicyWithResponse call
-func ParseGetRbacPolicyResponse(rsp *http.Response) (*GetRbacPolicyResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetRbacPolicyResponse{
+	response := &GetV1RbacPolicyResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -5248,15 +5301,15 @@ func ParseGetRbacPolicyResponse(rsp *http.Response) (*GetRbacPolicyResponse, err
 	return response, nil
 }
 
-// ParsePostRbacPolicyResponse parses an HTTP response from a PostRbacPolicyWithResponse call
-func ParsePostRbacPolicyResponse(rsp *http.Response) (*PostRbacPolicyResponse, error) {
+// ParsePutV1RbacPolicyResponse parses an HTTP response from a PutV1RbacPolicyWithResponse call
+func ParsePutV1RbacPolicyResponse(rsp *http.Response) (*PutV1RbacPolicyResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &PostRbacPolicyResponse{
+	response := &PutV1RbacPolicyResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -5288,33 +5341,26 @@ func ParsePostRbacPolicyResponse(rsp *http.Response) (*PostRbacPolicyResponse, e
 	return response, nil
 }
 
-// ParseDeleteRbacResourceGroupResponse parses an HTTP response from a DeleteRbacResourceGroupWithResponse call
-func ParseDeleteRbacResourceGroupResponse(rsp *http.Response) (*DeleteRbacResourceGroupResponse, error) {
+// ParseGetV1RbacResourceGroupResponse parses an HTTP response from a GetV1RbacResourceGroupWithResponse call
+func ParseGetV1RbacResourceGroupResponse(rsp *http.Response) (*GetV1RbacResourceGroupResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &DeleteRbacResourceGroupResponse{
+	response := &GetV1RbacResourceGroupResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest GenericBadRequest
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []ResourceGroupResource
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest GenericNotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
+		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
 		var dest GenericTooLarge
@@ -5328,22 +5374,22 @@ func ParseDeleteRbacResourceGroupResponse(rsp *http.Response) (*DeleteRbacResour
 	return response, nil
 }
 
-// ParseGetRbacResourceGroupResponse parses an HTTP response from a GetRbacResourceGroupWithResponse call
-func ParseGetRbacResourceGroupResponse(rsp *http.Response) (*GetRbacResourceGroupResponse, error) {
+// ParseDeleteV1RbacResourceGroupResourceGroupResponse parses an HTTP response from a DeleteV1RbacResourceGroupResourceGroupWithResponse call
+func ParseDeleteV1RbacResourceGroupResourceGroupResponse(rsp *http.Response) (*DeleteV1RbacResourceGroupResourceGroupResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &GetRbacResourceGroupResponse{
+	response := &DeleteV1RbacResourceGroupResourceGroupResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []string
+		var dest ResourceGroupResource
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -5375,15 +5421,62 @@ func ParseGetRbacResourceGroupResponse(rsp *http.Response) (*GetRbacResourceGrou
 	return response, nil
 }
 
-// ParseHeadRbacResourceGroupResponse parses an HTTP response from a HeadRbacResourceGroupWithResponse call
-func ParseHeadRbacResourceGroupResponse(rsp *http.Response) (*HeadRbacResourceGroupResponse, error) {
+// ParseGetV1RbacResourceGroupResourceGroupResponse parses an HTTP response from a GetV1RbacResourceGroupResourceGroupWithResponse call
+func ParseGetV1RbacResourceGroupResourceGroupResponse(rsp *http.Response) (*GetV1RbacResourceGroupResourceGroupResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &HeadRbacResourceGroupResponse{
+	response := &GetV1RbacResourceGroupResourceGroupResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ResourceGroupResource
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest GenericBadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest GenericNotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest GenericTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseHeadV1RbacResourceGroupResourceGroupResponse parses an HTTP response from a HeadV1RbacResourceGroupResourceGroupWithResponse call
+func ParseHeadV1RbacResourceGroupResourceGroupResponse(rsp *http.Response) (*HeadV1RbacResourceGroupResourceGroupResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &HeadV1RbacResourceGroupResourceGroupResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -5401,20 +5494,27 @@ func ParseHeadRbacResourceGroupResponse(rsp *http.Response) (*HeadRbacResourceGr
 	return response, nil
 }
 
-// ParsePostRbacResourceGroupResponse parses an HTTP response from a PostRbacResourceGroupWithResponse call
-func ParsePostRbacResourceGroupResponse(rsp *http.Response) (*PostRbacResourceGroupResponse, error) {
+// ParsePutV1RbacResourceGroupResourceGroupResponse parses an HTTP response from a PutV1RbacResourceGroupResourceGroupWithResponse call
+func ParsePutV1RbacResourceGroupResourceGroupResponse(rsp *http.Response) (*PutV1RbacResourceGroupResourceGroupResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &PostRbacResourceGroupResponse{
+	response := &PutV1RbacResourceGroupResourceGroupResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest ResourceGroupResource
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
 		var dest GenericBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -5441,20 +5541,60 @@ func ParsePostRbacResourceGroupResponse(rsp *http.Response) (*PostRbacResourceGr
 	return response, nil
 }
 
-// ParseDeleteRbacRoleResponse parses an HTTP response from a DeleteRbacRoleWithResponse call
-func ParseDeleteRbacRoleResponse(rsp *http.Response) (*DeleteRbacRoleResponse, error) {
+// ParseGetV1RbacRoleResponse parses an HTTP response from a GetV1RbacRoleWithResponse call
+func ParseGetV1RbacRoleResponse(rsp *http.Response) (*GetV1RbacRoleResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &DeleteRbacRoleResponse{
+	response := &GetV1RbacRoleResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []RoleResource
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest GenericTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteV1RbacRoleRoleResponse parses an HTTP response from a DeleteV1RbacRoleRoleWithResponse call
+func ParseDeleteV1RbacRoleRoleResponse(rsp *http.Response) (*DeleteV1RbacRoleRoleResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteV1RbacRoleRoleResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RoleResource
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
 		var dest GenericBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -5488,22 +5628,22 @@ func ParseDeleteRbacRoleResponse(rsp *http.Response) (*DeleteRbacRoleResponse, e
 	return response, nil
 }
 
-// ParseGetRbacRoleResponse parses an HTTP response from a GetRbacRoleWithResponse call
-func ParseGetRbacRoleResponse(rsp *http.Response) (*GetRbacRoleResponse, error) {
+// ParseGetV1RbacRoleRoleResponse parses an HTTP response from a GetV1RbacRoleRoleWithResponse call
+func ParseGetV1RbacRoleRoleResponse(rsp *http.Response) (*GetV1RbacRoleRoleResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &GetRbacRoleResponse{
+	response := &GetV1RbacRoleRoleResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []string
+		var dest RoleResource
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -5535,15 +5675,15 @@ func ParseGetRbacRoleResponse(rsp *http.Response) (*GetRbacRoleResponse, error) 
 	return response, nil
 }
 
-// ParseHeadRbacRoleResponse parses an HTTP response from a HeadRbacRoleWithResponse call
-func ParseHeadRbacRoleResponse(rsp *http.Response) (*HeadRbacRoleResponse, error) {
+// ParseHeadV1RbacRoleRoleResponse parses an HTTP response from a HeadV1RbacRoleRoleWithResponse call
+func ParseHeadV1RbacRoleRoleResponse(rsp *http.Response) (*HeadV1RbacRoleRoleResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &HeadRbacRoleResponse{
+	response := &HeadV1RbacRoleRoleResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -5561,20 +5701,27 @@ func ParseHeadRbacRoleResponse(rsp *http.Response) (*HeadRbacRoleResponse, error
 	return response, nil
 }
 
-// ParsePostRbacRoleResponse parses an HTTP response from a PostRbacRoleWithResponse call
-func ParsePostRbacRoleResponse(rsp *http.Response) (*PostRbacRoleResponse, error) {
+// ParsePutV1RbacRoleRoleResponse parses an HTTP response from a PutV1RbacRoleRoleWithResponse call
+func ParsePutV1RbacRoleRoleResponse(rsp *http.Response) (*PutV1RbacRoleRoleResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &PostRbacRoleResponse{
+	response := &PutV1RbacRoleRoleResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest RoleResource
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
 		var dest GenericBadRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -5601,149 +5748,22 @@ func ParsePostRbacRoleResponse(rsp *http.Response) (*PostRbacRoleResponse, error
 	return response, nil
 }
 
-// ParseDeleteRbacUserResponse parses an HTTP response from a DeleteRbacUserWithResponse call
-func ParseDeleteRbacUserResponse(rsp *http.Response) (*DeleteRbacUserResponse, error) {
+// ParseGetV1TaskResponse parses an HTTP response from a GetV1TaskWithResponse call
+func ParseGetV1TaskResponse(rsp *http.Response) (*GetV1TaskResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &DeleteRbacUserResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest GenericBadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest GenericNotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
-		var dest GenericTooLarge
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON413 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetRbacUserResponse parses an HTTP response from a GetRbacUserWithResponse call
-func ParseGetRbacUserResponse(rsp *http.Response) (*GetRbacUserResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetRbacUserResponse{
+	response := &GetV1TaskResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []string
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest GenericBadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest GenericNotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
-		var dest GenericTooLarge
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON413 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParsePostRbacUserResponse parses an HTTP response from a PostRbacUserWithResponse call
-func ParsePostRbacUserResponse(rsp *http.Response) (*PostRbacUserResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &PostRbacUserResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest GenericBadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest GenericNotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
-		var dest GenericTooLarge
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON413 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetTasksListResponse parses an HTTP response from a GetTasksListWithResponse call
-func ParseGetTasksListResponse(rsp *http.Response) (*GetTasksListResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetTasksListResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []TaskState
+		var dest []Task
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -5761,22 +5781,62 @@ func ParseGetTasksListResponse(rsp *http.Response) (*GetTasksListResponse, error
 	return response, nil
 }
 
-// ParseGetTasksTaskResponse parses an HTTP response from a GetTasksTaskWithResponse call
-func ParseGetTasksTaskResponse(rsp *http.Response) (*GetTasksTaskResponse, error) {
+// ParsePostV1TaskResponse parses an HTTP response from a PostV1TaskWithResponse call
+func ParsePostV1TaskResponse(rsp *http.Response) (*PostV1TaskResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &GetTasksTaskResponse{
+	response := &PostV1TaskResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Task
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest GenericBadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest GenericTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetV1TaskIdResponse parses an HTTP response from a GetV1TaskIdWithResponse call
+func ParseGetV1TaskIdResponse(rsp *http.Response) (*GetV1TaskIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetV1TaskIdResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest TaskState
+		var dest Task
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -5801,15 +5861,55 @@ func ParseGetTasksTaskResponse(rsp *http.Response) (*GetTasksTaskResponse, error
 	return response, nil
 }
 
-// ParseGetUsersListResponse parses an HTTP response from a GetUsersListWithResponse call
-func ParseGetUsersListResponse(rsp *http.Response) (*GetUsersListResponse, error) {
+// ParseGetV1TaskIdLogsResponse parses an HTTP response from a GetV1TaskIdLogsWithResponse call
+func ParseGetV1TaskIdLogsResponse(rsp *http.Response) (*GetV1TaskIdLogsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &GetUsersListResponse{
+	response := &GetV1TaskIdLogsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []TaskLog
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest GenericBadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest GenericNotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetV1UserResponse parses an HTTP response from a GetV1UserWithResponse call
+func ParseGetV1UserResponse(rsp *http.Response) (*GetV1UserResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetV1UserResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -5822,6 +5922,13 @@ func ParseGetUsersListResponse(rsp *http.Response) (*GetUsersListResponse, error
 		}
 		response.JSON200 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest GenericBadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
 		var dest GenericTooLarge
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -5834,15 +5941,15 @@ func ParseGetUsersListResponse(rsp *http.Response) (*GetUsersListResponse, error
 	return response, nil
 }
 
-// ParseDeleteUsersMeResponse parses an HTTP response from a DeleteUsersMeWithResponse call
-func ParseDeleteUsersMeResponse(rsp *http.Response) (*DeleteUsersMeResponse, error) {
+// ParseDeleteV1UserMeResponse parses an HTTP response from a DeleteV1UserMeWithResponse call
+func ParseDeleteV1UserMeResponse(rsp *http.Response) (*DeleteV1UserMeResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &DeleteUsersMeResponse{
+	response := &DeleteV1UserMeResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -5867,15 +5974,15 @@ func ParseDeleteUsersMeResponse(rsp *http.Response) (*DeleteUsersMeResponse, err
 	return response, nil
 }
 
-// ParseGetUsersMeResponse parses an HTTP response from a GetUsersMeWithResponse call
-func ParseGetUsersMeResponse(rsp *http.Response) (*GetUsersMeResponse, error) {
+// ParseGetV1UserMeResponse parses an HTTP response from a GetV1UserMeWithResponse call
+func ParseGetV1UserMeResponse(rsp *http.Response) (*GetV1UserMeResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &GetUsersMeResponse{
+	response := &GetV1UserMeResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -5900,15 +6007,15 @@ func ParseGetUsersMeResponse(rsp *http.Response) (*GetUsersMeResponse, error) {
 	return response, nil
 }
 
-// ParsePatchUsersMeResponse parses an HTTP response from a PatchUsersMeWithResponse call
-func ParsePatchUsersMeResponse(rsp *http.Response) (*PatchUsersMeResponse, error) {
+// ParsePatchV1UserMeResponse parses an HTTP response from a PatchV1UserMeWithResponse call
+func ParsePatchV1UserMeResponse(rsp *http.Response) (*PatchV1UserMeResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &PatchUsersMeResponse{
+	response := &PatchV1UserMeResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -5947,15 +6054,15 @@ func ParsePatchUsersMeResponse(rsp *http.Response) (*PatchUsersMeResponse, error
 	return response, nil
 }
 
-// ParseDeleteUsersUserResponse parses an HTTP response from a DeleteUsersUserWithResponse call
-func ParseDeleteUsersUserResponse(rsp *http.Response) (*DeleteUsersUserResponse, error) {
+// ParseDeleteV1UserUsernameResponse parses an HTTP response from a DeleteV1UserUsernameWithResponse call
+func ParseDeleteV1UserUsernameResponse(rsp *http.Response) (*DeleteV1UserUsernameResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &DeleteUsersUserResponse{
+	response := &DeleteV1UserUsernameResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -5994,15 +6101,15 @@ func ParseDeleteUsersUserResponse(rsp *http.Response) (*DeleteUsersUserResponse,
 	return response, nil
 }
 
-// ParseGetUsersUserResponse parses an HTTP response from a GetUsersUserWithResponse call
-func ParseGetUsersUserResponse(rsp *http.Response) (*GetUsersUserResponse, error) {
+// ParseGetV1UserUsernameResponse parses an HTTP response from a GetV1UserUsernameWithResponse call
+func ParseGetV1UserUsernameResponse(rsp *http.Response) (*GetV1UserUsernameResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &GetUsersUserResponse{
+	response := &GetV1UserUsernameResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -6041,15 +6148,15 @@ func ParseGetUsersUserResponse(rsp *http.Response) (*GetUsersUserResponse, error
 	return response, nil
 }
 
-// ParseHeadUsersUserResponse parses an HTTP response from a HeadUsersUserWithResponse call
-func ParseHeadUsersUserResponse(rsp *http.Response) (*HeadUsersUserResponse, error) {
+// ParseHeadV1UserUsernameResponse parses an HTTP response from a HeadV1UserUsernameWithResponse call
+func ParseHeadV1UserUsernameResponse(rsp *http.Response) (*HeadV1UserUsernameResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &HeadUsersUserResponse{
+	response := &HeadV1UserUsernameResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -6067,15 +6174,15 @@ func ParseHeadUsersUserResponse(rsp *http.Response) (*HeadUsersUserResponse, err
 	return response, nil
 }
 
-// ParsePatchUsersUserResponse parses an HTTP response from a PatchUsersUserWithResponse call
-func ParsePatchUsersUserResponse(rsp *http.Response) (*PatchUsersUserResponse, error) {
+// ParsePatchV1UserUsernameResponse parses an HTTP response from a PatchV1UserUsernameWithResponse call
+func ParsePatchV1UserUsernameResponse(rsp *http.Response) (*PatchV1UserUsernameResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &PatchUsersUserResponse{
+	response := &PatchV1UserUsernameResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -6121,15 +6228,15 @@ func ParsePatchUsersUserResponse(rsp *http.Response) (*PatchUsersUserResponse, e
 	return response, nil
 }
 
-// ParsePostUsersUserResponse parses an HTTP response from a PostUsersUserWithResponse call
-func ParsePostUsersUserResponse(rsp *http.Response) (*PostUsersUserResponse, error) {
+// ParsePutV1UserUsernameResponse parses an HTTP response from a PutV1UserUsernameWithResponse call
+func ParsePutV1UserUsernameResponse(rsp *http.Response) (*PutV1UserUsernameResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &PostUsersUserResponse{
+	response := &PutV1UserUsernameResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}

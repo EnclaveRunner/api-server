@@ -10,54 +10,74 @@ tags:
     description: Operations related to role-based access control.
   - name: Artifacts
     description: Operations related to artifacts management.
-  - name: Manifests
-    description: Operations related to manifests management.
   - name: Tasks
     description: Operations related to task management.
 paths:
-  /users/user:
+  /v1/user:
     get:
-      summary: Get User Information
-      description: Retrieve information about a specific user. Either the user ID or name must be provided.
+      summary: List Users
+      description: Retrieve a paginated list of users.
       tags:
         - Users
       parameters:
-        - name: userId
+        - name: limit
           in: query
           required: false
           schema:
-            type: string
-          description: The uuid of the user to retrieve.
+            type: integer
+            minimum: 1
+          description: Maximum number of users to return.
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          description: Offset into the user list.
         - name: name
           in: query
           required: false
           schema:
             type: string
-          description: The name of the user to retrieve.
+          description: Filter by exact username.
+        - name: display-name
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by display name.
       responses:
         "200":
-          description: Successful response with user information.
+          description: Successful response with a list of users.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserResponse"
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserResponse"
         "400":
           $ref: "#/components/responses/GenericBadRequest"
         "401":
           $ref: "#/components/responses/GenericUnauthenticated"
         "403":
           $ref: "#/components/responses/GenericForbidden"
-        "404":
-          $ref: "#/components/responses/GenericNotFound"
         "413":
           $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
         - BasicAuth: []
-    head:
-      summary: Check User Existence
-      description: Check if a specific user exists.
+  /v1/user/{username}:
+    parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Unique name of the user.
+    put:
+      summary: Create User
+      description: Create a new user with the provided username.
       tags:
         - Users
       requestBody:
@@ -65,35 +85,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UserRequest"
-      responses:
-        "200":
-          description: User exists.
-        "404":
-          description: User does not exist.
-        "400":
-          description: Bad request.
-        "401":
-          description: Unauthorized.
-        "403":
-          description: Forbidden.
-        "413":
-          $ref: "#/components/responses/GenericTooLarge"
-        "500":
-          description: Internal server error.
-      security:
-        - BasicAuth: []
-    post:
-      summary: Create New User
-      description: Create a new user.
-      tags:
-        - Users
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateUser"
+              $ref: "#/components/schemas/PutUserRequest"
       responses:
         "201":
           description: User created successfully.
@@ -119,8 +111,56 @@ paths:
           $ref: "#/components/responses/GenericInternalServerError"
       security:
         - BasicAuth: []
+    get:
+      summary: Get User
+      description: Retrieve information about a specific user by username.
+      tags:
+        - Users
+      responses:
+        "200":
+          description: Successful response with user information.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    head:
+      summary: Check User Existence
+      description: Check if a specific user exists by username.
+      tags:
+        - Users
+      responses:
+        "200":
+          description: User exists.
+        "404":
+          description: User does not exist.
+        "400":
+          description: Bad request.
+        "401":
+          description: Unauthorized.
+        "403":
+          description: Forbidden.
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
+        "500":
+          description: Internal server error.
+      security:
+        - BasicAuth: []
     patch:
-      summary: Update User Information
+      summary: Update User
       description: Update information for an existing user. Only provided fields will be updated.
       tags:
         - Users
@@ -162,12 +202,6 @@ paths:
       description: Delete an existing user.
       tags:
         - Users
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UserRequest"
       responses:
         "200":
           description: User deleted successfully. Returns the deleted user.
@@ -189,34 +223,9 @@ paths:
           $ref: "#/components/responses/GenericInternalServerError"
       security:
         - BasicAuth: []
-  /users/list:
+  /v1/user/me:
     get:
-      summary: List All Users
-      description: Retrieve a list of all users.
-      tags:
-        - Users
-      responses:
-        "200":
-          description: Successful response with a list of users.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/UserResponse"
-        "401":
-          $ref: "#/components/responses/GenericUnauthenticated"
-        "403":
-          $ref: "#/components/responses/GenericForbidden"
-        "413":
-          $ref: "#/components/responses/GenericTooLarge"
-        "500":
-          $ref: "#/components/responses/GenericInternalServerError"
-      security:
-        - BasicAuth: []
-  /users/me:
-    get:
-      summary: Get Current User Information
+      summary: Get Current User
       description: Retrieve information about the currently authenticated user.
       tags:
         - Users
@@ -238,7 +247,7 @@ paths:
       security:
         - BasicAuth: []
     patch:
-      summary: Update Current User Information
+      summary: Update Current User
       description: Update information for the currently authenticated user. Only provided fields will be updated.
       tags:
         - Users
@@ -295,12 +304,33 @@ paths:
           $ref: "#/components/responses/GenericInternalServerError"
       security:
         - BasicAuth: []
-  /rbac/list-roles:
+  /v1/rbac/role:
     get:
       summary: List All Roles
       description: Retrieve a list of all roles in the system.
       tags:
         - RBAC
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          description: Maximum number of policies to return.
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          description: Offset into the policy list.
+        - name: role
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter policies by role.
       responses:
         "200":
           description: Successful response with a list of roles.
@@ -309,7 +339,7 @@ paths:
               schema:
                 type: array
                 items:
-                  type: string
+                  $ref: "#/components/schemas/RoleResource"
         "401":
           $ref: "#/components/responses/GenericUnauthenticated"
         "403":
@@ -320,28 +350,26 @@ paths:
           $ref: "#/components/responses/GenericInternalServerError"
       security:
         - BasicAuth: []
-  /rbac/role:
+  /v1/rbac/role/{role}:
+    parameters:
+      - name: role
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The name of the role.
     get:
       summary: Get assigned users for role
-      description: Retrieve a list of users assigned to a specific role.
+      description: Retrieve a role resource.
       tags:
         - RBAC
-      parameters:
-        - name: role
-          in: query
-          required: true
-          schema:
-            type: string
-          description: The name of the role.
       responses:
         "200":
-          description: Successful response with a list of users assigned to the role.
+          description: Successful response with the role resource.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: string
+                $ref: "#/components/schemas/RoleResource"
         "400":
           $ref: "#/components/responses/GenericBadRequest"
         "401":
@@ -361,12 +389,6 @@ paths:
       description: Check if a specific role exists in the system.
       tags:
         - RBAC
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RBACRole"
       responses:
         "200":
           description: Role exists.
@@ -384,9 +406,9 @@ paths:
           description: Internal server error.
       security:
         - BasicAuth: []
-    post:
-      summary: Create New Role
-      description: Create a new role in the system.
+    put:
+      summary: Create or Replace Role
+      description: Create a new role or replace an existing one at the specified role name.
       tags:
         - RBAC
       requestBody:
@@ -394,10 +416,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RBACRole"
+              $ref: "#/components/schemas/PutRoleRequest"
       responses:
         "201":
           description: Role created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoleResource"
         "400":
           $ref: "#/components/responses/GenericBadRequest"
         "401":
@@ -421,15 +447,13 @@ paths:
       description: Delete role from the system.
       tags:
         - RBAC
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RBACRole"
       responses:
         "200":
           description: Roles deleted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoleResource"
         "400":
           $ref: "#/components/responses/GenericBadRequest"
         "401":
@@ -439,7 +463,7 @@ paths:
         "404":
           $ref: "#/components/responses/GenericNotFound"
         "409":
-          description: "Role is still assigned to users."
+          description: "Tried to delete enclave admin role"
           content:
             application/json:
               schema:
@@ -450,124 +474,33 @@ paths:
           $ref: "#/components/responses/GenericInternalServerError"
       security:
         - BasicAuth: []
-  /rbac/user:
-    get:
-      summary: Get Roles Assigned to User
-      description: Retrieve a list of roles assigned to a specific user.
-      tags:
-        - RBAC
-      parameters:
-        - name: userId
-          in: query
-          required: true
-          schema:
-            type: string
-          description: The uuid of the user.
-      responses:
-        "200":
-          description: Successful response with a list of roles assigned to the user.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: string
-        "400":
-          $ref: "#/components/responses/GenericBadRequest"
-        "401":
-          $ref: "#/components/responses/GenericUnauthenticated"
-        "403":
-          $ref: "#/components/responses/GenericForbidden"
-        "404":
-          $ref: "#/components/responses/GenericNotFound"
-        "413":
-          $ref: "#/components/responses/GenericTooLarge"
-        "500":
-          $ref: "#/components/responses/GenericInternalServerError"
-      security:
-        - BasicAuth: []
-    post:
-      summary: Assign Roles to User
-      description: Assign role to a specific user.
-      tags:
-        - RBAC
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - userId
-                - role
-              properties:
-                userId:
-                  type: string
-                  description: The uuid of the user.
-                role:
-                  type: string
-                  description: The name of the role to assign to the user.
-      responses:
-        "201":
-          description: Role assigned to user successfully or role was already assigned.
-        "400":
-          $ref: "#/components/responses/GenericBadRequest"
-        "401":
-          $ref: "#/components/responses/GenericUnauthenticated"
-        "403":
-          $ref: "#/components/responses/GenericForbidden"
-        "404":
-          $ref: "#/components/responses/GenericNotFound"
-        "413":
-          $ref: "#/components/responses/GenericTooLarge"
-        "500":
-          $ref: "#/components/responses/GenericInternalServerError"
-      security:
-        - BasicAuth: []
-    delete:
-      summary: Remove Role from User
-      description: Remove role from user.
-      tags:
-        - RBAC
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - userId
-                - role
-              properties:
-                userId:
-                  type: string
-                  description: The uuid of the user.
-                role:
-                  type: string
-                  description: The name of the role to remove from the user.
-      responses:
-        "200":
-          description: Role removed from user successfully.
-        "400":
-          $ref: "#/components/responses/GenericBadRequest"
-        "401":
-          $ref: "#/components/responses/GenericUnauthenticated"
-        "403":
-          $ref: "#/components/responses/GenericForbidden"
-        "404":
-          $ref: "#/components/responses/GenericNotFound"
-        "413":
-          $ref: "#/components/responses/GenericTooLarge"
-        "500":
-          $ref: "#/components/responses/GenericInternalServerError"
-      security:
-        - BasicAuth: []
-  /rbac/list-resource-groups:
+  /v1/rbac/resource-group:
     get:
       summary: List All Resource Groups
       description: Retrieve a list of all resource groups in the system.
       tags:
         - RBAC
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          description: Maximum number of policies to return.
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          description: Offset into the policy list.
+        - name: role
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter policies by role.
       responses:
         "200":
           description: Successful response with a list of resource groups.
@@ -576,7 +509,7 @@ paths:
               schema:
                 type: array
                 items:
-                  type: string
+                  $ref: "#/components/schemas/ResourceGroupResource"
         "401":
           $ref: "#/components/responses/GenericUnauthenticated"
         "403":
@@ -587,28 +520,26 @@ paths:
           $ref: "#/components/responses/GenericInternalServerError"
       security:
         - BasicAuth: []
-  /rbac/resource-group:
+  /v1/rbac/resource-group/{resourceGroup}:
+    parameters:
+      - name: resourceGroup
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The name of the resource group.
     get:
       summary: Get Endpoints Assigned to Resource Group
-      description: Retrieve a list of endpoints assigned to a specific resource group.
+      description: Retrieve a resource group resource.
       tags:
         - RBAC
-      parameters:
-        - name: resourceGroup
-          in: query
-          required: true
-          schema:
-            type: string
-          description: The name of the resource group.
       responses:
         "200":
-          description: Successful response with a list of roles assigned to the resource group.
+          description: Successful response with the resource group resource.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: string
+                $ref: "#/components/schemas/ResourceGroupResource"
         "400":
           $ref: "#/components/responses/GenericBadRequest"
         "401":
@@ -628,18 +559,6 @@ paths:
       description: Check if a specific resource group exists in the system.
       tags:
         - RBAC
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - resourceGroup
-              properties:
-                resourceGroup:
-                  type: string
-                  description: The name of the resource group.
       responses:
         "200":
           description: Resource group exists.
@@ -657,9 +576,9 @@ paths:
           description: Internal server error.
       security:
         - BasicAuth: []
-    post:
-      summary: Create New Resource Group
-      description: Create a new resource group.
+    put:
+      summary: Create or Replace Resource Group
+      description: Create a new resource group or replace an existing one at the specified name.
       tags:
         - RBAC
       requestBody:
@@ -667,16 +586,14 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - resourceGroup
-              properties:
-                resourceGroup:
-                  type: string
-                  description: The name of the resource group.
+              $ref: "#/components/schemas/PutResourceGroupRequest"
       responses:
         "201":
           description: Resource group created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceGroupResource"
         "400":
           $ref: "#/components/responses/GenericBadRequest"
         "401":
@@ -700,93 +617,13 @@ paths:
       description: Delete an existing resource group.
       tags:
         - RBAC
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - resourceGroup
-              properties:
-                resourceGroup:
-                  type: string
-                  description: The name of the resource group.
       responses:
         "200":
           description: Resource group deleted successfully.
-        "400":
-          $ref: "#/components/responses/GenericBadRequest"
-        "401":
-          $ref: "#/components/responses/GenericUnauthenticated"
-        "403":
-          $ref: "#/components/responses/GenericForbidden"
-        "404":
-          $ref: "#/components/responses/GenericNotFound"
-        "413":
-          $ref: "#/components/responses/GenericTooLarge"
-        "500":
-          $ref: "#/components/responses/GenericInternalServerError"
-      security:
-        - BasicAuth: []
-  /rbac/endpoint:
-    get:
-      summary: Get Resource Group Assigned to Endpoint
-      description: Retrieve the resource group assigned to a specific endpoint.
-      tags:
-        - RBAC
-      parameters:
-        - name: endpoint
-          in: query
-          required: true
-          schema:
-            type: string
-          description: The endpoint to query.
-      responses:
-        "200":
-          description: Successful response with the resource group assigned to the endpoint. Empty array if endpoint is not assigned to any resource group.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: string
-        "400":
-          $ref: "#/components/responses/GenericBadRequest"
-        "401":
-          $ref: "#/components/responses/GenericUnauthenticated"
-        "403":
-          $ref: "#/components/responses/GenericForbidden"
-        "413":
-          $ref: "#/components/responses/GenericTooLarge"
-        "500":
-          $ref: "#/components/responses/GenericInternalServerError"
-      security:
-        - BasicAuth: []
-    post:
-      summary: Assign Endpoint to Resource Group
-      description: Assign an endpoint to a specific resource group.
-      tags:
-        - RBAC
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - resourceGroup
-                - endpoint
-              properties:
-                resourceGroup:
-                  type: string
-                  description: The name of the resource group.
-                endpoint:
-                  type: string
-                  description: The endpoint to assign to the resource group.
-      responses:
-        "201":
-          description: Endpoint assigned to resource group successfully or was already assigned.
+                $ref: "#/components/schemas/ResourceGroupResource"
         "400":
           $ref: "#/components/responses/GenericBadRequest"
         "401":
@@ -801,50 +638,45 @@ paths:
           $ref: "#/components/responses/GenericInternalServerError"
       security:
         - BasicAuth: []
-    delete:
-      summary: Remove Endpoint from Resource Group
-      description: Remove an endpoint from its assigned resource group.
-      tags:
-        - RBAC
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - endpoint
-                - resourceGroup
-              properties:
-                endpoint:
-                  type: string
-                  description: The endpoint to remove from its resource group.
-                resourceGroup:
-                  type: string
-                  description: The name of the resource group.
-      responses:
-        "200":
-          description: Endpoint removed from resource group successfully.
-        "400":
-          $ref: "#/components/responses/GenericBadRequest"
-        "401":
-          $ref: "#/components/responses/GenericUnauthenticated"
-        "403":
-          $ref: "#/components/responses/GenericForbidden"
-        "404":
-          $ref: "#/components/responses/GenericNotFound"
-        "413":
-          $ref: "#/components/responses/GenericTooLarge"
-        "500":
-          $ref: "#/components/responses/GenericInternalServerError"
-      security:
-        - BasicAuth: []
-  /rbac/policy:
+  /v1/rbac/policy:
     get:
-      summary: List All RBAC Policies
-      description: Retrieve a list of all role-based access control (RBAC) policies.
+      summary: List RBAC Policies
+      description: Retrieve a list of role-based access control (RBAC) policies.
       tags:
         - RBAC
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          description: Maximum number of policies to return.
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          description: Offset into the policy list.
+        - name: role
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter policies by role.
+        - name: resource-group
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter policies by resource group.
+        - name: method
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter policies by HTTP method.
       responses:
         "200":
           description: Successful response with a list of RBAC policies.
@@ -864,9 +696,9 @@ paths:
           $ref: "#/components/responses/GenericInternalServerError"
       security:
         - BasicAuth: []
-    post:
-      summary: Create New RBAC Policy
-      description: Create a new role-based access control (RBAC) policy.
+    put:
+      summary: Create or Replace RBAC Policy
+      description: Create a new role-based access control (RBAC) policy or replace an existing one for the provided tuple.
       tags:
         - RBAC
       requestBody:
@@ -894,7 +726,7 @@ paths:
         - BasicAuth: []
     delete:
       summary: Delete RBAC Policy
-      description: Delete an existing role-based access control (RBAC) policy, if it existed.
+      description: Delete an existing role-based access control (RBAC) policy for the provided tuple, if it existed.
       tags:
         - RBAC
       requestBody:
@@ -912,168 +744,296 @@ paths:
           $ref: "#/components/responses/GenericUnauthenticated"
         "403":
           $ref: "#/components/responses/GenericForbidden"
-        "413":
-          $ref: "#/components/responses/GenericTooLarge"
-        "500":
-          $ref: "#/components/responses/GenericInternalServerError"
-      security:
-        - BasicAuth: []
-  /artifact:
-    head:
-      summary: Check Artifact Existence
-      description: Check if a specific artifact exists based on its package name.
-      tags:
-        - Artifacts
-      parameters:
-        - name: namespace
-          in: query
-          required: true
-          schema:
-            type: string
-          description: The namespace of the artifact.
-        - name: name
-          in: query
-          required: true
-          schema:
-            type: string
-          description: The name of the artifact.
-        - name: identifier
-          in: query
-          required: true
-          schema:
-            type: string
-          description: Either the version hash or tag of the artifact.
-      responses:
-        "200":
-          description: Artifact exists.
-        "404":
-          description: Artifact does not exist.
-        "400":
-          description: Bad request.
-        "401":
-          description: Unauthorized.
-        "403":
-          description: Forbidden.
-        "413":
-          $ref: "#/components/responses/GenericTooLarge"
-        "500":
-          description: Internal server error.
-      security:
-        - BasicAuth: []
-    get:
-      summary: Retrieve Artifact Metadata
-      description: Retrieve metadata for a specific artifact based on its package name.
-      tags:
-        - Artifacts
-      parameters:
-        - name: namespace
-          in: query
-          required: true
-          schema:
-            type: string
-          description: The namespace of the artifact.
-        - name: name
-          in: query
-          required: true
-          schema:
-            type: string
-          description: The name of the artifact.
-        - name: identifier
-          in: query
-          required: true
-          schema:
-            type: string
-          description: Either the version hash or tag of the artifact.
-      responses:
-        "200":
-          description: Successful response with artifact metadata.
+        "409":
+          description: "Tried to delete enclave admin policy"
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Artifact"
-        "400":
-          $ref: "#/components/responses/GenericBadRequest"
-        "401":
-          $ref: "#/components/responses/GenericUnauthenticated"
-        "403":
-          $ref: "#/components/responses/GenericForbidden"
-        "404":
-          $ref: "#/components/responses/GenericNotFound"
+                $ref: "#/components/schemas/ErrGeneric"
         "413":
           $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
         - BasicAuth: []
-    delete:
-      summary: Delete Artifact
-      description: Delete a specific artifact based on its package name.
-      tags:
-        - Artifacts
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - package
-                - identifier
-              properties:
-                package:
-                  $ref: "#/components/schemas/PackageName"
-                identifier:
-                  type: string
-                  description: Either the version hash or tag of the artifact.
-      responses:
-        "200":
-          description: Artifact deleted successfully. Returns the deleted artifact metadata.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Artifact"
-        "400":
-          $ref: "#/components/responses/GenericBadRequest"
-        "401":
-          $ref: "#/components/responses/GenericUnauthenticated"
-        "403":
-          $ref: "#/components/responses/GenericForbidden"
-        "404":
-          $ref: "#/components/responses/GenericNotFound"
-        "413":
-          $ref: "#/components/responses/GenericTooLarge"
-        "500":
-          $ref: "#/components/responses/GenericInternalServerError"
-      security:
-        - BasicAuth: []
-  /artifact/tag:
+  /v1/artifact/raw/{namespace}/{name}:
     post:
-      summary: Tag Artifact Version
-      description: Assign a new tag to a specific version of an artifact. If the tag is assigned to a different version already, it will be moved to the new version.
+      summary: Upload Artifact
+      description: Upload raw artifact content for a package; returns the created version hash.
       tags:
         - Artifacts
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Artifact namespace.
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Artifact name.
       requestBody:
         required: true
         content:
-          application/json:
+          application/octet-stream:
             schema:
-              type: object
-              required:
-                - package
-                - versionHash
-                - newTag
-              properties:
-                package:
-                  $ref: "#/components/schemas/PackageName"
-                versionHash:
-                  type: string
-                  description: The version hash of the artifact to tag.
-                newTag:
-                  type: string
-                  description: The new tag to assign to the artifact version.
+              type: string
+              format: binary
       responses:
         "201":
-          description: Tag assigned to artifact version successfully.
+          description: Artifact uploaded successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadArtifactResponse"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "409":
+          description: Artifact already exists at the provided tag or hash.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrGeneric"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+  /v1/artifact:
+    get:
+      summary: List Artifact Namespaces
+      description: Retrieve a paginated list of artifact namespaces.
+      tags:
+        - Artifacts
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          description: Maximum number of namespaces to return.
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          description: Offset into the namespace list.
+      responses:
+        "200":
+          description: Artifact namespace list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Artifact"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+  /v1/artifact/{namespace}:
+    get:
+      summary: List Artifacts in Namespace
+      description: Retrieve a paginated list of artifacts for a namespace.
+      tags:
+        - Artifacts
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Artifact namespace.
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          description: Maximum number of artifacts to return.
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          description: Offset into the artifact list.
+      responses:
+        "200":
+          description: Artifact list for namespace.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Artifact"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+  /v1/artifact/{namespace}/{name}:
+    get:
+      summary: List Artifact Versions
+      description: Retrieve a paginated list of versions for an artifact.
+      tags:
+        - Artifacts
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Artifact namespace.
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Artifact name.
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          description: Maximum number of versions to return.
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          description: Offset into the version list.
+      responses:
+        "200":
+          description: Artifact version list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Artifact"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+  /v1/artifact/{namespace}/{name}/tag/{tag}:
+    get:
+      summary: Retrieve Artifact Metadata by Tag
+      description: Retrieve metadata for a specific artifact version by tag.
+      tags:
+        - Artifacts
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Artifact namespace.
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Artifact name.
+        - name: tag
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Tag pointing to the desired version.
+      responses:
+        "200":
+          description: Artifact metadata.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artifact"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    patch:
+      summary: Patch Artifact Metadata by Tag
+      description: Patch artifact metadata for the referenced version. Only tags can be patched; provided fields are merged.
+      tags:
+        - Artifacts
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Artifact namespace.
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Artifact name.
+        - name: tag
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Tag pointing to the desired version.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchArtifact"
+      responses:
+        "200":
+          description: Artifact metadata updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artifact"
         "400":
           $ref: "#/components/responses/GenericBadRequest"
         "401":
@@ -1089,32 +1049,36 @@ paths:
       security:
         - BasicAuth: []
     delete:
+      summary: Delete Artifact by Tag
+      description: Delete the artifact version referenced by tag.
       tags:
         - Artifacts
-      summary: Remove Tag from Artifact
-      description: Remove a tag from an artifact.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - package
-                - versionHash
-                - tag
-              properties:
-                package:
-                  $ref: "#/components/schemas/PackageName"
-                versionHash:
-                  type: string
-                  description: The version hash of the artifact to untag.
-                tag:
-                  type: string
-                  description: The tag to remove from the artifact.
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Artifact namespace.
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Artifact name.
+        - name: tag
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Tag pointing to the desired version.
       responses:
         "200":
-          description: Tag removed from artifact successfully.
+          description: Artifact deleted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artifact"
         "400":
           $ref: "#/components/responses/GenericBadRequest"
         "401":
@@ -1129,34 +1093,176 @@ paths:
           $ref: "#/components/responses/GenericInternalServerError"
       security:
         - BasicAuth: []
-  /artifact/upload:
+  /v1/artifact/{namespace}/{name}/hash/{hash}:
     get:
-      summary: Download Artifact
-      description: Download the artifact file based on its package name and identifier.
+      summary: Retrieve Artifact Metadata by Hash
+      description: Retrieve metadata for a specific artifact version by hash.
       tags:
         - Artifacts
       parameters:
         - name: namespace
-          in: query
+          in: path
           required: true
           schema:
             type: string
-          description: The namespace of the artifact.
+          description: Artifact namespace.
         - name: name
-          in: query
+          in: path
           required: true
           schema:
             type: string
-          description: The name of the artifact.
-        - name: identifier
-          in: query
+          description: Artifact name.
+        - name: hash
+          in: path
           required: true
           schema:
             type: string
-          description: Either the version hash or tag of the artifact.
+          description: Version hash of the artifact.
       responses:
         "200":
-          description: Successful response with artifact file.
+          description: Artifact metadata.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artifact"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    patch:
+      summary: Patch Artifact Metadata by Hash
+      description: Patch artifact metadata for the referenced version. Only tags can be patched; provided fields are merged.
+      tags:
+        - Artifacts
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Artifact namespace.
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Artifact name.
+        - name: hash
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Version hash of the artifact.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchArtifact"
+      responses:
+        "200":
+          description: Artifact metadata updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artifact"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+    delete:
+      summary: Delete Artifact by Hash
+      description: Delete the artifact version referenced by hash.
+      tags:
+        - Artifacts
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Artifact namespace.
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Artifact name.
+        - name: hash
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Version hash of the artifact.
+      responses:
+        "200":
+          description: Artifact deleted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artifact"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+  /v1/artifact/raw/{namespace}/{name}/tag/{tag}:
+    get:
+      summary: Download Artifact by Tag
+      description: Download raw artifact content for a version referenced by tag.
+      tags:
+        - Artifacts
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Artifact namespace.
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Artifact name.
+        - name: tag
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Tag pointing to the desired version.
+      responses:
+        "200":
+          description: Artifact content.
           content:
             application/octet-stream:
               schema:
@@ -1176,141 +1282,78 @@ paths:
           $ref: "#/components/responses/GenericInternalServerError"
       security:
         - BasicAuth: []
-    post:
-      summary: Upload Artifact
-      description: Upload a new artifact with its metadata and file content.
-      tags:
-        - Artifacts
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required:
-                - namespace
-                - name
-                - file
-              properties:
-                namespace:
-                  type: string
-                  description: The namespace of the artifact.
-                name:
-                  type: string
-                  description: The name of the artifact.
-                tag:
-                  type: array
-                  description: Tags to assign to the artifact.
-                  items:
-                    type: string
-                file:
-                  type: string
-                  format: binary
-                  description: The artifact file to upload.
-      responses:
-        "201":
-          description: Artifact uploaded successfully.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Artifact"
-        "400":
-          $ref: "#/components/responses/GenericBadRequest"
-        "401":
-          $ref: "#/components/responses/GenericUnauthenticated"
-        "403":
-          $ref: "#/components/responses/GenericForbidden"
-        "409":
-          description: "Artifact already exists."
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrGeneric"
-        "413":
-          $ref: "#/components/responses/GenericTooLarge"
-        "500":
-          $ref: "#/components/responses/GenericInternalServerError"
-      security:
-        - BasicAuth: []
-  /artifact/list:
+  /v1/artifact/raw/{namespace}/{name}/hash/{hash}:
     get:
-      summary: Query Artifact Metadata
-      description: Retrieve metadata for one or more artifacts based on provided query parameters.
+      summary: Download Artifact by Hash
+      description: Download raw artifact content for a version referenced by hash.
       tags:
         - Artifacts
       parameters:
         - name: namespace
-          in: query
-          required: false
+          in: path
+          required: true
           schema:
             type: string
-          description: The namespace of the artifact.
+          description: Artifact namespace.
         - name: name
-          in: query
-          required: false
+          in: path
+          required: true
           schema:
             type: string
-          description: The name of the artifact.
+          description: Artifact name.
+        - name: hash
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Version hash of the artifact.
       responses:
         "200":
-          description: Successful response with a list of artifact metadata.
+          description: Artifact content.
           content:
-            application/json:
+            application/octet-stream:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Artifact"
+                type: string
+                format: binary
         "400":
           $ref: "#/components/responses/GenericBadRequest"
         "401":
           $ref: "#/components/responses/GenericUnauthenticated"
         "403":
           $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
         "413":
           $ref: "#/components/responses/GenericTooLarge"
         "500":
           $ref: "#/components/responses/GenericInternalServerError"
       security:
         - BasicAuth: []
-  /manifest:
-    post:
-      summary: Create Manifest
-      description: Create a new manifest from YAML manifest data.
-      tags:
-        - Manifests
-      requestBody:
-        required: true
-        content:
-          text/yaml: {}
-      responses:
-        "201":
-          description: Manifest created successfully. Returns the resource id
-          content:
-            text/plain:
-              schema:
-                type: string
-        "400":
-          $ref: "#/components/responses/GenericBadRequest"
-        "401":
-          $ref: "#/components/responses/GenericUnauthenticated"
-        "403":
-          $ref: "#/components/responses/GenericForbidden"
-        "409":
-          description: "A manifest with the given name already exists."
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrGeneric"
-        "500":
-          $ref: "#/components/responses/GenericInternalServerError"
-      security:
-        - BasicAuth: []
-  /tasks/list:
+  /v1/task:
     get:
-      summary: Get Task list
-      description: Retrieve a list of all tasks not including task logs.
+      summary: List Tasks
+      description: Retrieve tasks with optional filters and pagination.
       tags:
         - Tasks
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Maximum number of tasks to return.
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Offset for pagination.
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter tasks by state (e.g., ACTIVE).
       responses:
         "200":
           description: Successful response with task list.
@@ -1319,7 +1362,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/TaskState"
+                  $ref: "#/components/schemas/Task"
         "400":
           $ref: "#/components/responses/GenericBadRequest"
         "401":
@@ -1330,26 +1373,116 @@ paths:
           $ref: "#/components/responses/GenericInternalServerError"
       security:
         - BasicAuth: []
-  /tasks/task:
+    post:
+      summary: Create Task
+      description: Create a new task.
+      tags:
+        - Tasks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskRequest"
+      responses:
+        "201":
+          description: Task created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "413":
+          $ref: "#/components/responses/GenericTooLarge"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+  /v1/task/{id}:
     get:
-      summary: Get Single Task
-      description: Retrieve information about a specific task by ID containing its logs.
+      summary: Get Task
+      description: Retrieve information about a specific task by ID.
       tags:
         - Tasks
       parameters:
         - name: id
-          in: query
+          in: path
           required: true
           schema:
             type: string
-          description: The unique identifier for the task to retrieve.
+          description: Unique identifier of the task to retrieve.
       responses:
         "200":
-          description: Successful response with task information.
+          description: Task details.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TaskState"
+                $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/GenericBadRequest"
+        "401":
+          $ref: "#/components/responses/GenericUnauthenticated"
+        "403":
+          $ref: "#/components/responses/GenericForbidden"
+        "404":
+          $ref: "#/components/responses/GenericNotFound"
+        "500":
+          $ref: "#/components/responses/GenericInternalServerError"
+      security:
+        - BasicAuth: []
+  /v1/task/{id}/logs:
+    get:
+      summary: Get Task Logs
+      description: Retrieve task logs sorted from newest to oldest.
+      tags:
+        - Tasks
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the task to retrieve logs for.
+        - name: level
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter logs by level.
+        - name: issuer
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter logs by issuer.
+        - name: time-range-from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Start of the time range filter. Must be used with time-range-to and be more recent.
+        - name: time-range-to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: End of the time range filter. Must be used with time-range-from and be less recent.
+      responses:
+        "200":
+          description: Task logs.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaskLog"
         "400":
           $ref: "#/components/responses/GenericBadRequest"
         "401":
@@ -1364,56 +1497,108 @@ paths:
         - BasicAuth: []
 components:
   schemas:
-    TaskState:
+    CreateTaskRequest:
+      type: object
+      required:
+        - source
+      properties:
+        source:
+          type: string
+          description: Task source in the form namespace:name/interface/function@<hash|tag>.
+        params:
+          type: array
+          description: Parameters passed to the task.
+          items: {}
+        args:
+          type: array
+          description: Argument list used to invoke the task.
+          items:
+            type: string
+        env:
+          type: array
+          description: Environment variables supplied to the task.
+          items:
+            $ref: "#/components/schemas/EnvironmentVariable"
+        callback:
+          type: string
+          format: uri
+          description: Callback URL invoked on task completion.
+        retention:
+          type: string
+          description: Duration to retain the task after completion.
+        retries:
+          type: integer
+          description: Maximum number of retries before the task is moved to state archived
+    Task:
       type: object
       required:
         - id
-        - retries
-        - max_retries
-        - state
-        - retention
+        - source
+        - status
       properties:
         id:
           type: string
-          description: The unique identifier for the task.
-          example: "98aw7cfz"
-        retries:
-          type: integer
-          description: The current number of retries.
-          example: 0
-        max_retries:
-          type: integer
-          description: The maximum number of retries allowed.
-          example: 3
-        state:
+          description: Unique identifier for the task.
+        source:
           type: string
-          description: The current status of the task. See https://github.com/hibiken/asynq/wiki/Life-of-a-Task
-          example: "ACTIVE"
-        result_payload:
+          description: Task source in the form namespace:name/interface/function@<hash|tag>.
+        params:
+          type: array
+          description: Parameters passed to the task.
+          items: {}
+        args:
+          type: array
+          description: Argument list used to invoke the task.
+          items:
+            type: string
+        env:
+          type: array
+          description: Environment variables supplied to the task.
+          items:
+            $ref: "#/components/schemas/EnvironmentVariable"
+        callback:
           type: string
-          description: The result payload of the task.
-        last_error:
-          type: string
-          description: The error message from the last failure
-        last_failed_at:
-          type: string
-          description: Time of the last failure. RFC 3339 format.
-          example: "2023-09-24T15:30:00Z"
-        next_process_at:
-          type: string
-          description: Time the task will be scheduled to be processed. RFC 3339 format.
-          example: "2023-09-24T15:30:00Z"
+          format: uri
+          description: Callback URL invoked on task completion.
         retention:
           type: string
-          description: Duration the task will be retained after succeeding. Golang duration string.
-          example: 5h3m2s
+          description: Duration to retain the task after completion.
+        retries:
+          type: integer
+          description: Maximum number of retries before the task is moved to state archived
+        status:
+          $ref: "#/components/schemas/TaskStatus"
+    TaskStatus:
+      type: object
+      required:
+        - retries
+        - max_retries
+        - state
+      properties:
+        retries:
+          type: integer
+          description: Current retry count.
+        state:
+          type: string
+          description: Current status of the task.
+        result_payload:
+          type: string
+          description: Result payload of the task.
+        last_error:
+          type: string
+          description: Error message from the last failure.
+        last_failed_at:
+          type: string
+          format: date-time
+          description: Time of the last failure.
+        next_process_at:
+          type: string
+          format: date-time
+          description: Time the task is scheduled for processing next.
         completed_at:
           type: string
-          description: Time the task successfully finished processing.
-        logs:
-          type: array
-          items:
-            $ref: "#/components/schemas/TaskLog"
+          format: date-time
+          description: Time the task finished processing.
     TaskLog:
       type: object
       required:
@@ -1424,16 +1609,29 @@ components:
       properties:
         timestamp:
           type: string
-          description: The time the log entry was created. RFC 3339 format.
+          format: date-time
+          description: Time the log entry was created.
         level:
           type: string
-          description: The log level (DEBUG, INFO, WARN, ERROR, FATAL).
+          description: Log level (e.g., debug, info, warn, error, fatal).
         issuer:
           type: string
-          description: The component that issued the log entry (SYSTEM, ARTIFACT).
+          description: Component that issued the log entry.
         message:
           type: string
-          description: The log message content.
+          description: Log message content.
+    EnvironmentVariable:
+      type: object
+      required:
+        - key
+        - value
+      properties:
+        key:
+          type: string
+          description: Environment variable name.
+        value:
+          type: string
+          description: Environment variable value.
     ErrGeneric:
       type: object
       required:
@@ -1456,94 +1654,71 @@ components:
     UserResponse:
       type: object
       required:
-        - id
         - name
         - displayName
       properties:
-        id:
-          type: string
-          description: The uuid of the user.
         name:
           type: string
           description: The name of the user.
         displayName:
           type: string
           description: The display name of the user.
-    UserRequest:
+        roles:
+          type: array
+          description: Roles assigned to the user.
+          items:
+            type: string
+    PutUserRequest:
       type: object
       required:
-        - id
-      properties:
-        id:
-          type: string
-          description: The uuid of the user to retrieve.
-    CreateUser:
-      type: object
-      required:
-        - name
         - password
         - displayName
       properties:
-        name:
-          type: string
-          description: The name of the user to create.
         password:
           type: string
           description: The password for the new user.
         displayName:
           type: string
           description: The display name for the new user.
+        roles:
+          type: array
+          description: Roles assigned to the new user.
+          items:
+            type: string
     PatchUser:
       type: object
-      required:
-        - id
       properties:
-        id:
+        password:
           type: string
-          description: The uuid of the user to update.
-        newName:
+          description: The password for the user.
+        displayName:
           type: string
-          description: The new name for the user.
-        newPassword:
-          type: string
-          description: The new password for the user.
-        newDisplayName:
-          type: string
-          description: The new display name for the user.
+          description: The display name for the user.
+        roles:
+          type: array
+          description: Roles assigned to the user.
+          items:
+            type: string
     PatchMe:
       type: object
       properties:
-        newName:
+        password:
           type: string
-          description: The new name for the current user.
-        newPassword:
+          description: The password for the current user.
+        displayName:
           type: string
-          description: The new password for the current user.
-        newDisplayName:
-          type: string
-          description: The new display name for the current user.
-    RBACRole:
-      type: object
-      required:
-        - role
-      properties:
-        role:
-          type: string
-          description: The name of the role.
-    RBACUserRolesRequest:
-      type: object
-      required:
-        - userId
-      properties:
-        userId:
-          type: string
-          description: The uuid of the user.
+          description: The display name for the current user.
+        roles:
+          type: array
+          description: Roles assigned to the current user.
+          items:
+            type: string
     RBACPolicy:
       type: object
       required:
-        - role
         - resourceGroup
-        - permission
+        - role
+        - method
       properties:
         role:
           type: string
@@ -1551,56 +1726,113 @@ components:
         resourceGroup:
           type: string
           description: The name of the resource group. (or "*" for all resource groups)
-        permission:
+        method:
           type: string
           enum:
             - GET
             - POST
+            - PUT
             - PATCH
             - DELETE
             - HEAD
             - "*"
-          description: The allowed permission (e.g., "GET", "POST", "*").
-    PackageName:
+          description: The allowed HTTP method (e.g., "GET", "POST", "*").
+    RoleResource:
       type: object
-      description: Package name of an artifact.
+      required:
+        - name
+        - users
+      properties:
+        name:
+          type: string
+          description: The role name.
+        users:
+          type: array
+          description: Usernames assigned to this role.
+          items:
+            type: string
+    PutRoleRequest:
+      type: object
+      required:
+        - users
+      properties:
+        users:
+          type: array
+          description: Usernames assigned to this role.
+          items:
+            type: string
+    ResourceGroupResource:
+      type: object
+      required:
+        - name
+        - endpoints
+      properties:
+        name:
+          type: string
+          description: The resource group name.
+        endpoints:
+          type: array
+          description: Endpoints assigned to this resource group.
+          items:
+            type: string
+    PutResourceGroupRequest:
+      type: object
+      required:
+        - endpoints
+      properties:
+        endpoints:
+          type: array
+          description: Endpoints assigned to this resource group.
+          items:
+            type: string
+    Artifact:
+      type: object
+      description: Metadata of an artifact version.
       required:
         - namespace
         - name
-      properties:
-        namespace:
-          type: string
-          description: The namespace of the artifact.
-        name:
-          type: string
-          description: The name of the artifact.
-    Artifact:
-      type: object
-      description: Metadata of an artifact.
-      required:
-        - package
         - versionHash
         - createdAt
         - pulls
         - tags
       properties:
-        package:
-          $ref: "#/components/schemas/PackageName"
+        namespace:
+          type: string
+          description: Namespace of the artifact.
+        name:
+          type: string
+          description: Name of the artifact.
         versionHash:
           type: string
-          description: The version hash of the artifact.
+          description: Version hash of the artifact.
         createdAt:
           type: string
           format: date-time
-          description: The creation timestamp of the artifact.
+          description: Creation timestamp of the artifact.
         pulls:
           type: integer
-          description: The number of times the artifact has been pulled.
+          description: Number of times the artifact has been pulled.
         tags:
           type: array
           description: Tags associated with the artifact.
           items:
             type: string
+    PatchArtifact:
+      type: object
+      properties:
+        tags:
+          type: array
+          description: Tags to assign to the artifact version. When set, replaces the existing tags.
+          items:
+            type: string
+    UploadArtifactResponse:
+      type: object
+      required:
+        - versionHash
+      properties:
+        versionHash:
+          type: string
+          description: Created version hash.
   responses:
     GenericBadRequest:
       description: "The request was malformed or invalid."
@@ -1641,3 +1873,4 @@ components:
     BasicAuth:
       type: http
       scheme: basic
+

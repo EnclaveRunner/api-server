@@ -11,8 +11,7 @@ service RegistryService {
   rpc UploadArtifact(stream UploadArtifactRequest) returns (Artifact);
   rpc DeleteArtifact(ArtifactIdentifier) returns (Artifact);
   rpc GetArtifact(ArtifactIdentifier) returns (Artifact);
-  rpc AddTag(AddRemoveTagRequest) returns (Artifact);
-  rpc RemoveTag(AddRemoveTagRequest) returns (Artifact);
+  rpc SetTags(SetTagsRequest) returns (Artifact);
 }
 
 message PackageName {
@@ -65,8 +64,7 @@ message UploadMetadata {
   repeated string tags = 2;
 }
 
-message AddRemoveTagRequest {
-  PackageName package      = 1;
-  string      version_hash = 2;
-  string      tag          = 3;
+message SetTagsRequest {
+  ArtifactIdentifier artifact = 1;
+  repeated string tags = 2;
 }

@@ -5,28 +5,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
-
-func (db *DB) GetUserByID(
-	ctx context.Context,
-	userID uuid.UUID,
-) (*User, error) {
-	user, err := gorm.G[User](db.dbGorm).Where(&User{ID: userID}).
-		First(ctx)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, &NotFoundError{fmt.Sprintf("User with ID %s", userID)}
-		} else {
-			return nil, &DatabaseError{err}
-		}
-	}
-
-	return &user, nil
-}
 
 func (db *DB) GetUserByUsername(
 	ctx context.Context,
@@ -91,7 +73,6 @@ func (db *DB) CreateUser(
 
 		log.Info().
 			Str("username", user.Username).
-			Str("id", user.ID.String()).
 			Msg("Created new user")
 
 		hashedPassword, err := bcrypt.GenerateFromPassword(
@@ -103,7 +84,7 @@ func (db *DB) CreateUser(
 		}
 
 		authRecord := Auth_Basic{
-			UserID:   user.ID,
+			Username: user.Username,
 			Password: hashedPassword,
 		}
 
@@ -123,25 +104,16 @@ func (db *DB) CreateUser(
 
 func (db *DB) PatchUser(
 	ctx context.Context,
-	userID uuid.UUID,
-	newUsername, newPassword, newDisplayName *string,
+	username string,
+	newPassword, newDisplayName *string,
 ) (*User, error) {
-	user, err := db.GetUserByID(ctx, userID)
+	user, err := db.GetUserByUsername(ctx, username)
 	if err != nil {
 		return nil, err
 	}
 
 	err = db.dbGorm.Transaction(func(tx *gorm.DB) error {
 		updated := false
-
-		if newUsername != nil {
-			log.Info().
-				Str("oldUsername", user.Username).
-				Str("newUsername", *newUsername).
-				Msg("Updating username")
-			user.Username = *newUsername
-			updated = true
-		}
 
 		if newDisplayName != nil {
 			log.Info().
@@ -155,19 +127,12 @@ func (db *DB) PatchUser(
 		if updated {
 			err := tx.Save(user).Error
 			if err != nil {
-				if errors.Is(err, gorm.ErrDuplicatedKey) {
-					return &ConflictError{
-						fmt.Sprintf("User with username %s already exists", *newUsername),
-					}
-				}
-
 				return &DatabaseError{err}
 			}
 
 			log.Info().
 				Str("username", user.Username).
 				Str("displayName", user.DisplayName).
-				Str("id", user.ID.String()).
 				Msg("User updated successfully")
 		}
 
@@ -181,7 +146,7 @@ func (db *DB) PatchUser(
 			}
 
 			authRecord := Auth_Basic{
-				UserID:   user.ID,
+				Username: user.Username,
 				Password: hashedPassword,
 			}
 
@@ -200,18 +165,25 @@ func (db *DB) PatchUser(
 	return user, nil
 }
 
-func (db *DB) DeleteUserByID(
+func (db *DB) DeleteUserByUsername(
 	ctx context.Context,
-	userID uuid.UUID,
+	username string,
 ) (*User, error) {
-	user, err := db.GetUserByID(ctx, userID)
+	user, err := db.GetUserByUsername(ctx, username)
 	if err != nil {
 		return nil, err
 	}
 
-	err = db.authModule.RemoveUser(user.ID.String())
+	err = db.authModule.RemoveUser(user.Username)
 	if err != nil {
 		return nil, &GenericError{err}
+	}
+
+	_, err = gorm.G[Auth_Basic](db.dbGorm).
+		Where(&Auth_Basic{Username: user.Username}).
+		Delete(ctx)
+	if err != nil {
+		return nil, &DatabaseError{err}
 	}
 
 	_, err = gorm.G[User](db.dbGorm).Where(user).Delete(ctx)

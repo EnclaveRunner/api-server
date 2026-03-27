@@ -7,15 +7,13 @@ import (
 )
 
 type User struct {
-	ID          uuid.UUID `gorm:"primaryKey;type:uuid;default:gen_random_uuid()" json:"id"`
-	Username    string    `gorm:"unique;not null"                                json:"username"`
-	DisplayName string    `gorm:"not null"                                       json:"displayName"`
+	Username    string `gorm:"primaryKey;not null" json:"username"`
+	DisplayName string `gorm:"not null"            json:"displayName"`
 }
 
 type Auth_Basic struct {
-	User     User      `gorm:"constraint:OnDelete:CASCADE"`
-	UserID   uuid.UUID `gorm:"type:uuid;primaryKey"`
-	Password []byte    `gorm:"not null"`
+	Username string `gorm:"primaryKey;not null"`
+	Password []byte `gorm:"not null"`
 }
 
 type TaskLog struct {

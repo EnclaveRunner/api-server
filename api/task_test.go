@@ -167,119 +167,6 @@ func TestParseSource(t *testing.T) {
 	}
 }
 
-func TestUnmarshalManifest(t *testing.T) {
-	tests := []struct {
-		name        string
-		input       string
-		expected    BaseManifest
-		expectError bool
-	}{
-		{
-			name: "valid manifest YAML",
-			input: `apiVersion: v1
-kind: Blueprint
-metadata:
-  name: test-blueprint
-spec:
-  artifact:
-    source: github.com/user/repo:latest`,
-			expected: BaseManifest{
-				APIVersion: "v1",
-				Kind:       "Blueprint",
-				Metadata:   map[string]any{"name": "test-blueprint"},
-				Spec: map[string]any{
-					"artifact": map[string]any{
-						"source": "github.com/user/repo:latest",
-					},
-				},
-			},
-			expectError: false,
-		},
-		{
-			name: "minimal valid manifest YAML",
-			input: `apiVersion: v1
-kind: Task
-metadata: {}
-spec: {}`,
-			expected: BaseManifest{
-				APIVersion: "v1",
-				Kind:       "Task",
-				Metadata:   map[string]any{},
-				Spec:       map[string]any{},
-			},
-			expectError: false,
-		},
-		{
-			name:        "invalid YAML",
-			input:       `apiVersion: v1\nkind: [invalid yaml structure`,
-			expected:    BaseManifest{},
-			expectError: true,
-		},
-		{
-			name:        "empty string",
-			input:       "",
-			expected:    BaseManifest{},
-			expectError: true,
-		},
-		{
-			name:        "not YAML object",
-			input:       `just a string without structure`,
-			expected:    BaseManifest{},
-			expectError: true,
-		},
-		{
-			name: "complex blueprint YAML",
-			input: `apiVersion: v1
-kind: Blueprint
-metadata:
-  name: my-blueprint
-  namespace: default
-spec:
-  artifact:
-    source: github.com/user/myapp:v1.0.0
-    function: process
-    input: SGVsbG8gV29ybGQ=
-status:
-  healthy: true
-  created: "2023-01-01T00:00:00Z"
-  events: []
-  revisions: 1`,
-			expected: BaseManifest{
-				APIVersion: "v1",
-				Kind:       "Blueprint",
-				Metadata: map[string]any{
-					"name":      "my-blueprint",
-					"namespace": "default",
-				},
-				Spec: map[string]any{
-					"artifact": map[string]any{
-						"source":   "github.com/user/myapp:v1.0.0",
-						"function": "process",
-						"input":    "SGVsbG8gV29ybGQ=",
-					},
-				},
-			},
-			expectError: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result, err := unmarshalManifest([]byte(tt.input))
-
-			if tt.expectError {
-				assert.Error(t, err, "Expected error for input: %s", tt.input)
-			} else {
-				require.NoError(t, err, "Unexpected error for input: %s", tt.input)
-				assert.Equal(t, tt.expected.APIVersion, result.APIVersion)
-				assert.Equal(t, tt.expected.Kind, result.Kind)
-				assert.Equal(t, tt.expected.Metadata, result.Metadata)
-				assert.Equal(t, tt.expected.Spec, result.Spec)
-			}
-		})
-	}
-}
-
 func TestErrInvalidIdentifier(t *testing.T) {
 	t.Run("ErrInvalidIdentifier is properly defined", func(t *testing.T) {
 		assert.NotNil(t, ErrInvalidIdentifier)
@@ -403,7 +290,7 @@ func TestAnyToProtoVal(t *testing.T) {
 		},
 		{
 			name:  "nested slice",
-			input: []interface{}{[]interface{}{int(1), int(2)}},
+			input: []any{[]any{int(1), int(2)}},
 			check: func(t *testing.T, got *pb.Val) {
 				t.Helper()
 				outer, ok := got.Value.(*pb.Val_ListVal)
@@ -416,7 +303,7 @@ func TestAnyToProtoVal(t *testing.T) {
 		},
 		{
 			name:  "empty map",
-			input: map[string]interface{}{},
+			input: map[string]any{},
 			check: func(t *testing.T, got *pb.Val) {
 				t.Helper()
 				v, ok := got.Value.(*pb.Val_RecordVal)
@@ -467,6 +354,106 @@ func TestAnyToProtoVal(t *testing.T) {
 			tt.check(t, got)
 		})
 	}
+}
+
+func TestProtoValToAny(t *testing.T) {
+	tests := []struct {
+		name  string
+		input *pb.Val
+		want  any
+	}{
+		{
+			name:  "nil proto value",
+			input: nil,
+			want:  nil,
+		},
+		{
+			name:  "bool",
+			input: &pb.Val{Value: &pb.Val_BoolVal{BoolVal: true}},
+			want:  true,
+		},
+		{
+			name:  "s64",
+			input: &pb.Val{Value: &pb.Val_S64Val{S64Val: -42}},
+			want:  int64(-42),
+		},
+		{
+			name:  "f64",
+			input: &pb.Val{Value: &pb.Val_F64Val{F64Val: 3.5}},
+			want:  float64(3.5),
+		},
+		{
+			name:  "string",
+			input: &pb.Val{Value: &pb.Val_StringVal{StringVal: "hello"}},
+			want:  "hello",
+		},
+		{
+			name: "list",
+			input: &pb.Val{
+				Value: &pb.Val_ListVal{ListVal: &pb.ListVal{Values: []*pb.Val{
+					{Value: &pb.Val_BoolVal{BoolVal: false}},
+					{Value: &pb.Val_S64Val{S64Val: 1}},
+					{Value: &pb.Val_StringVal{StringVal: "x"}},
+				}}},
+			},
+			want: []interface{}{false, int64(1), "x"},
+		},
+		{
+			name: "record",
+			input: &pb.Val{
+				Value: &pb.Val_RecordVal{
+					RecordVal: &pb.RecordVal{Fields: []*pb.RecordField{
+						{Name: "ok", Value: &pb.Val{Value: &pb.Val_BoolVal{BoolVal: true}}},
+						{Name: "n", Value: &pb.Val{Value: &pb.Val_S64Val{S64Val: 7}}},
+					}},
+				},
+			},
+			want: map[string]interface{}{"ok": true, "n": int64(7)},
+		},
+		{
+			name:  "option none",
+			input: &pb.Val{Value: &pb.Val_OptionVal{OptionVal: &pb.OptionVal{}}},
+			want:  nil,
+		},
+		{
+			name: "nested structure",
+			input: &pb.Val{
+				Value: &pb.Val_RecordVal{
+					RecordVal: &pb.RecordVal{Fields: []*pb.RecordField{
+						{
+							Name: "items",
+							Value: &pb.Val{
+								Value: &pb.Val_ListVal{ListVal: &pb.ListVal{Values: []*pb.Val{
+									{Value: &pb.Val_S64Val{S64Val: 1}},
+									{Value: &pb.Val_OptionVal{OptionVal: &pb.OptionVal{}}},
+								}}},
+							},
+						},
+					}},
+				},
+			},
+			want: map[string]interface{}{"items": []interface{}{int64(1), nil}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := protoValToAny(tt.input)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestAnyProtoValRoundTripSubset(t *testing.T) {
+	input := map[string]interface{}{
+		"flag": true,
+		"num":  int64(11),
+		"txt":  "abc",
+		"list": []interface{}{float64(1.5), nil, map[string]interface{}{"k": "v"}},
+	}
+
+	got := protoValToAny(anyToProtoVal(input))
+	assert.Equal(t, input, got)
 }
 
 // Benchmark tests for parseSource function
